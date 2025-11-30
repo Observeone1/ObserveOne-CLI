@@ -36,10 +36,9 @@ export interface TestExecution {
 }
 
 export interface TestResult {
-  status: "SUCCESS" | "FAILED";
+  status: "SUCCESS" | "FAILED" | "STARTED";
   message: string;
-  executionId?: number;
-  taskId?: string;
+  task_id?: string;
   results?: any[];
   screenshots?: string[];
   duration?: number;

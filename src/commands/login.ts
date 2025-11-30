@@ -43,110 +43,57 @@ export const loginCommand = new Command("login")
       );
       console.log("");
 
-      // Generate a unique state parameter for security
-      const state =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
+      // Start local server to receive the callback
+      const http = await import("http");
+      const server = http.createServer(async (req, res) => {
+        const url = new URL(req.url || "", `http://localhost:${port}`);
 
-      // Get environment-specific URLs
-      const authBaseUrl = ConfigManager.getAuthUrl();
-      const apiUrl = ConfigManager.getApiUrl();
+        // Handle CORS preflight
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-      // Start the authentication flow
-      OutputFormatter.progress("Initializing authentication...");
-
-      try {
-        // Call the backend to start CLI authentication
-        const authResponse = await apiClient.post("/auth/cli-auth", {
-          state,
-          redirect_uri: "polling", // Changed from callback URL
-        });
-
-        // Prefer server-provided URL; fallback to common fields; finally construct from auth base URL
-        let authUrl: string | undefined =
-          authResponse?.data?.authUrl ||
-          authResponse?.data?.url ||
-          authResponse?.data?.auth_url;
-
-        if (!authUrl && authBaseUrl) {
-          const sep = authBaseUrl.endsWith("/") ? "" : "/";
-          authUrl = `${authBaseUrl}${sep}auth/cli?state=${encodeURIComponent(
-            state
-          )}&redirect=polling`;
+        if (req.method === "OPTIONS") {
+          res.writeHead(204);
+          res.end();
+          return;
         }
 
-        if (!authUrl) {
-          throw new Error(
-            "Authentication URL was not provided by server and could not be constructed."
-          );
-        }
+        if (url.pathname === "/callback") {
+          const apiKey = url.searchParams.get("key");
 
-        console.log(chalk.blue("Opening browser for authentication..."));
-        console.log(
-          chalk.gray(
-            `Environment: ${
-              ConfigManager.isDevelopment() ? "Development" : "Production"
-            }`
-          )
-        );
-        console.log(chalk.gray(`Auth URL: ${authBaseUrl}`));
-        console.log(chalk.gray(`API URL: ${apiUrl}`));
-        console.log(
-          chalk.gray(`If the browser doesn't open automatically, visit:`)
-        );
-        console.log(chalk.blue(authUrl));
-        console.log("");
+          if (apiKey) {
+            // Success response page
+            const html = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <title>Authentication Successful</title>
+                <style>
+                  body { font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #0a0a0a; color: white; }
+                  .container { text-align: center; padding: 2rem; border-radius: 1rem; background: #1a1a1a; border: 1px solid #333; }
+                  h1 { color: #4ade80; margin-bottom: 1rem; }
+                  p { color: #a1a1aa; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <h1>Authentication Successful!</h1>
+                  <p>You can close this window and return to the terminal.</p>
+                </div>
+                <script>setTimeout(() => window.close(), 2000);</script>
+              </body>
+              </html>
+            `;
 
-        // Try to open the browser
-        try {
-          const platform = process.platform;
-          let command: string;
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(html);
 
-          if (platform === "win32") {
-            command = `start ${authUrl}`;
-          } else if (platform === "darwin") {
-            command = `open ${authUrl}`;
-          } else {
-            command = `xdg-open ${authUrl}`;
-          }
-
-          await execAsync(command);
-        } catch (error) {
-          console.log(
-            chalk.yellow(
-              "Could not open browser automatically. Please visit the URL above."
-            )
-          );
-        }
-
-        // Poll for authentication completion
-        console.log(chalk.yellow("⏳ Waiting for authentication..."));
-        console.log(chalk.gray("1. Complete login in your browser"));
-        console.log(
-          chalk.gray("2. Authentication will be detected automatically")
-        );
-        console.log("");
-
-        const maxAttempts = 60; // 5 minutes
-        const pollInterval = 5000; // 5 seconds
-
-        for (let i = 0; i < maxAttempts; i++) {
-          try {
-            const statusResponse = await apiClient.get(
-              `/auth/cli-status/${state}`
-            );
-
-            if (
-              statusResponse.data.authenticated &&
-              statusResponse.data.apiKey
-            ) {
-              const apiKey = statusResponse.data.apiKey;
-
-              // Store the API key and validate it
+            // Process the key
+            try {
               ConfigManager.setApiKey(apiKey);
               apiClient.setApiKey(apiKey);
 
-              // Validate the API key
               OutputFormatter.progress("Validating API key...");
               const isValid = await apiClient.validateToken();
 
@@ -155,73 +102,9 @@ export const loginCommand = new Command("login")
                 console.log(
                   chalk.gray(`API URL: ${ConfigManager.getApiUrl()}`)
                 );
-                console.log(
-                  chalk.gray(
-                    `Config saved to: ${ConfigManager.getConfigPath()}`
-                  )
-                );
 
-                // Setup project configuration if .obs1.config.json doesn't exist
-                const configPath = ".obs1.config.json";
-                if (!existsSync(configPath)) {
-                  console.log(
-                    chalk.bold("\n🚀 Setting up project configuration...")
-                  );
-
-                  const projectAnswers = await inquirer.prompt([
-                    {
-                      type: "input",
-                      name: "projectName",
-                      message: "Project name:",
-                      default:
-                        process.cwd().split(/[/\\]/).pop() || "My Project",
-                      validate: (input: string) => {
-                        if (!input.trim()) {
-                          return "Project name is required";
-                        }
-                        return true;
-                      },
-                    },
-                    {
-                      type: "input",
-                      name: "projectDescription",
-                      message: "Project description:",
-                      default: "AI-powered test automation project",
-                    },
-                  ]);
-
-                  // Create project configuration
-                  const projectConfig = {
-                    project: {
-                      name: projectAnswers.projectName,
-                      description: projectAnswers.projectDescription,
-                    },
-                    defaultOptions: {
-                      timeout: 600000,
-                      retries: 3,
-                      verbose: false,
-                      pollIntervalMs: 2000,
-                      maxAttempts: 300,
-                    },
-                  };
-
-                  writeFileSync(
-                    configPath,
-                    JSON.stringify(projectConfig, null, 2)
-                  );
-                  ConfigManager.setProjectConfig(projectConfig.project);
-                  ConfigManager.setDefaultOptions(projectConfig.defaultOptions);
-
-                  OutputFormatter.success("Project configuration created!");
-                  console.log(
-                    chalk.gray(
-                      `Configuration saved to: ${join(
-                        process.cwd(),
-                        configPath
-                      )}`
-                    )
-                  );
-                }
+                // Setup project config if needed
+                await setupProjectConfig();
 
                 console.log("");
                 console.log(chalk.bold("Next steps:"));
@@ -233,27 +116,110 @@ export const loginCommand = new Command("login")
                     '2. Run "obs1 ai-check <test-name>" to execute tests'
                   )
                 );
-                return;
+
+                server.close();
+                process.exit(0);
               } else {
-                OutputFormatter.error(
-                  "Invalid API key received. Please try again."
-                );
+                OutputFormatter.error("Invalid API key received.");
+                server.close();
                 process.exit(1);
               }
+            } catch (error) {
+              OutputFormatter.error("Failed to validate API key.");
+              server.close();
+              process.exit(1);
             }
-          } catch (pollError) {
-            // Continue polling on error
+          } else {
+            res.writeHead(400);
+            res.end("Missing API key");
           }
-
-          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        } else {
+          res.writeHead(404);
+          res.end("Not found");
         }
+      });
 
-        OutputFormatter.error("Authentication timed out. Please try again.");
-        process.exit(1);
-      } catch (error: any) {
-        console.log(error);
-        OutputFormatter.error(`Authentication failed: ${error.message}`);
-        process.exit(1);
+      // Start server on random port
+      const port = await new Promise<number>((resolve, reject) => {
+        server.listen(0, "127.0.0.1", () => {
+          const addr = server.address();
+          if (addr && typeof addr === "object") {
+            resolve(addr.port);
+          } else {
+            reject(new Error("Failed to get server port"));
+          }
+        });
+      });
+
+      // Construct Auth URL
+      const authBaseUrl = ConfigManager.getAuthUrl();
+      const authUrl = `${authBaseUrl}/cli-login?port=${port}`;
+
+      console.log(chalk.blue("Opening browser for authentication..."));
+      console.log(chalk.gray(`Auth URL: ${authUrl}`));
+      console.log(
+        chalk.gray(
+          "If the browser doesn't open automatically, visit the URL above."
+        )
+      );
+      console.log("");
+      console.log(chalk.yellow("⏳ Waiting for authentication..."));
+
+      // Open browser
+      try {
+        const platform = process.platform;
+        let command: string;
+        if (platform === "win32") command = `start ${authUrl}`;
+        else if (platform === "darwin") command = `open ${authUrl}`;
+        else command = `xdg-open ${authUrl}`;
+
+        await execAsync(command);
+      } catch (error) {
+        // Ignore open errors, user can copy link
+      }
+
+      // Helper for project setup (extracted from original code)
+      async function setupProjectConfig() {
+        const configPath = ".obs1.config.json";
+        if (!existsSync(configPath)) {
+          console.log(chalk.bold("\n🚀 Setting up project configuration..."));
+
+          const projectAnswers = await inquirer.prompt([
+            {
+              type: "input",
+              name: "projectName",
+              message: "Project name:",
+              default: process.cwd().split(/[/\\]/).pop() || "My Project",
+              validate: (input: string) =>
+                input.trim() ? true : "Project name is required",
+            },
+            {
+              type: "input",
+              name: "projectDescription",
+              message: "Project description:",
+              default: "AI-powered test automation project",
+            },
+          ]);
+
+          const projectConfig = {
+            project: {
+              name: projectAnswers.projectName,
+              description: projectAnswers.projectDescription,
+            },
+            defaultOptions: {
+              timeout: 600000,
+              retries: 3,
+              verbose: false,
+              pollIntervalMs: 2000,
+              maxAttempts: 300,
+            },
+          };
+
+          writeFileSync(configPath, JSON.stringify(projectConfig, null, 2));
+          ConfigManager.setProjectConfig(projectConfig.project);
+          ConfigManager.setDefaultOptions(projectConfig.defaultOptions);
+          OutputFormatter.success("Project configuration created!");
+        }
       }
     } catch (error: any) {
       OutputFormatter.error(OutputFormatter.formatError(error));

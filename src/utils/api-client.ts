@@ -7,7 +7,6 @@ import {
   ApiResponse,
   LoginResponse,
 } from "../types/index.js";
-import chalk from "chalk";
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -80,20 +79,12 @@ export class ApiClient {
 
   async validateToken(): Promise<boolean> {
     try {
-      // Try API key validation first
-      const response = await this.client.post("/api-keys/validate", {
-        key: this.apiKey,
-      });
-
-      return response.data.valid === true;
+      // Use /browser-checks as a validation endpoint since it's protected
+      // and we know it exists. We limit to 1 result to keep it lightweight.
+      await this.client.get("/browser-checks?limit=1");
+      return true;
     } catch (error: any) {
-      // Fallback to JWT validation for backward compatibility
-      try {
-        const response = await this.client.get("/auth/check");
-        return response.data.authenticated === true;
-      } catch (jwtError: any) {
-        return false;
-      }
+      return false;
     }
   }
 

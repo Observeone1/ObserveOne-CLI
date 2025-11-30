@@ -95,30 +95,33 @@ export const aiCheckCommand = new Command("ai-check")
               testSpinner.succeed(`Test "${test.name}" started`);
 
               // Always wait for completion (remove the if condition)
-              if (result.executionId) {
-                const waitSpinner = ora(
-                  "Waiting for test completion..."
-                ).start();
-                try {
-                  const execution = await apiClient.pollExecutionStatus(
-                    result.executionId,
-                    Math.floor(timeout / 5000),
-                    5000
-                  );
-                  waitSpinner.succeed(
-                    `Test "${test.name}" completed with status: ${execution.status}`
-                  );
+              if (result.task_id) {
+                const executionId = parseInt(result.task_id, 10);
+                if (!isNaN(executionId)) {
+                  const waitSpinner = ora(
+                    "Waiting for test completion..."
+                  ).start();
+                  try {
+                    const execution = await apiClient.pollExecutionStatus(
+                      executionId,
+                      Math.floor(timeout / 5000),
+                      5000
+                    );
+                    waitSpinner.succeed(
+                      `Test "${test.name}" completed with status: ${execution.status}`
+                    );
 
-                  // Update result with final status
-                  const finalResult = {
-                    ...result,
-                    status: execution.status as "SUCCESS" | "FAILED",
-                    message: execution.error_message || result.message,
-                  };
-                  results[results.length - 1] = finalResult;
-                } catch (error) {
-                  waitSpinner.fail(`Test "${test.name}" timed out or failed`);
-                  throw error;
+                    // Update result with final status
+                    const finalResult = {
+                      ...result,
+                      status: execution.status as "SUCCESS" | "FAILED",
+                      message: execution.error_message || result.message,
+                    };
+                    results[results.length - 1] = finalResult;
+                  } catch (error) {
+                    waitSpinner.fail(`Test "${test.name}" timed out or failed`);
+                    throw error;
+                  }
                 }
               }
             } catch (error) {
