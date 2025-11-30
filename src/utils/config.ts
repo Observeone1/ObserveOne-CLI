@@ -17,7 +17,7 @@ const getDefaultApiUrl = () => {
   if (isDevelopment()) {
     return "http://localhost:8080/api";
   }
-  return "https://www.observeone.com/api";
+  return "https://o1-backend-production.up.railway.app";
 };
 
 const getDefaultAuthUrl = () => {
