@@ -1,0 +1,31 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Development files
+__tests__/
+jest.config.js
+tsconfig.json
+.gitignore
+.npmignore
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Test results
+test-results/
+junit.xml
+results.xml
+
+
+

@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    environment {
+        OBS1_API_KEY = credentials('observeone-api-key')
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'npm install -g @observeone/cli'
+                sh 'obs1 login --api-key $OBS1_API_KEY'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    obs1 ai-check "Critical Tests" "Login Tests" \
+                        --reporter junit \
+                        --output test-results.xml \
+                        --wait
+                '''
+            }
+        }
+
+        stage('Publish Results') {
+            steps {
+                junit 'test-results.xml'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'test-results.xml', fingerprint: true
+        }
+        failure {
+            emailext (
+                subject: "ObserveOne Tests Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "ObserveOne tests failed. Check the build logs for details.",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+    }
+}
+
+
+
