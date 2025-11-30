@@ -70,7 +70,7 @@ export const aiCheckCommand = new Command("ai-check")
         try {
           const tests = await apiClient.getTests();
           const testsToRun = testNames
-            .filter((name) => !name.startsWith("-"))
+            .filter((name: string) => !name.startsWith("-"))
             .map((name: string) => {
               // Try to find by name first, then by ID
               let test = tests.find((t) => t.name === name);

@@ -45,11 +45,13 @@ export class LogWriter {
       this.writeLine("Actions:");
       step.actions.forEach((action: any, index: number) => {
         const actionType = Object.keys(action)[0];
-        const params = action[actionType];
-        const paramStr = Object.entries(params)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(", ");
-        this.writeLine(`  ${index + 1}. ${actionType} (${paramStr})`);
+        if (actionType) {
+          const params = action[actionType];
+          const paramStr = Object.entries(params)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ");
+          this.writeLine(`  ${index + 1}. ${actionType} (${paramStr})`);
+        }
       });
     }
 
