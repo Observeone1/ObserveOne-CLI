@@ -14,6 +14,7 @@ export const aiCheckCommand = new Command("ai-check")
   .option("-n, --name <name>", "Test name")
   .option("-d, --description <description>", "Test description")
   .option("-t, --timeout <timeout>", "Timeout in milliseconds", "300000")
+  .option("-v, --verbose", "Show detailed step information during execution")
   .option("-w, --wait", "Wait for test completion")
   .option("--adhoc", "Run as ad-hoc test (don't save to database)")
   .option(
@@ -68,20 +69,22 @@ export const aiCheckCommand = new Command("ai-check")
 
         try {
           const tests = await apiClient.getTests();
-          const testsToRun = testNames.map((name: string) => {
-            // Try to find by name first, then by ID
-            let test = tests.find((t) => t.name === name);
-            if (!test) {
-              const id = parseInt(name);
-              if (!isNaN(id)) {
-                test = tests.find((t) => t.id === id);
+          const testsToRun = testNames
+            .filter((name: string) => !name.startsWith("-"))
+            .map((name: string) => {
+              // Try to find by name first, then by ID
+              let test = tests.find((t) => t.name === name);
+              if (!test) {
+                const id = parseInt(name);
+                if (!isNaN(id)) {
+                  test = tests.find((t) => t.id === id);
+                }
               }
-            }
-            if (!test) {
-              throw new Error(`Test "${name}" not found`);
-            }
-            return test;
-          });
+              if (!test) {
+                throw new Error(`Test "${name}" not found`);
+              }
+              return test;
+            });
 
           spinner.succeed(`Found ${testsToRun.length} test(s) to run`);
 
@@ -94,35 +97,130 @@ export const aiCheckCommand = new Command("ai-check")
               results.push(result);
               testSpinner.succeed(`Test "${test.name}" started`);
 
-              // Always wait for completion (remove the if condition)
+              // Use SSE streaming for live progress
               if (result.task_id) {
-                const executionId = parseInt(result.task_id, 10);
-                if (!isNaN(executionId)) {
-                  const waitSpinner = ora(
-                    "Waiting for test completion..."
-                  ).start();
-                  try {
-                    const execution = await apiClient.pollExecutionStatus(
-                      executionId,
-                      Math.floor(timeout / 5000),
-                      5000
-                    );
-                    waitSpinner.succeed(
-                      `Test "${test.name}" completed with status: ${execution.status}`
-                    );
+                const { SSEClient } = await import("../utils/sse-client.js");
+                const { LiveProgressRenderer } = await import(
+                  "../utils/live-progress.js"
+                );
+                const { LogWriter } = await import("../utils/log-writer.js");
 
-                    // Update result with final status
-                    const finalResult = {
-                      ...result,
-                      status: execution.status as "SUCCESS" | "FAILED",
-                      message: execution.error_message || result.message,
-                    };
-                    results[results.length - 1] = finalResult;
-                  } catch (error) {
-                    waitSpinner.fail(`Test "${test.name}" timed out or failed`);
-                    throw error;
+                const sseClient = new SSEClient();
+                // Check if verbose flag was passed as an argument or option
+                const isVerbose =
+                  options.verbose ||
+                  testNames.includes("--verbose") ||
+                  testNames.includes("-v") ||
+                  process.env.OBS1_VERBOSE === "true";
+
+                const renderer = new LiveProgressRenderer({
+                  verbose: isVerbose,
+                });
+                const logger = new LogWriter(result.task_id);
+
+                renderer.start(test.name);
+
+                // Track completion
+                let completed = false;
+                let stepCounter = 0;
+
+                // Connect to SSE stream (non-blocking - starts immediately)
+                sseClient.connect(
+                  result.task_id,
+                  (message) => {
+                    // logger.writeMessage(message.type, message); // Removed to avoid raw JSON dump
+
+                    if (message.type === "step_update" && message.step) {
+                      stepCounter++;
+                      const step = message.step;
+
+                      // Check for screenshot in the message
+                      if (message.screenshot) {
+                        renderer.addScreenshot();
+                        logger.writeScreenshot(stepCounter);
+                      }
+
+                      renderer.updateStep(
+                        stepCounter,
+                        step.next_goal || "Processing...",
+                        step
+                      );
+                      logger.writeStep(step);
+                    } else if (message.type === "screenshot") {
+                      // Keep this for backward compatibility or if sent separately
+                      renderer.addScreenshot();
+                      logger.writeScreenshot(stepCounter);
+                    } else if (
+                      message.type === "complete" ||
+                      message.type === "task_completed"
+                    ) {
+                      const status =
+                        message.status === "failed" ? "failed" : "success";
+                      renderer.complete(status, message.message);
+                      logger.writeComplete(status, message.message);
+
+                      results[results.length - 1] = {
+                        ...result,
+                        status: (status === "success"
+                          ? "SUCCESS"
+                          : "FAILED") as "SUCCESS" | "FAILED",
+                        message: message.message || result.message,
+                      };
+
+                      completed = true;
+                      sseClient.close();
+                      logger.close();
+                      console.log(
+                        chalk.gray(`\nDetailed logs: ${logger.getPath()}`)
+                      );
+                    } else if (message.type === "error") {
+                      renderer.error(message.message || "Test failed");
+                      logger.writeComplete("failed", message.message);
+
+                      results[results.length - 1] = {
+                        ...result,
+                        status: "FAILED" as const,
+                        message: message.message || "Test execution error",
+                      };
+
+                      completed = true;
+                      sseClient.close();
+                      logger.close();
+                    }
+                  },
+                  (error) => {
+                    if (!completed) {
+                      renderer.error(`Connection error: ${error.message}`);
+                      logger.writeComplete(
+                        "failed",
+                        `Connection error: ${error.message}`
+                      );
+                      sseClient.close();
+                      logger.close();
+                      completed = true;
+                    }
                   }
-                }
+                );
+
+                // Wait for completion
+                await new Promise<void>((resolve) => {
+                  const checkInterval = setInterval(() => {
+                    if (completed) {
+                      clearInterval(checkInterval);
+                      resolve();
+                    }
+                  }, 100);
+
+                  setTimeout(() => {
+                    if (!completed) {
+                      clearInterval(checkInterval);
+                      renderer.error("Test execution timed out");
+                      sseClient.close();
+                      logger.close();
+                      resolve();
+                    }
+                  }, timeout);
+                });
               }
             } catch (error) {
               testSpinner.fail(`Test "${test.name}" failed`);

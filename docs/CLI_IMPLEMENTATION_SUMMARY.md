@@ -75,7 +75,8 @@ cli/
 
 - **Backend Integration**: Full integration with existing ObserveOne APIs
 - **Test Execution**: Support for both saved and ad-hoc tests
-- **Status Polling**: Real-time execution status monitoring
+- **Live Progress**: Real-time execution monitoring via SSE
+- **Log Persistence**: Automatic saving of execution logs
 - **Error Handling**: Comprehensive API error handling and user feedback
 
 ### 7. Additional Features ✅
