@@ -69,20 +69,22 @@ export const aiCheckCommand = new Command("ai-check")
 
         try {
           const tests = await apiClient.getTests();
-          const testsToRun = testNames.map((name: string) => {
-            // Try to find by name first, then by ID
-            let test = tests.find((t) => t.name === name);
-            if (!test) {
-              const id = parseInt(name);
-              if (!isNaN(id)) {
-                test = tests.find((t) => t.id === id);
+          const testsToRun = testNames
+            .filter((name) => !name.startsWith("-"))
+            .map((name: string) => {
+              // Try to find by name first, then by ID
+              let test = tests.find((t) => t.name === name);
+              if (!test) {
+                const id = parseInt(name);
+                if (!isNaN(id)) {
+                  test = tests.find((t) => t.id === id);
+                }
               }
-            }
-            if (!test) {
-              throw new Error(`Test "${name}" not found`);
-            }
-            return test;
-          });
+              if (!test) {
+                throw new Error(`Test "${name}" not found`);
+              }
+              return test;
+            });
 
           spinner.succeed(`Found ${testsToRun.length} test(s) to run`);
 
@@ -104,8 +106,15 @@ export const aiCheckCommand = new Command("ai-check")
                 const { LogWriter } = await import("../utils/log-writer.js");
 
                 const sseClient = new SSEClient();
+                // Check if verbose flag was passed as an argument or option
+                const isVerbose =
+                  options.verbose ||
+                  testNames.includes("--verbose") ||
+                  testNames.includes("-v") ||
+                  process.env.OBS1_VERBOSE === "true";
+
                 const renderer = new LiveProgressRenderer({
-                  verbose: options.verbose,
+                  verbose: isVerbose,
                 });
                 const logger = new LogWriter(result.task_id);
 
