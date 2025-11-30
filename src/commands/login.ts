@@ -8,6 +8,7 @@ import { ApiClient } from "../utils/api-client.js";
 import { OutputFormatter } from "../utils/output.js";
 import { exec } from "child_process";
 import { promisify } from "util";
+import * as http from "http";
 
 const execAsync = promisify(exec);
 
@@ -45,7 +46,18 @@ export const loginCommand = new Command("login")
 
       // Start local server to receive the callback
       const http = await import("http");
-      const server = http.createServer(async (req, res) => {
+      let server: http.Server; // Declare server variable
+
+      // Set a timeout for the login process
+      const loginTimeout = setTimeout(() => {
+        OutputFormatter.error("Login timed out after 3 minutes.");
+        if (server) {
+          server.close();
+        }
+        process.exit(1);
+      }, 180000); // 3 minutes
+
+      server = http.createServer(async (req, res) => {
         const url = new URL(req.url || "", `http://localhost:${port}`);
 
         // Handle CORS preflight
@@ -60,6 +72,7 @@ export const loginCommand = new Command("login")
         }
 
         if (url.pathname === "/callback") {
+          clearTimeout(loginTimeout); // Clear the timeout on success
           const apiKey = url.searchParams.get("key");
 
           if (apiKey) {
