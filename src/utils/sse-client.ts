@@ -40,7 +40,7 @@ export class SSEClient {
     try {
       const response = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          "x-obs1-cli": apiKey,
           Accept: "text/event-stream",
         },
         signal: this.abortController!.signal,

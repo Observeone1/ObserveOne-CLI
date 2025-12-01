@@ -9,12 +9,10 @@ export class ApiClient {
   constructor() {
     this.apiKey = ConfigManager.getApiKey();
 
-    const apiUrl = ConfigManager.getApiUrl();
     const isDev = ConfigManager.isDevelopment();
     const timeout = ConfigManager.getDefaultOptions().timeout || 30000;
 
     this.client = axios.create({
-      baseURL: apiUrl,
       timeout: timeout,
       headers: {
         "Content-Type": "application/json",
@@ -22,10 +20,12 @@ export class ApiClient {
       },
     });
 
-    // Add auth interceptor
+    // Add interceptor to set baseURL dynamically (allows --api-url to work)
     this.client.interceptors.request.use((config) => {
+      config.baseURL = ConfigManager.getApiUrl();
       if (this.apiKey) {
-        config.headers.Authorization = `Bearer ${this.apiKey}`;
+        // Backend expects CLI API keys in x-obs1-cli header, not Authorization
+        config.headers["x-obs1-cli"] = this.apiKey;
       }
       return config;
     });
@@ -57,7 +57,7 @@ export class ApiClient {
 
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
-    this.client.defaults.headers.Authorization = `Bearer ${apiKey}`;
+    this.client.defaults.headers["x-obs1-cli"] = apiKey;
   }
 
   async validateApiKey(apiKey: string): Promise<boolean> {

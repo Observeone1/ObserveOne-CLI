@@ -79,10 +79,10 @@ export const loginCommand = new Command("login")
 
           if (status.status === "approved" && status.api_key) {
             ConfigManager.setApiKey(status.api_key);
+            ConfigManager.setApiUrl(ConfigManager.getApiUrl());
             apiClient.setApiKey(status.api_key);
 
             OutputFormatter.success("Successfully authenticated!");
-            console.log(chalk.gray(`API URL: ${ConfigManager.getApiUrl()}`));
 
             // Setup project config if needed
             await setupProjectConfig();

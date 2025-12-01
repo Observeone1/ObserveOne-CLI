@@ -1,5 +1,4 @@
 import { Command } from "commander";
-import chalk from "chalk";
 import { ConfigManager } from "../utils/config.js";
 import { ApiClient } from "../utils/api-client.js";
 import { OutputFormatter } from "../utils/output.js";
