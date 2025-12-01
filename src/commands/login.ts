@@ -2,13 +2,11 @@ import { Command } from "commander";
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { existsSync, writeFileSync } from "fs";
-import { join } from "path";
 import { ConfigManager } from "../utils/config.js";
 import { ApiClient } from "../utils/api-client.js";
 import { OutputFormatter } from "../utils/output.js";
 import { exec } from "child_process";
 import { promisify } from "util";
-import * as http from "http";
 
 const execAsync = promisify(exec);
 
@@ -39,137 +37,17 @@ export const loginCommand = new Command("login")
 
       // Browser-based authentication flow
       console.log(chalk.bold("\n🔐 ObserveOne Authentication"));
+
+      // Request auth session
+      OutputFormatter.progress("Requesting authentication session...");
+      const { request_id, auth_url } = await apiClient.requestCliAuth();
+
       console.log(
         chalk.gray("We'll open your browser to authenticate with ObserveOne")
       );
       console.log("");
-
-      // Start local server to receive the callback
-      const http = await import("http");
-      let server: http.Server; // Declare server variable
-
-      // Set a timeout for the login process
-      const loginTimeout = setTimeout(() => {
-        OutputFormatter.error("Login timed out after 3 minutes.");
-        if (server) {
-          server.close();
-        }
-        process.exit(1);
-      }, 180000); // 3 minutes
-
-      server = http.createServer(async (req, res) => {
-        const url = new URL(req.url || "", `http://localhost:${port}`);
-
-        // Handle CORS preflight
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-        if (req.method === "OPTIONS") {
-          res.writeHead(204);
-          res.end();
-          return;
-        }
-
-        if (url.pathname === "/callback") {
-          clearTimeout(loginTimeout); // Clear the timeout on success
-          const apiKey = url.searchParams.get("key");
-
-          if (apiKey) {
-            // Success response page
-            const html = `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <title>Authentication Successful</title>
-                <style>
-                  body { font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #0a0a0a; color: white; }
-                  .container { text-align: center; padding: 2rem; border-radius: 1rem; background: #1a1a1a; border: 1px solid #333; }
-                  h1 { color: #4ade80; margin-bottom: 1rem; }
-                  p { color: #a1a1aa; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <h1>Authentication Successful!</h1>
-                  <p>You can close this window and return to the terminal.</p>
-                </div>
-                <script>setTimeout(() => window.close(), 2000);</script>
-              </body>
-              </html>
-            `;
-
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(html);
-
-            // Process the key
-            try {
-              ConfigManager.setApiKey(apiKey);
-              apiClient.setApiKey(apiKey);
-
-              OutputFormatter.progress("Validating API key...");
-              const isValid = await apiClient.validateToken();
-
-              if (isValid) {
-                OutputFormatter.success("Successfully authenticated!");
-                console.log(
-                  chalk.gray(`API URL: ${ConfigManager.getApiUrl()}`)
-                );
-
-                // Setup project config if needed
-                await setupProjectConfig();
-
-                console.log("");
-                console.log(chalk.bold("Next steps:"));
-                console.log(
-                  chalk.gray('1. Run "obs1 list" to see available tests')
-                );
-                console.log(
-                  chalk.gray(
-                    '2. Run "obs1 ai-check <test-name>" to execute tests'
-                  )
-                );
-
-                server.close();
-                process.exit(0);
-              } else {
-                OutputFormatter.error("Invalid API key received.");
-                server.close();
-                process.exit(1);
-              }
-            } catch (error) {
-              OutputFormatter.error("Failed to validate API key.");
-              server.close();
-              process.exit(1);
-            }
-          } else {
-            res.writeHead(400);
-            res.end("Missing API key");
-          }
-        } else {
-          res.writeHead(404);
-          res.end("Not found");
-        }
-      });
-
-      // Start server on random port
-      const port = await new Promise<number>((resolve, reject) => {
-        server.listen(0, "127.0.0.1", () => {
-          const addr = server.address();
-          if (addr && typeof addr === "object") {
-            resolve(addr.port);
-          } else {
-            reject(new Error("Failed to get server port"));
-          }
-        });
-      });
-
-      // Construct Auth URL
-      const authBaseUrl = ConfigManager.getAuthUrl();
-      const authUrl = `${authBaseUrl}/cli-login?port=${port}`;
-
       console.log(chalk.blue("Opening browser for authentication..."));
-      console.log(chalk.gray(`Auth URL: ${authUrl}`));
+      console.log(chalk.gray(`Auth URL: ${auth_url}`));
       console.log(
         chalk.gray(
           "If the browser doesn't open automatically, visit the URL above."
@@ -178,18 +56,64 @@ export const loginCommand = new Command("login")
       console.log("");
       console.log(chalk.yellow("⏳ Waiting for authentication..."));
 
-      // Open browser
       try {
         const platform = process.platform;
         let command: string;
-        if (platform === "win32") command = `start ${authUrl}`;
-        else if (platform === "darwin") command = `open ${authUrl}`;
-        else command = `xdg-open ${authUrl}`;
+        if (platform === "win32") command = `start "" "${auth_url}"`;
+        else if (platform === "darwin") command = `open "${auth_url}"`;
+        else command = `xdg-open "${auth_url}"`;
 
         await execAsync(command);
       } catch (error) {
         // Ignore open errors, user can copy link
       }
+
+      // Poll for status
+      const maxAttempts = 60; // 5 minutes (5s interval)
+      const intervalMs = 5000;
+      let attempts = 0;
+
+      while (attempts < maxAttempts) {
+        try {
+          const status = await apiClient.checkCliAuthStatus(request_id);
+
+          if (status.status === "approved" && status.api_key) {
+            ConfigManager.setApiKey(status.api_key);
+            apiClient.setApiKey(status.api_key);
+
+            OutputFormatter.success("Successfully authenticated!");
+            console.log(chalk.gray(`API URL: ${ConfigManager.getApiUrl()}`));
+
+            // Setup project config if needed
+            await setupProjectConfig();
+
+            console.log("");
+            console.log(chalk.bold("Next steps:"));
+            console.log(
+              chalk.gray('1. Run "obs1 list" to see available tests')
+            );
+            console.log(
+              chalk.gray('2. Run "obs1 ai-check <test-name>" to execute tests')
+            );
+
+            process.exit(0);
+          } else if (status.status === "denied") {
+            OutputFormatter.error("Authentication denied by user.");
+            process.exit(1);
+          }
+
+          // Wait before next poll
+          await new Promise((resolve) => setTimeout(resolve, intervalMs));
+          attempts++;
+        } catch (error) {
+          // If 404 or other error, might be expired or invalid
+          attempts++;
+          await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        }
+      }
+
+      OutputFormatter.error("Authentication timed out.");
+      process.exit(1);
 
       // Helper for project setup (extracted from original code)
       async function setupProjectConfig() {

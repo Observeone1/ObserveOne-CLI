@@ -9,7 +9,6 @@ const isDevelopment = () => {
     process.env.OBS1_DEV === "true" ||
     process.env.OBS1_DEV === "1" ||
     process.env.NODE_ENV === "dev";
-
   return isDev;
 };
 
@@ -17,7 +16,7 @@ const getDefaultApiUrl = () => {
   if (isDevelopment()) {
     return "http://localhost:8080/api";
   }
-  return "https://o1-backend-production.up.railway.app";
+  return "https://o1-backend-production.up.railway.app/api";
 };
 
 const getDefaultAuthUrl = () => {

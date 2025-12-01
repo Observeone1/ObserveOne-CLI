@@ -1,12 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { ConfigManager } from "./config.js";
-import {
-  Test,
-  TestExecution,
-  TestResult,
-  ApiResponse,
-  LoginResponse,
-} from "../types/index.js";
+import { Test, TestExecution, TestResult } from "../types/index.js";
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -215,5 +209,24 @@ export class ApiClient {
     throw new Error(
       `Test execution ${executionId} did not complete within the timeout period`
     );
+  }
+
+  async requestCliAuth(): Promise<{ request_id: string; auth_url: string }> {
+    const response = await this.client.post<{
+      request_id: string;
+      auth_url: string;
+    }>("/cli/auth/request");
+    return response.data;
+  }
+
+  async checkCliAuthStatus(requestId: string): Promise<{
+    status: "pending" | "approved" | "denied";
+    api_key?: string;
+  }> {
+    const response = await this.client.get<{
+      status: "pending" | "approved" | "denied";
+      api_key?: string;
+    }>(`/cli/auth/check/${requestId}`);
+    return response.data;
   }
 }
