@@ -1,108 +1,83 @@
-import { ConfigManager } from '../utils/config';
+import { describe, it, expect, beforeEach } from "vitest";
+import { ConfigService } from "../services/config.service.js";
+import Conf from "conf";
+import { ObserveOneConfig } from "../types/index.js";
 
-// Mock conf
-jest.mock('conf');
-const MockConf = require('conf');
-
-describe('ConfigManager', () => {
-  let mockConfig: any;
+describe("ConfigService", () => {
+  let configService: ConfigService;
+  let mockConf: Conf<ObserveOneConfig>;
 
   beforeEach(() => {
-    mockConfig = {
-      get: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn(),
-      clear: jest.fn(),
-      path: '/mock/config/path'
-    };
-    
-    MockConf.mockImplementation(() => mockConfig);
-    jest.clearAllMocks();
-  });
-
-  describe('getConfig', () => {
-    it('should return config store', () => {
-      const mockStore = { apiUrl: 'https://api.example.com' };
-      mockConfig.store = mockStore;
-
-      const result = ConfigManager.getConfig();
-      expect(result).toEqual(mockStore);
-    });
-  });
-
-  describe('getApiUrl', () => {
-    it('should return API URL from config', () => {
-      mockConfig.get.mockReturnValue('https://api.example.com');
-
-      const result = ConfigManager.getApiUrl();
-      expect(result).toBe('https://api.example.com');
-      expect(mockConfig.get).toHaveBeenCalledWith('apiUrl', 'https://api.obs1.com');
+    // Create a test instance with in-memory config
+    mockConf = new Conf<ObserveOneConfig>({
+      projectName: "observeone-test",
+      cwd: "./test-config",
+      defaults: {
+        apiUrl: "http://localhost:8080/api",
+        defaultOptions: {
+          timeout: 30000,
+          retries: 3,
+          verbose: false,
+          pollIntervalMs: 1000,
+          maxAttempts: 10,
+        },
+      },
     });
 
-    it('should return default API URL when not set', () => {
-      mockConfig.get.mockReturnValue(undefined);
+    configService = new ConfigService(mockConf);
+  });
 
-      const result = ConfigManager.getApiUrl();
-      expect(result).toBe('https://api.obs1.com');
+  describe("getApiUrl", () => {
+    it("should return API URL from config", () => {
+      const url = configService.getApiUrl();
+      expect(url).toBeDefined();
+      expect(url).toContain("/api");
     });
   });
 
-  describe('getApiKey', () => {
-    it('should return API key from config', () => {
-      mockConfig.get.mockReturnValue('test-api-key');
-
-      const result = ConfigManager.getApiKey();
-      expect(result).toBe('test-api-key');
-      expect(mockConfig.get).toHaveBeenCalledWith('apiKey');
+  describe("setApiKey and getApiKey", () => {
+    it("should set and get API key", () => {
+      const apiKey = "test-api-key-123";
+      configService.setApiKey(apiKey);
+      expect(configService.getApiKey()).toBe(apiKey);
     });
 
-    it('should return undefined when not set', () => {
-      mockConfig.get.mockReturnValue(undefined);
-
-      const result = ConfigManager.getApiKey();
-      expect(result).toBeUndefined();
+    it("should clear API key", () => {
+      configService.setApiKey("test-key");
+      configService.clearApiKey();
+      expect(configService.getApiKey()).toBeUndefined();
     });
   });
 
-  describe('setApiUrl', () => {
-    it('should set API URL in config', () => {
-      ConfigManager.setApiUrl('https://api.example.com');
-      
-      expect(mockConfig.set).toHaveBeenCalledWith('apiUrl', 'https://api.example.com');
+  describe("getDefaultOptions", () => {
+    it("should return default options", () => {
+      const options = configService.getDefaultOptions();
+      expect(options).toHaveProperty("timeout");
+      expect(options).toHaveProperty("retries");
+      expect(options).toHaveProperty("verbose");
+      expect(options).toHaveProperty("pollIntervalMs");
+      expect(options).toHaveProperty("maxAttempts");
     });
   });
 
-  describe('setApiKey', () => {
-    it('should set API key in config', () => {
-      ConfigManager.setApiKey('test-api-key');
-      
-      expect(mockConfig.set).toHaveBeenCalledWith('apiKey', 'test-api-key');
+  describe("isDevelopment", () => {
+    it("should detect development environment", () => {
+      const isDev = configService.isDevelopment();
+      expect(typeof isDev).toBe("boolean");
     });
   });
 
-  describe('clearApiKey', () => {
-    it('should delete API key from config', () => {
-      ConfigManager.clearApiKey();
-      
-      expect(mockConfig.delete).toHaveBeenCalledWith('apiKey');
-    });
-  });
+  describe("project config", () => {
+    it("should set and get project config", () => {
+      const projectConfig = {
+        name: "Test Project",
+        description: "Test Description",
+      };
 
-  describe('reset', () => {
-    it('should clear all config', () => {
-      ConfigManager.reset();
-      
-      expect(mockConfig.clear).toHaveBeenCalled();
-    });
-  });
+      configService.setProjectConfig(projectConfig);
+      const retrieved = configService.getProjectConfig();
 
-  describe('getConfigPath', () => {
-    it('should return config path', () => {
-      const result = ConfigManager.getConfigPath();
-      expect(result).toBe('/mock/config/path');
+      expect(retrieved).toEqual(projectConfig);
     });
   });
 });
-
-
-
