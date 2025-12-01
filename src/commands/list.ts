@@ -27,7 +27,8 @@ export const listCommand = new Command("list")
       ) {
         OutputFormatter.formatJsonOutput(tests);
       } else {
-        OutputFormatter.formatTestList(tests);
+        const isVerbose = process.env.OBS1_VERBOSE === "true";
+        OutputFormatter.formatTestList(tests, isVerbose);
       }
     } catch (error: any) {
       OutputFormatter.error(OutputFormatter.formatError(error));

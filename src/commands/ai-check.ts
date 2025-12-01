@@ -36,6 +36,7 @@ export const aiCheckCommand = new Command("ai-check")
       const apiClient = new ApiClient();
       const timeout = parseInt(options.timeout);
       const results: TestResult[] = [];
+      const testNamesForReport: string[] = []; // Track test names for reporting
 
       // If no test names provided, check for ad-hoc options
       if (testNames.length === 0) {
@@ -58,7 +59,130 @@ export const aiCheckCommand = new Command("ai-check")
           });
 
           results.push(result);
-          spinner.succeed("Ad-hoc test completed");
+          testNamesForReport.push(options.name || "Ad-hoc Test");
+          spinner.succeed("Ad-hoc test started");
+
+          // Use SSE streaming for live progress (same as regular tests)
+          if (result.task_id) {
+            const { SSEClient } = await import("../utils/sse-client.js");
+            const { LiveProgressRenderer } = await import(
+              "../utils/live-progress.js"
+            );
+            const { LogWriter } = await import("../utils/log-writer.js");
+
+            const sseClient = new SSEClient();
+            const isVerbose =
+              options.verbose || process.env.OBS1_VERBOSE === "true";
+
+            const renderer = new LiveProgressRenderer({
+              verbose: isVerbose,
+            });
+            const logger = new LogWriter(result.task_id);
+
+            renderer.start(options.name || "Ad-hoc Test");
+
+            // Track completion
+            let completed = false;
+            let stepCounter = 0;
+
+            // Connect to SSE stream
+            sseClient.connect(
+              result.task_id,
+              (message) => {
+                if (message.type === "step_update" && message.step) {
+                  stepCounter++;
+                  const step = message.step;
+
+                  if (message.screenshot) {
+                    renderer.addScreenshot();
+                    logger.writeScreenshot(stepCounter);
+                  }
+
+                  renderer.updateStep(
+                    stepCounter,
+                    step.next_goal || "Processing...",
+                    step
+                  );
+                  logger.writeStep(step);
+                } else if (message.type === "screenshot") {
+                  renderer.addScreenshot();
+                  logger.writeScreenshot(stepCounter);
+                } else if (
+                  message.type === "complete" ||
+                  message.type === "task_completed"
+                ) {
+                  const status =
+                    message.status === "failed" ? "failed" : "success";
+                  renderer.complete(status, message.message);
+                  logger.writeComplete(status, message.message);
+
+                  // Calculate duration
+                  const duration = Date.now() - renderer.getStartTime();
+
+                  results[results.length - 1] = {
+                    ...result,
+                    status: (status === "success"
+                      ? "SUCCESS"
+                      : "FAILED") as "SUCCESS" | "FAILED",
+                    message: message.message || result.message,
+                    duration: duration,
+                  };
+
+                  completed = true;
+                  sseClient.close();
+                  logger.close();
+                  console.log(
+                    chalk.gray(`\nDetailed logs: ${logger.getPath()}`)
+                  );
+                } else if (message.type === "error") {
+                  renderer.error(message.message || "Test failed");
+                  logger.writeComplete("failed", message.message);
+
+                  results[results.length - 1] = {
+                    ...result,
+                    status: "FAILED" as const,
+                    message: message.message || "Test execution error",
+                  };
+
+                  completed = true;
+                  sseClient.close();
+                  logger.close();
+                }
+              },
+              (error) => {
+                if (!completed) {
+                  renderer.error(`Connection error: ${error.message}`);
+                  logger.writeComplete(
+                    "failed",
+                    `Connection error: ${error.message}`
+                  );
+                  sseClient.close();
+                  logger.close();
+                  completed = true;
+                }
+              }
+            );
+
+            // Wait for completion
+            await new Promise<void>((resolve) => {
+              const checkInterval = setInterval(() => {
+                if (completed) {
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              }, 100);
+
+              setTimeout(() => {
+                if (!completed) {
+                  clearInterval(checkInterval);
+                  renderer.error("Test execution timed out");
+                  sseClient.close();
+                  logger.close();
+                  resolve();
+                }
+              }, timeout);
+            });
+          }
         } catch (error) {
           spinner.fail("Ad-hoc test failed");
           throw error;

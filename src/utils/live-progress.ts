@@ -144,4 +144,8 @@ export class LiveProgressRenderer {
         return `${actionType}: ${JSON.stringify(params)}`;
     }
   }
+
+  getStartTime(): number {
+    return this.startTime;
+  }
 }

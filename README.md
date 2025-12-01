@@ -5,7 +5,7 @@ AI-powered website monitoring and testing from your terminal. Run intelligent br
 ## Installation
 
 ```bash
-npm install -g @observeone/cli
+npm install -g observeone-cli
 ```
 
 ## Quick Start
@@ -45,8 +45,6 @@ obs1 login --api-key <your-api-key>
 **Options:**
 
 - `-k, --api-key <key>` - API key for authentication
-
-**Note:** The interactive login currently requires you to be logged into the ObserveOne dashboard first.
 
 ---
 
@@ -212,11 +210,12 @@ obs1 ai-check my-test && echo "Tests passed!"
 
 ## Logs
 
-Detailed execution logs are automatically saved to:
+Detailed execution logs are automatically saved to your system's config directory:
 
-```
-.obs1/logs/execution-<task-id>.log
-```
+- **Windows**: `%APPDATA%\observeone-nodejs\Config\logs\`
+- **macOS/Linux**: `~/.config/observeone-nodejs/logs/`
+
+Log files are named: `execution-<task-id>-<timestamp>.log`
 
 Each log includes:
 
@@ -228,9 +227,7 @@ Each log includes:
 
 ## Support
 
-- **Documentation**: [docs.observeone.com](https://docs.observeone.com)
-- **Issues**: [github.com/observeone/cli/issues](https://github.com/observeone/cli/issues)
-- **npm**: [npmjs.com/package/@observeone/cli](https://www.npmjs.com/package/@observeone/cli)
+- **npm**: [npmjs.com/package/observeone-cli](https://www.npmjs.com/package/observeone-cli)
 
 ## License
 

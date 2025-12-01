@@ -22,7 +22,7 @@ export class OutputFormatter {
     console.log(chalk.cyan(`🔄 ${message}`));
   }
 
-  static formatTestList(tests: Test[]): void {
+  static formatTestList(tests: Test[], verbose: boolean = false): void {
     if (tests.length === 0) {
       this.info("No tests found.");
       return;
@@ -43,6 +43,29 @@ export class OutputFormatter {
           `   Created: ${new Date(test.created_at).toLocaleDateString()}`
         )
       );
+
+      if (verbose) {
+        // Show additional fields in verbose mode
+        if ((test as any).prompt) {
+          console.log(chalk.gray(`   Prompt: ${(test as any).prompt}`));
+        }
+        if ((test as any).status) {
+          console.log(chalk.gray(`   Status: ${(test as any).status}`));
+        }
+        if ((test as any).uptime_percentage !== undefined) {
+          console.log(
+            chalk.gray(
+              `   Uptime: ${(test as any).uptime_percentage.toFixed(2)}%`
+            )
+          );
+        }
+        console.log(
+          chalk.gray(
+            `   Updated: ${new Date(test.updated_at).toLocaleDateString()}`
+          )
+        );
+      }
+
       console.log("");
     });
   }

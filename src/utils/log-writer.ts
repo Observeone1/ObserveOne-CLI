@@ -1,13 +1,16 @@
 import fs from "fs";
 import path from "path";
+import { ConfigManager } from "./config.js";
 
 export class LogWriter {
   private logPath: string;
   private stream: fs.WriteStream;
 
   constructor(taskId: string) {
-    // Create logs directory in .obs1 folder
-    const logsDir = path.join(process.cwd(), ".obs1", "logs");
+    // Create logs directory in the same location as config
+    const configPath = ConfigManager.getConfigPath();
+    const configDir = path.dirname(configPath);
+    const logsDir = path.join(configDir, "logs");
     fs.mkdirSync(logsDir, { recursive: true });
 
     // Create log file with timestamp
