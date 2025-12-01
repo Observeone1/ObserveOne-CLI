@@ -19,13 +19,6 @@ const getDefaultApiUrl = () => {
   return "https://o1-backend-production.up.railway.app/api";
 };
 
-const getDefaultAuthUrl = () => {
-  if (isDevelopment()) {
-    return "http://localhost:3001";
-  }
-  return "https://www.observeone.com";
-};
-
 const config = new Conf<ObserveOneConfig>({
   projectName: "observeone",
   defaults: {
@@ -48,10 +41,6 @@ export class ConfigManager {
   static getApiUrl(): string {
     // Always check environment first, then fall back to config
     return process.env.OBS1_API_URL || getDefaultApiUrl();
-  }
-
-  static getAuthUrl(): string {
-    return process.env.OBS1_AUTH_URL || getDefaultAuthUrl();
   }
 
   static isDevelopment(): boolean {
