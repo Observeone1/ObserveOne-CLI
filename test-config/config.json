@@ -1,0 +1,14 @@
+{
+	"apiUrl": "http://localhost:8080/api",
+	"defaultOptions": {
+		"timeout": 30000,
+		"retries": 3,
+		"verbose": false,
+		"pollIntervalMs": 1000,
+		"maxAttempts": 10
+	},
+	"project": {
+		"name": "Test Project",
+		"description": "Test Description"
+	}
+}
