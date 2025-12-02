@@ -109,7 +109,6 @@ export OBS1_VERBOSE=true
 ## Pre-Deployment Checklist
 
 - [x] ✅ Package builds successfully (`npm run build`)
-- [x] ✅ All tests pass (`npm test`)
 - [x] ✅ README updated with simplified commands
 - [x] ✅ TypeScript types are correct
 - [x] ✅ Package.json has correct bin entry

@@ -4,15 +4,25 @@ import { Command } from "commander";
 import "dotenv/config";
 import chalk from "chalk";
 import { readFileSync } from "fs";
+
+// Import DI infrastructure
+import { createContainer } from "./di/services.js";
+import { CONFIG_SERVICE } from "./di/service-tokens.js";
+import { IConfigService } from "./interfaces/config.interface.js";
+
+// Import command factories
+import { createLoginCommand } from "./commands/login.js";
+import { createListCommand } from "./commands/list.js";
+import { createAiCheckCommand } from "./commands/ai-check.js";
+
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8")
 );
 const { version } = packageJson;
-import { loginCommand } from "./commands/login.js";
-import { listCommand } from "./commands/list.js";
-import { aiCheckCommand } from "./commands/ai-check.js";
-// removed: status and watch commands
-import { ConfigManager } from "./utils/config.js";
+
+// Create DI container
+const container = createContainer();
+const configService = container.resolve<IConfigService>(CONFIG_SERVICE);
 
 const program = new Command();
 
@@ -30,7 +40,6 @@ program
 
 // Global error handler: don't treat help/version as errors
 program.exitOverride((err) => {
-  // CommanderError shape
   const anyErr: any = err as any;
   const code = anyErr?.code || "";
   if (code === "commander.helpDisplayed" || code === "commander.version") {
@@ -39,11 +48,10 @@ program.exitOverride((err) => {
   throw err;
 });
 
-// Add commands
-program.addCommand(loginCommand);
-program.addCommand(listCommand);
-program.addCommand(aiCheckCommand);
-// status and watch removed per simplification
+// Add commands created via DI
+program.addCommand(createLoginCommand(container));
+program.addCommand(createListCommand(container));
+program.addCommand(createAiCheckCommand(container));
 
 // Global options handler
 program.hook("preAction", (thisCommand) => {
@@ -59,11 +67,11 @@ program.hook("preAction", (thisCommand) => {
   }
 
   if (options.apiUrl) {
-    ConfigManager.setApiUrl(options.apiUrl);
+    configService.setApiUrl(options.apiUrl);
   }
 
   if (options.apiKey) {
-    ConfigManager.setApiKey(options.apiKey);
+    configService.setApiKey(options.apiKey);
   }
 });
 

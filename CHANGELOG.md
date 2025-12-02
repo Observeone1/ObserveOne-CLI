@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-12-02
+
+### Fixed
+
+- **API Key Option Parsing**: Fixed issue where --api-key option wasn't working properly in all scenarios
+  - Now supports both global `obs1 --api-key <key> login` and command-specific `obs1 login --api-key <key>` usage
+  - Proper prioritization: command-specific options take precedence over global options, which take precedence over stored config values
+  - Maintains backward compatibility with existing functionality
+
 ## [1.1.2] - 2025-12-01
 
 ### Added

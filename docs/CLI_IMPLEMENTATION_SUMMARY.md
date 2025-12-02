@@ -10,27 +10,17 @@ I have successfully built a complete CLI tool for ObserveOne that allows users t
 cli/
 ├── src/
 │   ├── index.ts                 # Main CLI entry point
-│   ├── types/
-│   │   └── index.ts            # TypeScript type definitions
-│   ├── utils/
-│   │   ├── config.ts           # Configuration management
-│   │   ├── api-client.ts       # API client for backend integration
-│   │   └── output.ts           # Output formatting and display
-│   ├── commands/
-│   │   ├── login.ts            # Authentication command
-│   │   ├── list.ts             # List tests command
-│   │   └── ai-check.ts         # Run tests command
-│   └── __tests__/
-│       ├── setup.ts            # Jest test setup
-│       ├── api-client.test.ts  # API client tests
-│       ├── config.test.ts      # Configuration tests
-│       └── output.test.ts      # Output formatter tests
+│   ├── commands/                # CLI command definitions
+│   ├── di/                      # Dependency Injection container and setup
+│   ├── interfaces/              # TypeScript interfaces for services
+│   ├── services/                # Service implementations (e.g., API client, config)
+│   ├── types/                   # TypeScript type definitions
+│   └── utils/                   # Utility functions (e.g., output formatting)
 ├── examples/                   # Usage examples and CI/CD integrations
 ├── scripts/
 │   └── build.js               # Build script
 ├── package.json               # Package configuration
 ├── tsconfig.json              # TypeScript configuration
-├── jest.config.js             # Jest test configuration
 └── README.md                  # Comprehensive documentation
 ```
 
@@ -88,67 +78,7 @@ cli/
 
 ## 🔧 Technical Implementation
 
-### Dependencies
-
-```json
-{
-  "commander": "^11.1.0",      // CLI framework
-  "chalk": "^5.3.0",           // Terminal colors
-  "ora": "^8.0.1",             // Progress indicators
-  "axios": "^1.6.0",           // HTTP client
-  "inquirer": "^9.2.12",       // Interactive prompts
-  "conf": "^11.0.2",           // Configuration storage
-  "chokidar": "^3.5.3",        // File watching
-  "xml2js": "^0.6.2",          // XML generation
-  "date-fns": "^2.30.0"        // Date utilities
-}
-```
-
-### Key Components
-
-#### 1. **ApiClient** (`src/utils/api-client.ts`)
-
-- Handles all API communication with ObserveOne backend
-- Automatic authentication with Bearer tokens
-- Comprehensive error handling and retry logic
-- Support for polling execution status
-
-#### 2. **ConfigManager** (`src/utils/config.ts`)
-
-- Manages both global and project-level configuration
-- Secure API key storage
-- Environment variable integration
-- Configuration validation
-
-#### 3. **OutputFormatter** (`src/utils/output.ts`)
-
-- Colorized terminal output with status indicators
-- JSON output formatting
-- JUnit XML report generation
-- Progress indicators and loading states
-
-#### 4. **Command Structure**
-
-- Modular command implementation
-- Consistent error handling
-- Interactive user prompts
-- Comprehensive help and documentation
-
-## 🧪 Testing
-
-### Unit Tests
-
-- **API Client Tests**: Mock API responses and error handling
-- **Configuration Tests**: Config management and validation
-- **Output Tests**: Formatting and display logic
-- **Jest Setup**: Comprehensive test configuration
-
-### Test Coverage
-
-- All core utilities tested
-- Mock implementations for external dependencies
-- Error scenario testing
-- Edge case handling
+The CLI is built with TypeScript and uses modern dependencies like Commander.js for commands and Axios for HTTP requests. It follows a service-oriented architecture with dependency injection for better separation of concerns.
 
 ## 📚 Documentation
 

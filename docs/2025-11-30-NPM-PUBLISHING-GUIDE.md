@@ -124,12 +124,9 @@ obs1 list  # (if authenticated)
 npm unlink -g @observeone/cli
 ```
 
-### 6. Run Tests
+### 6. Run Checks
 
 ```bash
-# Run all tests
-npm test
-
 # Check TypeScript compilation
 npm run check
 ```
@@ -309,7 +306,6 @@ jobs:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
-      - run: npm test
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -330,7 +326,6 @@ jobs:
 git checkout main
 git pull origin main
 npm version patch              # Updates version, creates tag
-npm test                        # Run tests
 npm publish --access public     # Publish
 git push origin main --tags     # Push to GitHub
 

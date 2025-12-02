@@ -1,37 +1,54 @@
 import { Command } from "commander";
-import { ConfigManager } from "../utils/config.js";
-import { ApiClient } from "../utils/api-client.js";
-import { OutputFormatter } from "../utils/output.js";
+import { Container } from "../di/container.js";
+import {
+  CONFIG_SERVICE,
+  API_CLIENT,
+  OUTPUT_SERVICE,
+  PROCESS,
+} from "../di/service-tokens.js";
+import { IConfigService } from "../interfaces/config.interface.js";
+import { IApiClient } from "../interfaces/api-client.interface.js";
+import { IOutputService } from "../interfaces/output.interface.js";
+import { IProcessService } from "../interfaces/process.interface.js";
 
-export const listCommand = new Command("list")
-  .description("List all available tests")
-  .option("-f, --format <format>", "Output format (table, json)", "table")
-  .action(async (options) => {
-    try {
-      const apiKey = ConfigManager.getApiKey();
-      if (!apiKey) {
-        OutputFormatter.error(
-          'Not authenticated. Please run "obs1 login" first.'
-        );
-        process.exit(1);
+/**
+ * Factory function to create list command with DI
+ */
+export function createListCommand(container: Container): Command {
+  const configService = container.resolve<IConfigService>(CONFIG_SERVICE);
+  const apiClient = container.resolve<IApiClient>(API_CLIENT);
+  const outputService = container.resolve<IOutputService>(OUTPUT_SERVICE);
+  const processService = container.resolve<IProcessService>(PROCESS);
+
+  return new Command("list")
+    .description("List all available tests")
+    .option("-f, --format <format>", "Output format (table, json)", "table")
+    .action(async (options) => {
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error(
+            'Not authenticated. Please run "obs1 login" first.'
+          );
+          processService.exit(1);
+        }
+
+        outputService.progress("Fetching tests...");
+
+        const tests = await apiClient.getTests();
+
+        if (
+          processService.getEnv("OBS1_JSON_OUTPUT") === "true" ||
+          options.format === "json"
+        ) {
+          outputService.formatJsonOutput(tests);
+        } else {
+          const isVerbose = processService.getEnv("OBS1_VERBOSE") === "true";
+          outputService.formatTestList(tests, isVerbose);
+        }
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        processService.exit(1);
       }
-
-      const apiClient = new ApiClient();
-      OutputFormatter.progress("Fetching tests...");
-
-      const tests = await apiClient.getTests();
-
-      if (
-        process.env.OBS1_JSON_OUTPUT === "true" ||
-        options.format === "json"
-      ) {
-        OutputFormatter.formatJsonOutput(tests);
-      } else {
-        const isVerbose = process.env.OBS1_VERBOSE === "true";
-        OutputFormatter.formatTestList(tests, isVerbose);
-      }
-    } catch (error: any) {
-      OutputFormatter.error(OutputFormatter.formatError(error));
-      process.exit(1);
-    }
-  });
+    });
+}
