@@ -28,12 +28,17 @@ export function createLoginCommand(container: Container): Command {
   return new Command("login")
     .description("Authenticate with ObserveOne platform")
     .option("-k, --api-key <key>", "API key to use for authentication")
+    .option("--skip-setup", "Skip project configuration setup")
     .action(async (options) => {
       try {
-        // If API key is provided via option, use it
-        if (options.apiKey) {
-          configService.setApiKey(options.apiKey);
-          apiClient.setApiKey(options.apiKey);
+        // Get API key from command option or global config
+        const apiKey = options.apiKey || configService.getApiKey();
+
+        // If API key is provided via option or already set, use it
+        if (apiKey) {
+          // Ensure the API key is set in both config and client
+          configService.setApiKey(apiKey);
+          apiClient.setApiKey(apiKey);
 
           // Validate the API key
           const isValid = await apiClient.validateToken();
@@ -41,10 +46,23 @@ export function createLoginCommand(container: Container): Command {
             outputService.success(
               "Successfully authenticated with provided API key"
             );
+
+            // Setup project config if needed (skip in test mode)
+            if (!options.skipSetup) {
+              await setupProjectConfig(
+                fileSystem,
+                processService,
+                configService,
+                outputService
+              );
+            }
+
+            processService.exit(0);
             return;
           } else {
             outputService.error("Invalid API key provided");
             processService.exit(1);
+            return;
           }
         }
 
