@@ -31,14 +31,19 @@ export function createLoginCommand(container: Container): Command {
     .option("--skip-setup", "Skip project configuration setup")
     .action(async (options) => {
       try {
-        // Get API key from command option or global config
-        const apiKey = options.apiKey || configService.getApiKey();
+        // Check for API key in command option first (highest priority)
+        let apiKeyToUse = options.apiKey;
 
-        // If API key is provided via option or already set, use it
-        if (apiKey) {
-          // Ensure the API key is set in both config and client
-          configService.setApiKey(apiKey);
-          apiClient.setApiKey(apiKey);
+        // If no explicit command option but global option was set, use that
+        if (!apiKeyToUse) {
+          apiKeyToUse = configService.getApiKey();
+        }
+
+        // If an API key is available (from either source), try to authenticate
+        if (apiKeyToUse) {
+          // Use the API key that was provided
+          configService.setApiKey(apiKeyToUse);
+          apiClient.setApiKey(apiKeyToUse);
 
           // Validate the API key
           const isValid = await apiClient.validateToken();
