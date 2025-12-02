@@ -1,8 +1,14 @@
 import { spawn, SpawnOptions } from "child_process";
 import { join } from "path";
 
-// Note: The CLI itself loads .env via import "dotenv/config" in src/index.ts
-// Environment variables should be accessible in this process
+// Load environment variables from root .env file for test runner
+// The CLI also loads .env separately when it runs
+try {
+  const dotenv = await import("dotenv");
+  dotenv.config({ path: join(process.cwd(), ".env") });
+} catch (e) {
+  // dotenv might not be available in all contexts, that's ok
+}
 
 export interface CLIResult {
   stdout: string;

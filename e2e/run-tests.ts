@@ -1,3 +1,4 @@
+import "dotenv/config"; // Load environment variables
 import { readdirSync } from "fs";
 import { join } from "path";
 import { pathToFileURL } from "url";
@@ -11,7 +12,7 @@ interface TestResult {
 }
 
 async function runTests(): Promise<void> {
-  console.log(chalk.bold("\n🧪 Running E2E Tests\n"));
+  console.log(chalk.cyan.bold("\n🧪 Running E2E Tests\n"));
 
   const testsDir = join(process.cwd(), "e2e", "tests");
   const testFiles = readdirSync(testsDir).filter((f) => f.endsWith(".test.ts"));
@@ -19,8 +20,11 @@ async function runTests(): Promise<void> {
   const results: TestResult[] = [];
   let totalTests = 0;
   let passedTests = 0;
+  const startTime = Date.now();
 
   for (const file of testFiles) {
+    console.log(chalk.gray(`\n ${file}\n`));
+
     const testPath = join(testsDir, file);
     const testModule = await import(pathToFileURL(testPath).href);
 
@@ -38,7 +42,7 @@ async function runTests(): Promise<void> {
         const duration = Date.now() - start;
         results.push({ name, passed: true, duration });
         passedTests++;
-        console.log(chalk.green(`  ✓ ${name.replace(/([A-Z])/g, " $1").trim()}`));
+        console.log(chalk.green(`    ✓ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`));
       } catch (error: any) {
         const duration = Date.now() - start;
         results.push({
@@ -47,31 +51,41 @@ async function runTests(): Promise<void> {
           error: error.message,
           duration,
         });
-        console.log(chalk.red(`  ✗ ${name.replace(/([A-Z])/g, " $1").trim()}`));
+        console.log(chalk.red(`    ✗ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`));
         if (error.message) {
-          console.log(chalk.gray(`    ${error.message}`));
+          console.log(chalk.gray(`      ${error.message}`));
         }
       }
     }
   }
 
+  const totalTime = Date.now() - startTime;
+
   // Summary
-  console.log(chalk.bold("\n📊 Test Summary"));
+  console.log(chalk.bold("\n\n Summary\n"));
   console.log(chalk.gray("─".repeat(50)));
-  console.log(`Total: ${totalTests}`);
-  console.log(chalk.green(`Passed: ${passedTests}`));
-  console.log(chalk.red(`Failed: ${totalTests - passedTests}`));
-  console.log(
-    chalk.gray(
-      `Duration: ${results.reduce((sum, r) => sum + r.duration, 0)}ms`
-    )
-  );
+
+  if (results.some(r => !r.passed)) {
+    console.log(chalk.red.bold("  ❌ Failed Tests"));
+    console.log(chalk.gray("  ─".repeat(25)));
+    const failedTests = results.filter(r => !r.passed);
+    for (const result of failedTests) {
+      console.log(chalk.red(`  ✗ ${result.name}`));
+      console.log(chalk.gray(`    ${result.error}`));
+    }
+    console.log(chalk.gray("  ─".repeat(25)));
+  }
+
+  console.log(`  Total: ${totalTests}`);
+  console.log(chalk.green(`  Passed: ${passedTests}`));
+  console.log(chalk.red(`  Failed: ${totalTests - passedTests}`));
+  console.log(chalk.blue(`  Time: ${totalTime}ms`));
 
   if (passedTests === totalTests) {
-    console.log(chalk.green.bold("\n✅ All tests passed!\n"));
+    console.log(chalk.green.bold("\n  ✅ All tests passed!\n"));
     process.exit(0);
   } else {
-    console.log(chalk.red.bold("\n❌ Some tests failed\n"));
+    console.log(chalk.red.bold("\n  ❌ Some tests failed\n"));
     process.exit(1);
   }
 }
