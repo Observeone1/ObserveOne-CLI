@@ -14,6 +14,26 @@ interface TestResult {
 async function runTests(): Promise<void> {
   console.log(chalk.cyan.bold("\n🧪 Running E2E Tests\n"));
 
+  // Display binary mode being used
+  const binaryMode = process.env.OBS1_BINARY_MODE || "local";
+  const modeDescriptions: Record<string, string> = {
+    local: "local build (dist/index.js)",
+    npx: "npx observeone-cli",
+    global: "globally installed obs1",
+  };
+  const modeDesc = modeDescriptions[binaryMode] || `custom (${binaryMode})`;
+  console.log(chalk.gray(`Binary mode: ${chalk.white(binaryMode)} - ${modeDesc}`));
+
+  // Display test configuration
+  const apiUrl = process.env.API_URL || process.env.OBS1_API_URL || "(not set)";
+  const apiKey = process.env.OBS1_API_KEY || process.env.API_KEY;
+  const maskedApiKey = apiKey 
+    ? `${apiKey.slice(0, 8)}***${apiKey.slice(-4)}`
+    : "(not set)";
+  
+  console.log(chalk.gray(`API URL: ${chalk.white(apiUrl)}`));
+  console.log(chalk.gray(`API Key: ${chalk.white(maskedApiKey)}\n`));
+
   const testsDir = join(process.cwd(), "e2e", "tests");
   const testFiles = readdirSync(testsDir).filter((f) => f.endsWith(".test.ts"));
 
