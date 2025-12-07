@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 jobs:
-  obs1-tests:
+  obs-tests:
     runs-on: ubuntu-latest
     
     steps:
@@ -20,14 +20,14 @@ jobs:
         cache: 'npm'
         
     - name: Install OBS1 CLI
-      run: npm install -g obs1-cli
+      run: npm install -g obs-cli
       
     - name: Authenticate with ObserveOne
-      run: obs1 login --api-key ${{ secrets.OBS1_API_KEY }}
+      run: obs login --api-key ${{ secrets.OBS_API_KEY }}
       
     - name: Run ObserveOne Tests
       run: |
-        obs1 ai-check "Critical Tests" "Login Tests" \
+        obs ai-check "Critical Tests" "Login Tests" \
           --reporter junit \
           --output test-results.xml \
           --wait
@@ -44,7 +44,7 @@ jobs:
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: obs1-test-results
+        name: obs-test-results
         path: test-results.xml
 
 

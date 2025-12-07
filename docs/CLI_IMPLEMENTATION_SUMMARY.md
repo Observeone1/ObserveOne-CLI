@@ -28,27 +28,27 @@ cli/
 
 ### 1. CLI Setup ✅
 
-- **Package Configuration**: Proper `bin` configuration for `npx obs1`
+- **Package Configuration**: Proper `bin` configuration for `npx obs`
 - **CLI Framework**: Commander.js for argument parsing and command structure
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **TypeScript**: Full TypeScript implementation for type safety
 
 ### 2. Core Commands ✅
 
-- **`obs1 ai-check <test-name>`**: Run specific tests by name or ID
-- **`obs1 list`**: List all available tests with formatting
-- **`obs1 login`**: Interactive authentication with API key management
+- **`obs ai-check <test-name>`**: Run specific tests by name or ID
+- **`obs list`**: List all available tests with formatting
+- **`obs login`**: Interactive authentication with API key management
 
 ### 3. Authentication ✅
 
 - **API Key Authentication**: Secure storage using `conf` package
-- **Environment Variables**: Support for `OBS1_API_KEY` and `OBS1_API_URL`
+- **Environment Variables**: Support for `OBS_API_KEY` and `OBS_API_URL`
 - **Interactive Login**: User-friendly login flow with validation
 - **Token Validation**: Automatic token validation before API calls
 
 ### 4. Configuration ✅
 
-- **`.obs1.config.json`**: Project-level configuration file
+- **`.obs.config.json`**: Project-level configuration file
 - **Global Configuration**: System-wide settings storage
 - **Override Support**: CLI flags override config file settings
 - **Environment Integration**: Support for environment variables
@@ -71,7 +71,7 @@ cli/
 
 ### 7. Additional Features ✅
 
-- **Multiple Test Execution**: Run multiple tests with `obs1 ai-check test1 test2`
+- **Multiple Test Execution**: Run multiple tests with `obs ai-check test1 test2`
 - **CI/CD Integration**: Proper exit codes (0 for pass, 1 for fail)
 - **JUnit XML Reports**: `--reporter junit` flag for CI/CD systems
 - **Ad-hoc Testing**: Run tests without saving to database
@@ -105,38 +105,38 @@ The CLI is built with TypeScript and uses modern dependencies like Commander.js 
 npm install -g @observeone/cli
 
 # Authenticate
-obs1 login
+obs login
 
 # Initialize project
-obs1 init
+obs init
 
 # List tests
-obs1 list
+obs list
 
 # Run tests
-obs1 ai-check "Login Test"
+obs ai-check "Login Test"
 
 # Run multiple tests
-obs1 ai-check "Login Test" "Checkout Test"
+obs ai-check "Login Test" "Checkout Test"
 
 # Ad-hoc testing
-obs1 ai-check --url https://example.com --prompt "Click login button"
+obs ai-check --url https://example.com --prompt "Click login button"
 ```
 
 ### Advanced Usage
 
 ```bash
 # Watch mode for development
-obs1 watch "Login Test" --pattern "**/*.js"
+obs watch "Login Test" --pattern "**/*.js"
 
 # CI/CD integration
-obs1 ai-check "Critical Tests" --reporter junit --output results.xml
+obs ai-check "Critical Tests" --reporter junit --output results.xml
 
 # Status monitoring
-obs1 status 123 --watch --results
+obs status 123 --watch --results
 
 # Verbose output
-obs1 ai-check "Test" --verbose --json
+obs ai-check "Test" --verbose --json
 ```
 
 ## 🔗 Backend Integration
@@ -153,7 +153,7 @@ obs1 ai-check "Test" --verbose --json
 
 ### Authentication Flow
 
-1. User runs `obs1 login`
+1. User runs `obs login`
 2. CLI prompts for API key
 3. Key is stored securely in system config
 4. All subsequent API calls include Bearer token

@@ -33,7 +33,7 @@ The "Monitoring as Code" (MaC) feature will allow users to define, test, and dep
 
 ### R2: Test Definition Support
 
-- The CLI shall support multiple test definition formats: JavaScript (.obs1.js), JSON (.obs1.json), and YAML (.obs1.yaml)
+- The CLI shall support multiple test definition formats: JavaScript (.obs.js), JSON (.obs.json), and YAML (.obs.yaml)
 - Test definitions shall include required fields: name, url, prompt
 - Test definitions shall support optional fields: description, schedule configuration, assertions
 - The CLI shall validate test definitions before deployment
@@ -90,12 +90,12 @@ The new commands will use the following backend API endpoints:
 
 ## Command Specifications
 
-### `obs1 init`
+### `obs init`
 
 Initialize a new ObserveOne project
 
 ```
-obs1 init [options]
+obs init [options]
 ```
 
 Options:
@@ -104,12 +104,12 @@ Options:
 - `--description` - Project description
 - `--directory` - Directory to initialize (defaults to current directory)
 
-### `obs1 deploy`
+### `obs deploy`
 
 Deploy local test definitions to the platform
 
 ```
-obs1 deploy [options] [files...]
+obs deploy [options] [files...]
 ```
 
 Options:
@@ -120,12 +120,12 @@ Options:
 - `--include` - Glob pattern for files to include
 - `--exclude` - Glob pattern for files to exclude
 
-### `obs1 test`
+### `obs test`
 
 Test definitions locally
 
 ```
-obs1 test [options] [files...]
+obs test [options] [files...]
 ```
 
 Options:
@@ -137,7 +137,7 @@ Options:
 
 ## File Format Specifications
 
-### JavaScript Format (.obs1.js)
+### JavaScript Format (.obs.js)
 
 ```javascript
 export default {
@@ -164,7 +164,7 @@ export default {
 }
 ```
 
-### JSON Format (.obs1.json)
+### JSON Format (.obs.json)
 
 ```json
 {
@@ -175,7 +175,7 @@ export default {
 }
 ```
 
-### YAML Format (.obs1.yaml)
+### YAML Format (.obs.yaml)
 
 ```yaml
 name: "Test Name"

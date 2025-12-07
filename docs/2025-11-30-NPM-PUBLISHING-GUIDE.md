@@ -44,7 +44,7 @@ Current configuration looks good:
 
 - ✅ Package name: `@observeone/cli`
 - ✅ Version: `1.0.1`
-- ✅ Binary command: `obs1`
+- ✅ Binary command: `obs`
 - ✅ Build script: `prepublishOnly` hook configured
 - ✅ Files to include: `dist`, `README.md`
 
@@ -114,11 +114,11 @@ ls dist/
 npm link
 
 # Test the CLI globally
-obs1 --version
-obs1 login --help
+obs --version
+obs login --help
 
 # Run a quick test
-obs1 list  # (if authenticated)
+obs list  # (if authenticated)
 
 # Unlink when done
 npm unlink -g @observeone/cli
@@ -196,10 +196,10 @@ npm view @observeone/cli
 npm install -g @observeone/cli
 
 # Verify installation
-obs1 --version
+obs --version
 
 # Test commands
-obs1 --help
+obs --help
 ```
 
 ### 3. Update Documentation
@@ -332,7 +332,7 @@ git push origin main --tags     # Push to GitHub
 # Verify
 npm view @observeone/cli
 npm install -g @observeone/cli
-obs1 --version
+obs --version
 ```
 
 ---
@@ -342,7 +342,7 @@ obs1 --version
 - **Name**: `@observeone/cli`
 - **Current Version**: `1.0.1`
 - **Registry**: <https://www.npmjs.com/package/@observeone/cli>
-- **Binary**: `obs1`
+- **Binary**: `obs`
 - **License**: MIT
 - **Node Version**: >=16.0.0
 

@@ -2,21 +2,21 @@ pipeline {
     agent any
 
     environment {
-        OBS1_API_KEY = credentials('observeone-api-key')
+        OBS_API_KEY = credentials('observeone-api-key')
     }
 
     stages {
         stage('Setup') {
             steps {
                 sh 'npm install -g @observeone/cli'
-                sh 'obs1 login --api-key $OBS1_API_KEY'
+                sh 'obs login --api-key $OBS_API_KEY'
             }
         }
 
         stage('Run Tests') {
             steps {
                 sh '''
-                    obs1 ai-check "Critical Tests" "Login Tests" \
+                    obs ai-check "Critical Tests" "Login Tests" \
                         --reporter junit \
                         --output test-results.xml \
                         --wait

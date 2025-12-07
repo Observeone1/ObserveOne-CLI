@@ -84,12 +84,12 @@ Set these environment variables when building the CLI:
 
 ```bash
 # Production build
-export OBS1_API_URL=https://api.observeone.com
+export OBS_API_URL=https://api.observeone.com
 npm run build
 npm publish
 
 # Development build
-export OBS1_API_URL=http://localhost:3000
+export OBS_API_URL=http://localhost:3000
 npm run build
 ```
 
@@ -98,12 +98,12 @@ npm run build
 Users can configure via environment variables:
 
 ```bash
-# Authentication (optional - can also use obs1 login)
-export OBS1_API_KEY=your-api-key
+# Authentication (optional - can also use obs login)
+export OBS_API_KEY=your-api-key
 
 # Output format
-export OBS1_JSON_OUTPUT=true
-export OBS1_VERBOSE=true
+export OBS_JSON_OUTPUT=true
+export OBS_VERBOSE=true
 ```
 
 ## Pre-Deployment Checklist
@@ -137,16 +137,16 @@ Users will have access to:
 
 ```bash
 # Authentication + project setup
-obs1 login
+obs login
 
 # List available tests
-obs1 list
+obs list
 
 # Run tests (with automatic waiting)
-obs1 ai-check "test-name"
+obs ai-check "test-name"
 
 # Ad-hoc testing
-obs1 ai-check --url https://example.com --prompt "test instructions"
+obs ai-check --url https://example.com --prompt "test instructions"
 ```
 
 ## Version Management

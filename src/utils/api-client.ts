@@ -16,7 +16,7 @@ export class ApiClient {
       timeout: timeout,
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": `obs1-cli/1.0.1 (${isDev ? "dev" : "prod"})`,
+        "User-Agent": `obs-cli/1.0.1 (${isDev ? "dev" : "prod"})`,
       },
     });
 
@@ -25,6 +25,7 @@ export class ApiClient {
       config.baseURL = ConfigManager.getApiUrl();
       if (this.apiKey) {
         // Backend expects CLI API keys in x-obs1-cli header, not Authorization
+        // Note: keeping x-obs1-cli header name for backward compatibility
         config.headers["x-obs1-cli"] = this.apiKey;
       }
       return config;
@@ -36,7 +37,7 @@ export class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           throw new Error(
-            'Authentication failed. Please run "obs1 login" to authenticate.'
+            'Authentication failed. Please run "obs login" to authenticate.'
           );
         }
         if (error.response?.status === 403) {

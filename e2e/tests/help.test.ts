@@ -7,7 +7,7 @@ import {
 export async function testHelpCommand() {
   const result = await runCLI(["--help"]);
   assertSuccess(result, "Help command should succeed");
-  assertContains(result.stdout, "obs1", "Should show program name");
+  assertContains(result.stdout, "obs", "Should show program name");
   assertContains(result.stdout, "login", "Should list login command");
   assertContains(result.stdout, "list", "Should list list command");
   assertContains(result.stdout, "ai-check", "Should list ai-check command");
@@ -16,7 +16,7 @@ export async function testHelpCommand() {
 export async function testShortHelpCommand() {
   const result = await runCLI(["-h"]);
   assertSuccess(result, "Short help command should succeed");
-  assertContains(result.stdout, "obs1", "Should show program name");
+  assertContains(result.stdout, "obs", "Should show program name");
   assertContains(result.stdout, "Usage:", "Should show usage info");
 }
 

@@ -7,14 +7,14 @@ import {
 
 // Read API key from environment variable
 function getApiKeyFromEnv(): string | undefined {
-  return process.env.OBS1_API_KEY || process.env.API_KEY;
+  return process.env.OBS_API_KEY || process.env.API_KEY;
 }
 
 export async function testGlobalApiKeyOption() {
   const apiKey = getApiKeyFromEnv();
 
   if (!apiKey) {
-    throw new Error("No API key found in environment variables (OBS1_API_KEY or API_KEY). Please set one.");
+    throw new Error("No API key found in environment variables (OBS_API_KEY or API_KEY). Please set one.");
   }
 
   const result = await runCLI(["--api-key", apiKey, "login", "--skip-setup"]);
@@ -40,7 +40,7 @@ export async function testLoginCommandApiKeyOption() {
   const apiKey = getApiKeyFromEnv();
 
   if (!apiKey) {
-    throw new Error("No API key found in environment variables (OBS1_API_KEY or API_KEY). Please set one.");
+    throw new Error("No API key found in environment variables (OBS_API_KEY or API_KEY). Please set one.");
   }
 
   const result = await runCLI(["login", "--api-key", apiKey, "--skip-setup"]);
@@ -66,7 +66,7 @@ export async function testShortApiKeyOption() {
   const apiKey = getApiKeyFromEnv();
 
   if (!apiKey) {
-    throw new Error("No API key found in environment variables (OBS1_API_KEY or API_KEY). Please set one.");
+    throw new Error("No API key found in environment variables (OBS_API_KEY or API_KEY). Please set one.");
   }
 
   const result = await runCLI(["login", "-k", apiKey, "--skip-setup"]);

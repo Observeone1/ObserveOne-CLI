@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **API Key Option Parsing**: Fixed issue where --api-key option wasn't working properly in all scenarios
-  - Now supports both global `obs1 --api-key <key> login` and command-specific `obs1 login --api-key <key>` usage
+  - Now supports both global `obs --api-key <key> login` and command-specific `obs login --api-key <key>` usage
   - Proper prioritization: command-specific options take precedence over global options, which take precedence over stored config values
   - Maintains backward compatibility with existing functionality
 
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Critical**: Fixed API authentication header - CLI now uses `x-obs1-cli` header instead of `Authorization: Bearer` to match backend expectations
+- **Critical**: Fixed API authentication header - CLI now uses `x-obs-cli` header instead of `Authorization: Bearer` to match backend expectations
 - **Critical**: Fixed SSE (Server-Sent Events) authentication for live test progress updates
 - Fixed `--api-url` flag not working - API client now reads URL dynamically from ConfigManager
 - Fixed API URL persistence - login command now saves the API URL used during authentication
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - API client now sets `baseURL` dynamically on each request, allowing `--api-url` override to work correctly
 - Login command now saves both API key and API URL to config for persistent sessions
-- Execution logs now stored globally in config directory instead of project `.obs1/logs/`
+- Execution logs now stored globally in config directory instead of project `.obs/logs/`
   - Windows: `%APPDATA%/observeone-nodejs/Config/logs/`
   - macOS/Linux: `~/.config/observeone-nodejs/logs/`
 
@@ -47,18 +47,18 @@ First public release of the ObserveOne CLI to npm.
 
 ### Added
 
-- **Secure Authentication**: `obs1 login` command with polling-based browser authentication
+- **Secure Authentication**: `obs login` command with polling-based browser authentication
   - Backend-initiated auth sessions with Redis storage
   - PKCE-like flow with code verifier validation
   - Browser-based user approval via frontend
   - Automatic session expiration (5 minutes)
   - API key authentication support via `--api-key` flag
 
-- **Test Management**: `obs1 list` command to view available tests
+- **Test Management**: `obs list` command to view available tests
   - Table format output (default)
   - JSON format output with `--format json`
 
-- **Test Execution**: `obs1 ai-check` command for running AI-powered browser tests
+- **Test Execution**: `obs ai-check` command for running AI-powered browser tests
   - Run tests by name or ID
   - Run multiple tests in sequence
   - Ad-hoc test execution without saving to database
@@ -66,13 +66,13 @@ First public release of the ObserveOne CLI to npm.
   - Verbose mode for detailed execution logs
   - Screenshot tracking during execution
   - Multiple output formats: console, JUnit XML, JSON
-  - Automatic log file generation to `.obs1/logs/`
+  - Automatic log file generation to `.obs/logs/`
 
 - **Global Options**:
   - Verbose output mode (`-v, --verbose`)
   - JSON output format (`--json`)
   - API URL and key overrides (`--api-url`, `--api-key`)
-  - Configuration file support (`.obs1.config.json`)
+  - Configuration file support (`.obs.config.json`)
   - Automatic development mode detection
 
 ### Fixed

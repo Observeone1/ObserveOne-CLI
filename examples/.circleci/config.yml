@@ -1,21 +1,21 @@
 version: 2.1
 
 jobs:
-  obs1-tests:
+  obs-tests:
     docker:
       - image: cimg/node:18.0
     steps:
       - checkout
       - run:
           name: Install OBS1 CLI
-          command: npm install -g obs1-cli
+          command: npm install -g obs-cli
       - run:
           name: Authenticate with OBS1
-          command: obs1 login --api-key $OBS1_API_KEY
+          command: obs login --api-key $OBS_API_KEY
       - run:
           name: Run OBS1 Tests
           command: |
-            obs1 ai-check "Critical Tests" \
+            obs ai-check "Critical Tests" \
               --reporter junit \
               --output test-results.xml \
               --wait
@@ -28,4 +28,4 @@ workflows:
   version: 2
   test:
     jobs:
-      - obs1-tests
+      - obs-tests

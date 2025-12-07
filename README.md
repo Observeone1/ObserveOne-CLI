@@ -5,7 +5,7 @@ AI-powered website monitoring and testing from your terminal. Run intelligent br
 ## Installation
 
 ```bash
-npm install -g observeone-cli
+npm install -g @observe1/cli
 ```
 
 ## Quick Start
@@ -13,33 +13,33 @@ npm install -g observeone-cli
 1. **Login to ObserveOne**
 
    ```bash
-   obs1 login
+   obs login
    ```
 
 2. **List your tests**
 
    ```bash
-   obs1 list
+   obs list
    ```
 
 3. **Run a test**
 
    ```bash
-   obs1 ai-check my-test
+   obs ai-check my-test
    ```
 
 ## Commands
 
-### `obs1 login`
+### `obs login`
 
 Authenticate with the ObserveOne platform.
 
 ```bash
 # Interactive login (opens browser)
-obs1 login
+obs login
 
 # Login with API key
-obs1 login --api-key <your-api-key>
+obs login --api-key <your-api-key>
 ```
 
 **Options:**
@@ -48,16 +48,16 @@ obs1 login --api-key <your-api-key>
 
 ---
 
-### `obs1 list`
+### `obs list`
 
 List all your available tests.
 
 ```bash
 # Display as a table
-obs1 list
+obs list
 
 # Output as JSON
-obs1 list --format json
+obs list --format json
 ```
 
 **Options:**
@@ -66,28 +66,28 @@ obs1 list --format json
 
 ---
 
-### `obs1 ai-check`
+### `obs ai-check`
 
 Run AI-powered browser tests with live progress updates.
 
 ```bash
 # Run test by name
-obs1 ai-check my-test
+obs ai-check my-test
 
 # Run multiple tests
-obs1 ai-check test1 test2 test3
+obs ai-check test1 test2 test3
 
 # Run test by ID
-obs1 ai-check 123
+obs ai-check 123
 
 # Run with verbose output (see detailed steps)
-obs1 ai-check my-test --verbose
+obs ai-check my-test --verbose
 
 # Run ad-hoc test (without saving to database)
-obs1 ai-check --url https://example.com --prompt "Click the login button"
+obs ai-check --url https://example.com --prompt "Click the login button"
 
 # Generate JUnit report
-obs1 ai-check my-test --reporter junit --output results.xml
+obs ai-check my-test --reporter junit --output results.xml
 ```
 
 **Options:**
@@ -108,7 +108,7 @@ obs1 ai-check my-test --reporter junit --output results.xml
 - **Compact mode** (default): Shows spinner with current step and elapsed time
 - **Verbose mode** (`--verbose`): Displays detailed logs of every action
 - **Screenshot tracking**: Shows count of screenshots captured
-- **Log files**: Full execution logs saved to `.obs1/logs/execution-<id>.log`
+- **Log files**: Full execution logs saved to `.obs/logs/execution-<id>.log`
 
 ---
 
@@ -117,7 +117,7 @@ obs1 ai-check my-test --reporter junit --output results.xml
 Available for all commands:
 
 ```bash
-obs1 <command> [options]
+obs <command> [options]
 ```
 
 **Options:**
@@ -135,12 +135,12 @@ obs1 <command> [options]
 
 Stored in your system's config directory:
 
-- **macOS/Linux**: `~/.config/obs1/config.json`
-- **Windows**: `%APPDATA%/obs1/config.json`
+- **macOS/Linux**: `~/.config/obs/config.json`
+- **Windows**: `%APPDATA%/obs/config.json`
 
 ### Project Configuration
 
-Create `.obs1.config.json` in your project root:
+Create `.obs.config.json` in your project root:
 
 ```json
 {
@@ -161,16 +161,16 @@ Create `.obs1.config.json` in your project root:
 
 ```bash
 # Override API URL
-export OBS1_API_URL=https://api.observeone.com
+export OBS_API_URL=https://api.observeone.com
 
 # Override API key
-export OBS1_API_KEY=your-api-key
+export OBS_API_KEY=your-api-key
 
 # Enable verbose mode
-export OBS1_VERBOSE=true
+export OBS_VERBOSE=true
 
 # Enable JSON output
-export OBS1_JSON_OUTPUT=true
+export OBS_JSON_OUTPUT=true
 ```
 
 ## Examples
@@ -179,17 +179,17 @@ export OBS1_JSON_OUTPUT=true
 
 ```bash
 # Run with compact progress (default)
-obs1 ai-check homepage-test
+obs ai-check homepage-test
 
 # Run with detailed step-by-step output
-obs1 ai-check homepage-test --verbose
+obs ai-check homepage-test --verbose
 ```
 
 ### Ad-hoc testing
 
 ```bash
 # Quick test without saving
-obs1 ai-check \
+obs ai-check \
   --url https://example.com \
   --prompt "Navigate to login page and verify the form exists" \
   --name "Login Page Check"
@@ -199,13 +199,13 @@ obs1 ai-check \
 
 ```bash
 # Generate JUnit XML for CI systems
-obs1 ai-check my-test --reporter junit --output test-results.xml
+obs ai-check my-test --reporter junit --output test-results.xml
 
 # JSON output for parsing
-obs1 ai-check my-test --reporter json --output results.json
+obs ai-check my-test --reporter json --output results.json
 
 # Exit code: 0 for success, 1 for failure
-obs1 ai-check my-test && echo "Tests passed!"
+obs ai-check my-test && echo "Tests passed!"
 ```
 
 ## Logs
@@ -227,7 +227,7 @@ Each log includes:
 
 ## Support
 
-- **npm**: [npmjs.com/package/observeone-cli](https://www.npmjs.com/package/observeone-cli)
+- **npm**: [npmjs.com/package/@observeone/cli](https://www.npmjs.com/package/@observeone/cli)
 
 ## License
 

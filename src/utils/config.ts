@@ -5,9 +5,9 @@ import { ObserveOneConfig } from "../types/index.js";
 const isDevelopment = () => {
   const isDev =
     process.env.NODE_ENV === "development" ||
-    process.env.OBS1_ENV === "development" ||
-    process.env.OBS1_DEV === "true" ||
-    process.env.OBS1_DEV === "1" ||
+    process.env.OBS_ENV === "development" ||
+    process.env.OBS_DEV === "true" ||
+    process.env.OBS_DEV === "1" ||
     process.env.NODE_ENV === "dev";
   return isDev;
 };
@@ -22,7 +22,7 @@ const getDefaultApiUrl = () => {
 const config = new Conf<ObserveOneConfig>({
   projectName: "observeone",
   defaults: {
-    apiUrl: process.env.OBS1_API_URL || getDefaultApiUrl(),
+    apiUrl: process.env.OBS_API_URL || getDefaultApiUrl(),
     defaultOptions: {
       timeout: 600000, // 10 minutes
       retries: 3,
@@ -40,7 +40,7 @@ export class ConfigManager {
 
   static getApiUrl(): string {
     // Always check environment first, then fall back to config
-    return process.env.OBS1_API_URL || getDefaultApiUrl();
+    return process.env.OBS_API_URL || getDefaultApiUrl();
   }
 
   static isDevelopment(): boolean {
@@ -48,7 +48,7 @@ export class ConfigManager {
   }
 
   static getApiKey(): string | undefined {
-    return config.get("apiKey") || process.env.OBS1_API_KEY;
+    return config.get("apiKey") || process.env.OBS_API_KEY;
   }
 
   static setApiUrl(url: string): void {

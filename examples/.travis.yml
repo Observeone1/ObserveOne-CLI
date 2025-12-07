@@ -3,14 +3,14 @@ node_js:
   - '18'
 
 before_install:
-  - npm install -g obs1-cli
+  - npm install -g obs-cli
 
 script:
-  - obs1 login --api-key $OBS1_API_KEY
-  - obs1 ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
+  - obs login --api-key $OBS1_API_KEY
+  - obs ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
 
 after_script:
-  - obs1 status $OBS1_EXECUTION_ID --results
+  - obs status $OBS1_EXECUTION_ID --results
 
 
 

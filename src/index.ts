@@ -28,7 +28,7 @@ const program = new Command();
 
 // Set up the main program
 program
-  .name("obs1")
+  .name("obs")
   .description(
     "ObserveOne CLI - AI-powered website monitoring and testing from the command line"
   )
@@ -59,11 +59,11 @@ program.hook("preAction", (thisCommand) => {
 
   // Set global options
   if (options.verbose) {
-    process.env.OBS1_VERBOSE = "true";
+    process.env.OBS_VERBOSE = "true";
   }
 
   if (options.json) {
-    process.env.OBS1_JSON_OUTPUT = "true";
+    process.env.OBS_JSON_OUTPUT = "true";
   }
 
   if (options.apiUrl) {
@@ -95,7 +95,7 @@ process.on("uncaughtException", (error: any) => {
     return;
   }
   console.error(chalk.red("❌ Uncaught Exception:"), msg);
-  if (process.env.OBS1_VERBOSE === "true") {
+  if (process.env.OBS_VERBOSE === "true") {
     console.error(error.stack);
   }
   process.exit(1);

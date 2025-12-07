@@ -22,8 +22,8 @@ stages:
 
     - script: |
         npm install -g @observeone/cli
-        obs1 login --api-key $(OBS1_API_KEY)
-        obs1 ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
+        obs login --api-key $(OBS1_API_KEY)
+        obs ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
       displayName: 'Run ObserveOne Tests'
 
     - task: PublishTestResults@2

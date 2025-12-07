@@ -242,7 +242,7 @@ async function streamTestProgress(
     options.verbose ||
     (testNames &&
       (testNames.includes("--verbose") || testNames.includes("-v"))) ||
-    processService.getEnv("OBS1_VERBOSE") === "true";
+    processService.getEnv("OBS_VERBOSE") === "true";
 
   const renderer = new LiveProgressRenderer({
     verbose: isVerbose,
@@ -360,7 +360,7 @@ async function formatAndOutputResults(
 ): Promise<void> {
   if (
     options.reporter === "json" ||
-    processService.getEnv("OBS1_JSON_OUTPUT") === "true"
+    processService.getEnv("OBS_JSON_OUTPUT") === "true"
   ) {
     outputService.formatJsonOutput(results);
   } else if (options.reporter === "junit") {

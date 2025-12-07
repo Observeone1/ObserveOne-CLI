@@ -131,11 +131,11 @@ export function createLoginCommand(container: Container): Command {
               console.log("");
               console.log(chalk.bold("Next steps:"));
               console.log(
-                chalk.gray('1. Run "obs1 list" to see available tests')
+                chalk.gray('1. Run "obs list" to see available tests')
               );
               console.log(
                 chalk.gray(
-                  '2. Run "obs1 ai-check <test-name>" to execute tests'
+                  '2. Run "obs ai-check <test-name>" to execute tests'
                 )
               );
 
@@ -173,7 +173,7 @@ async function setupProjectConfig(
   configService: IConfigService,
   outputService: IOutputService
 ): Promise<void> {
-  const configPath = ".obs1.config.json";
+  const configPath = ".obs.config.json";
   if (!fileSystem.existsSync(configPath)) {
     console.log(chalk.bold("\n🚀 Setting up project configuration..."));
 

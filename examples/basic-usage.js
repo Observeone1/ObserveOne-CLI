@@ -32,9 +32,9 @@ console.log('🔐 Example 1: Authentication and Setup');
 console.log('=====================================');
 
 // Check if user is authenticated
-const authCheck = runCommand('obs1 list');
+const authCheck = runCommand('obs list');
 if (authCheck && authCheck.includes('Not authenticated')) {
-  console.log('❌ Not authenticated. Please run: obs1 login');
+  console.log('❌ Not authenticated. Please run: obs login');
 } else {
   console.log('✅ Authentication successful');
 }
@@ -57,14 +57,14 @@ const sampleConfig = {
   }
 };
 
-fs.writeFileSync('.obs1.config.json', JSON.stringify(sampleConfig, null, 2));
+fs.writeFileSync('.obs.config.json', JSON.stringify(sampleConfig, null, 2));
 console.log('✅ Sample configuration created');
 
 // Example 3: List available tests
 console.log('\n📋 Example 3: Listing Tests');
 console.log('===========================');
 
-const testList = runCommand('obs1 list');
+const testList = runCommand('obs list');
 if (testList) {
   console.log('Available tests:');
   console.log(testList);
@@ -77,7 +77,7 @@ console.log('\n🧪 Example 4: Running Tests');
 console.log('===========================');
 
 // Example of running a test (this would fail if no tests exist)
-const testResult = runCommand('obs1 ai-check --help');
+const testResult = runCommand('obs ai-check --help');
 if (testResult) {
   console.log('✅ CLI help command works');
 } else {
@@ -88,7 +88,7 @@ if (testResult) {
 console.log('\n⚡ Example 5: Ad-hoc Testing');
 console.log('===========================');
 
-const adhocCommand = 'obs1 ai-check --url https://example.com --prompt "Navigate to the homepage" --name "Homepage Test" --adhoc';
+const adhocCommand = 'obs ai-check --url https://example.com --prompt "Navigate to the homepage" --name "Homepage Test" --adhoc';
 console.log(`Command: ${adhocCommand}`);
 console.log('Note: This would run an ad-hoc test if authenticated');
 
@@ -96,7 +96,7 @@ console.log('Note: This would run an ad-hoc test if authenticated');
 console.log('\n🔄 Example 6: CI/CD Integration');
 console.log('=============================');
 
-const ciCommand = 'obs1 ai-check my-test --reporter junit --output results.xml';
+const ciCommand = 'obs ai-check my-test --reporter junit --output results.xml';
 console.log(`CI Command: ${ciCommand}`);
 console.log('This would generate a JUnit XML report for CI systems');
 
@@ -104,7 +104,7 @@ console.log('This would generate a JUnit XML report for CI systems');
 console.log('\n👀 Example 7: Watch Mode');
 console.log('=======================');
 
-const watchCommand = 'obs1 watch test1 test2 --pattern "**/*.js" --max-runs 5';
+const watchCommand = 'obs watch test1 test2 --pattern "**/*.js" --max-runs 5';
 console.log(`Watch Command: ${watchCommand}`);
 console.log('This would watch for file changes and run tests automatically');
 
@@ -112,13 +112,13 @@ console.log('This would watch for file changes and run tests automatically');
 console.log('\n🧹 Cleanup');
 console.log('==========');
 
-if (fs.existsSync('.obs1.config.json')) {
-  fs.unlinkSync('.obs1.config.json');
+if (fs.existsSync('.obs.config.json')) {
+  fs.unlinkSync('.obs.config.json');
   console.log('✅ Sample configuration removed');
 }
 
 console.log('\n✨ Examples completed!');
-console.log('For more information, run: obs1 --help');
+console.log('For more information, run: obs --help');
 
 
 

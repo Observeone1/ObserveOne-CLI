@@ -18,11 +18,11 @@ End-to-end tests for the ObserveOne CLI that run actual CLI commands against a r
 
 2. Edit `e2e/.env` and add:
    - `API_URL`: Your local backend URL (e.g., `http://localhost:3000`)
-   - `OBS1_API_KEY`: A valid API key from your backend
-   - `OBS1_BINARY_MODE` (optional): How to run the CLI binary
+   - `OBS_API_KEY`: A valid API key from your backend
+   - `OBS_BINARY_MODE` (optional): How to run the CLI binary
      - `local` (default): Run local build from `dist/index.js`
-     - `npx`: Run published package via `npx observeone-cli`
-     - `global`: Run globally installed `obs1` command
+     - `npx`: Run published package via `npx @observe1/cli`
+     - `global`: Run globally installed `obs` command
      - Custom path: Any other value is used as a command path
 
 3. Build the CLI (only needed for `local` mode):
@@ -44,20 +44,20 @@ npm test
 Test the published npm package using npx:
 
 ```bash
-OBS1_BINARY_MODE=npx npm test
+OBS_BINARY_MODE=npx npm test
 ```
 
 Test a globally installed CLI:
 
 ```bash
-npm install -g observeone-cli
-OBS1_BINARY_MODE=global npm test
+npm install -g @observe1/cli
+OBS_BINARY_MODE=global npm test
 ```
 
 Test with a custom binary path:
 
 ```bash
-OBS1_BINARY_MODE=/path/to/custom/obs1 npm test
+OBS_BINARY_MODE=/path/to/custom/obs npm test
 ```
 
 ## Writing New Tests
@@ -86,8 +86,8 @@ export async function testMyFeature() {
 ## Tips
 
 - By default, tests run against the **built** CLI (`dist/index.js`)
-- Use `OBS1_BINARY_MODE=npx` to test the published npm package instead
-- Use `OBS1_BINARY_MODE=global` to test a globally installed version
+- Use `OBS_BINARY_MODE=npx` to test the published npm package instead
+- Use `OBS_BINARY_MODE=global` to test a globally installed version
 - Rebuild after code changes when testing local build: `npm run build`
 - Each test is independent
 - Use descriptive test function names (e.g., `testLoginWithInvalidKey`)

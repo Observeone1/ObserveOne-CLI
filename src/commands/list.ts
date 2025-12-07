@@ -38,12 +38,12 @@ export function createListCommand(container: Container): Command {
         const tests = await apiClient.getTests();
 
         if (
-          processService.getEnv("OBS1_JSON_OUTPUT") === "true" ||
+          processService.getEnv("OBS_JSON_OUTPUT") === "true" ||
           options.format === "json"
         ) {
           outputService.formatJsonOutput(tests);
         } else {
-          const isVerbose = processService.getEnv("OBS1_VERBOSE") === "true";
+          const isVerbose = processService.getEnv("OBS_VERBOSE") === "true";
           outputService.formatTestList(tests, isVerbose);
         }
       } catch (error: any) {

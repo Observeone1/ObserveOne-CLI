@@ -6,12 +6,12 @@ pipelines:
         name: ObserveOne Tests
         script:
           - npm install -g @observeone/cli
-          - obs1 login --api-key $OBS1_API_KEY
-          - obs1 ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
+          - obs login --api-key $OBS1_API_KEY
+          - obs ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
         artifacts:
           - test-results.xml
         after-script:
-          - obs1 status $OBS1_EXECUTION_ID --results
+          - obs status $OBS1_EXECUTION_ID --results
 
 
 

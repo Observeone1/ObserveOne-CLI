@@ -21,7 +21,7 @@ export interface CLIResult {
  */
 export async function runCLI(args: string[]): Promise<CLIResult> {
   return new Promise((resolve) => {
-    const binaryMode = process.env.OBS1_BINARY_MODE || "local";
+    const binaryMode = process.env.OBS_BINARY_MODE || "local";
     const isWindows = process.platform === "win32";
     
     let command: string;
@@ -39,14 +39,14 @@ export async function runCLI(args: string[]): Promise<CLIResult> {
       case "npx":
         // Use npx to run the published package
         command = "npx";
-        commandArgs = ["observeone-cli", ...args];
-        useShell = isWindows; // npx needs shell on Windows
+        commandArgs = ["@observe1/cli", ...args]; // Updated package name
+        useShell = isWindows;
         break;
       
       case "global":
-        // Use globally installed obs1 command
+        // Use globally installed obs command
         // On Windows, .cmd files need shell to execute
-        command = "obs1";
+        command = "obs";
         commandArgs = args;
         useShell = isWindows;
         break;
@@ -62,7 +62,7 @@ export async function runCLI(args: string[]): Promise<CLIResult> {
       env: {
         ...process.env,
         // Use test API URL and key from environment
-        OBS1_API_URL: process.env.API_URL,
+        OBS_API_URL: process.env.API_URL,
       },
       shell: useShell,
     };
