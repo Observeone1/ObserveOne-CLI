@@ -17,7 +17,7 @@ const getDefaultApiUrl = () => {
   if (isDevelopment()) {
     return "http://localhost:8080/api";
   }
-  return "https://o1-backend-production.up.railway.app/api";
+  return "https://api.observeone.com/api";
 };
 
 /**
@@ -32,7 +32,7 @@ export class ConfigService implements IConfigService {
     this.config =
       config ||
       new Conf<ObserveOneConfig>({
-        projectName: "observeone",
+        projectName: "obs",
         defaults: {
           apiUrl: process.env.OBS_API_URL || getDefaultApiUrl(),
           defaultOptions: {
