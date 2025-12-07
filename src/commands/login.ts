@@ -1,30 +1,23 @@
 import { Command } from "commander";
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { Container } from "../di/container.js";
-import {
-  CONFIG_SERVICE,
-  API_CLIENT,
-  OUTPUT_SERVICE,
-  FILE_SYSTEM,
-  PROCESS,
-} from "../di/service-tokens.js";
 import { IConfigService } from "../interfaces/config.interface.js";
 import { IApiClient } from "../interfaces/api-client.interface.js";
 import { IOutputService } from "../interfaces/output.interface.js";
-import { IFileSystem } from "../interfaces/file-system.interface.js";
-import { IProcessService } from "../interfaces/process.interface.js";
+import { existsSync, writeFileSync } from "fs";
+import { exec as execCallback } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(execCallback);
 
 /**
- * Factory function to create login command with DI
+ * Factory function to create login command with direct service injection
  */
-export function createLoginCommand(container: Container): Command {
-  const configService = container.resolve<IConfigService>(CONFIG_SERVICE);
-  const apiClient = container.resolve<IApiClient>(API_CLIENT);
-  const outputService = container.resolve<IOutputService>(OUTPUT_SERVICE);
-  const fileSystem = container.resolve<IFileSystem>(FILE_SYSTEM);
-  const processService = container.resolve<IProcessService>(PROCESS);
-
+export function createLoginCommand(
+  configService: IConfigService,
+  apiClient: IApiClient,
+  outputService: IOutputService
+): Command {
   return new Command("login")
     .description("Authenticate with ObserveOne platform")
     .option("-k, --api-key <key>", "API key to use for authentication")
@@ -36,8 +29,21 @@ export function createLoginCommand(container: Container): Command {
         if (options.apiUrl) {
           configService.setCommandLineApiUrl(options.apiUrl);
         }
+        
+        // Handle API key override
+        if (options.apiKey) {
+          configService.setApiKey(options.apiKey);
+        }
 
-        // Check for API key in command option first (highest priority)
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error(
+            'Not authenticated. Please run "obs1 login" first.'
+          );
+          process.exit(1);
+        }
+
+        // Check for API key in command option first (highest priority)  
         let apiKeyToUse = options.apiKey;
 
         // If no explicit command option but global option was set, use that
@@ -60,15 +66,10 @@ export function createLoginCommand(container: Container): Command {
 
             // Setup project config if needed (skip in test mode)
             if (!options.skipSetup) {
-              await setupProjectConfig(
-                fileSystem,
-                processService,
-                configService,
-                outputService
-              );
+              await setupProjectConfig(configService, outputService);
             }
 
-            processService.exit(0);
+            process.exit(0);
             return;
           } else {
             outputService.warning("Invalid API key provided, falling back to browser login.");
@@ -98,13 +99,13 @@ export function createLoginCommand(container: Container): Command {
         console.log(chalk.yellow("⏳ Waiting for authentication..."));
 
         try {
-          const platform = processService.getPlatform();
+          const platform = process.platform;
           let command: string;
           if (platform === "win32") command = `start "" "${auth_url}"`;
           else if (platform === "darwin") command = `open "${auth_url}"`;
           else command = `xdg-open "${auth_url}"`;
 
-          await processService.exec(command);
+          await execAsync(command);
         } catch (error) {
           // Ignore open errors, user can copy link
         }
@@ -126,12 +127,7 @@ export function createLoginCommand(container: Container): Command {
               outputService.success("Successfully authenticated!");
 
               // Setup project config if needed
-              await setupProjectConfig(
-                fileSystem,
-                processService,
-                configService,
-                outputService
-              );
+              await setupProjectConfig(configService, outputService);
 
               console.log("");
               console.log(chalk.bold("Next steps:"));
@@ -144,10 +140,10 @@ export function createLoginCommand(container: Container): Command {
                 )
               );
 
-              processService.exit(0);
+              process.exit(0);
             } else if (status.status === "denied") {
               outputService.error("Authentication denied by user.");
-              processService.exit(1);
+              process.exit(1);
             }
 
             // Wait before next poll
@@ -161,10 +157,10 @@ export function createLoginCommand(container: Container): Command {
         }
 
         outputService.error("Authentication timed out.");
-        processService.exit(1);
+        process.exit(1);
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
-        processService.exit(1);
+        process.exit(1);
       }
     });
 }
@@ -173,13 +169,11 @@ export function createLoginCommand(container: Container): Command {
  * Helper function for project configuration setup
  */
 async function setupProjectConfig(
-  fileSystem: IFileSystem,
-  processService: IProcessService,
   configService: IConfigService,
   outputService: IOutputService
 ): Promise<void> {
   const configPath = ".obs.config.json";
-  if (!fileSystem.existsSync(configPath)) {
+  if (!existsSync(configPath)) {
     console.log(chalk.bold("\n🚀 Setting up project configuration..."));
 
     const projectAnswers = await inquirer.prompt([
@@ -187,7 +181,7 @@ async function setupProjectConfig(
         type: "input",
         name: "projectName",
         message: "Project name:",
-        default: processService.getCwd().split(/[/\\]/).pop() || "My Project",
+        default: process.cwd().split(/[/\\]/).pop() || "My Project",
         validate: (input: string) =>
           input.trim() ? true : "Project name is required",
       },
@@ -213,7 +207,7 @@ async function setupProjectConfig(
       },
     };
 
-    fileSystem.writeFileSync(
+    writeFileSync(
       configPath,
       JSON.stringify(projectConfig, null, 2)
     );

@@ -1,33 +1,22 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { Container } from "../di/container.js";
-import {
-  CONFIG_SERVICE,
-  API_CLIENT,
-  OUTPUT_SERVICE,
-  SSE_CLIENT,
-  PROCESS,
-  FILE_SYSTEM,
-} from "../di/service-tokens.js";
 import { IConfigService } from "../interfaces/config.interface.js";
 import { IApiClient } from "../interfaces/api-client.interface.js";
 import { IOutputService } from "../interfaces/output.interface.js";
 import { ISSEClient } from "../interfaces/sse-client.interface.js";
-import { IProcessService } from "../interfaces/process.interface.js";
-import { IFileSystem } from "../interfaces/file-system.interface.js";
+import { SSEClient } from "../services/sse-client.service.js";
 import { TestResult } from "../types/index.js";
+import { writeFileSync } from "fs";
 
 /**
- * Factory function to create ai-check command with DI
+ * Factory function to create ai-check command with direct service injection
  */
-export function createAiCheckCommand(container: Container): Command {
-  const configService = container.resolve<IConfigService>(CONFIG_SERVICE);
-  const apiClient = container.resolve<IApiClient>(API_CLIENT);
-  const outputService = container.resolve<IOutputService>(OUTPUT_SERVICE);
-  const processService = container.resolve<IProcessService>(PROCESS);
-  const fileSystem = container.resolve<IFileSystem>(FILE_SYSTEM);
-
+export function createAiCheckCommand(
+  configService: IConfigService,
+  apiClient: IApiClient,
+  outputService: IOutputService
+): Command {
   return new Command("ai-check")
     .description("Run AI-powered tests")
     .argument("[test-names...]", "Test names to run (by name or ID)")
@@ -64,7 +53,7 @@ export function createAiCheckCommand(container: Container): Command {
           outputService.error(
             'Not authenticated. Please run "obs1 login" first.'
           );
-          processService.exit(1);
+          process.exit(1);
         }
 
         const timeout = parseInt(options.timeout);
@@ -76,15 +65,14 @@ export function createAiCheckCommand(container: Container): Command {
             outputService.error(
               "Either provide test names or use --url and --prompt for ad-hoc testing"
             );
-            processService.exit(1);
+            process.exit(1);
           }
 
           // Run ad-hoc test
           await runAdhocTest(
             apiClient,
             outputService,
-            processService,
-            container,
+            configService,
             options,
             timeout,
             results
@@ -94,8 +82,7 @@ export function createAiCheckCommand(container: Container): Command {
           await runNamedTests(
             apiClient,
             outputService,
-            processService,
-            container,
+            configService,
             testNames,
             options,
             timeout,
@@ -107,13 +94,11 @@ export function createAiCheckCommand(container: Container): Command {
         await formatAndOutputResults(
           results,
           options,
-          outputService,
-          processService,
-          fileSystem
+          outputService
         );
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
-        processService.exit(1);
+        process.exit(1);
       }
     });
 }
@@ -124,8 +109,7 @@ export function createAiCheckCommand(container: Container): Command {
 async function runAdhocTest(
   apiClient: IApiClient,
   outputService: IOutputService,
-  processService: IProcessService,
-  container: Container,
+  configService: IConfigService,
   options: any,
   timeout: number,
   results: TestResult[]
@@ -146,11 +130,10 @@ async function runAdhocTest(
     // Use SSE streaming for live progress
     if (result.task_id) {
       await streamTestProgress(
-        container,
+        configService,
         result,
         options.name || "Ad-hoc Test",
         options,
-        processService,
         timeout,
         results
       );
@@ -167,8 +150,7 @@ async function runAdhocTest(
 async function runNamedTests(
   apiClient: IApiClient,
   outputService: IOutputService,
-  processService: IProcessService,
-  container: Container,
+  configService: IConfigService,
   testNames: string[],
   options: any,
   timeout: number,
@@ -209,11 +191,10 @@ async function runNamedTests(
         // Use SSE streaming for live progress
         if (result.task_id) {
           await streamTestProgress(
-            container,
+            configService,
             result,
             test.name,
             options,
-            processService,
             timeout,
             results,
             testNames
@@ -234,25 +215,24 @@ async function runNamedTests(
  * Stream test progress using SSE
  */
 async function streamTestProgress(
-  container: Container,
+  configService: IConfigService,
   result: TestResult,
   testName: string,
   options: any,
-  processService: IProcessService,
   timeout: number,
   results: TestResult[],
   testNames?: string[]
 ): Promise<void> {
+  const sseClient = new SSEClient(configService);
   const { LiveProgressRenderer } = await import("../utils/live-progress.js");
   const { LogWriter } = await import("../utils/log-writer.js");
-  
-  const sseClient = container.resolve<ISSEClient>(SSE_CLIENT);
+
   // Check if verbose flag was passed
   const isVerbose =
     options.verbose ||
     (testNames &&
       (testNames.includes("--verbose") || testNames.includes("-v"))) ||
-    processService.getEnv("OBS_VERBOSE") === "true";
+    process.env.OBS_VERBOSE === "true";
 
   const renderer = new LiveProgressRenderer({
     verbose: isVerbose,
@@ -364,19 +344,17 @@ async function streamTestProgress(
 async function formatAndOutputResults(
   results: TestResult[],
   options: any,
-  outputService: IOutputService,
-  processService: IProcessService,
-  fileSystem: IFileSystem
+  outputService: IOutputService
 ): Promise<void> {
   if (
     options.reporter === "json" ||
-    processService.getEnv("OBS_JSON_OUTPUT") === "true"
+    process.env.OBS_JSON_OUTPUT === "true"
   ) {
     outputService.formatJsonOutput(results);
   } else if (options.reporter === "junit") {
     const junitReport = generateJUnitReport(results, outputService);
     if (options.output) {
-      fileSystem.writeFileSync(options.output, junitReport);
+      writeFileSync(options.output, junitReport);
       outputService.success(`JUnit report saved to ${options.output}`);
     } else {
       console.log(junitReport);
@@ -403,10 +381,10 @@ async function formatAndOutputResults(
     // Exit with appropriate code
     if (successCount === totalCount) {
       outputService.success("All tests passed!");
-      processService.exit(0);
+      process.exit(0);
     } else {
       outputService.error(`${totalCount - successCount} test(s) failed`);
-      processService.exit(1);
+      process.exit(1);
     }
   }
 }

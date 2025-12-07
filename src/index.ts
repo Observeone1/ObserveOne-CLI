@@ -5,10 +5,10 @@ import "dotenv/config";
 import chalk from "chalk";
 import { readFileSync } from "fs";
 
-// Import DI infrastructure
-import { createContainer } from "./di/services.js";
-import { CONFIG_SERVICE } from "./di/service-tokens.js";
-import { IConfigService } from "./interfaces/config.interface.js";
+// Import services
+import { ConfigService } from "./services/config.service.js";
+import { ApiClient } from "./services/api-client.service.js";
+import { OutputService } from "./services/output.service.js";
 
 // Import command factories
 import { createLoginCommand } from "./commands/login.js";
@@ -20,9 +20,10 @@ const packageJson = JSON.parse(
 );
 const { version } = packageJson;
 
-// Create DI container
-const container = createContainer();
-const configService = container.resolve<IConfigService>(CONFIG_SERVICE);
+// Create services directly
+const configService = new ConfigService();
+const outputService = new OutputService();
+const apiClient = new ApiClient(configService);
 
 const program = new Command();
 
@@ -48,10 +49,10 @@ program.exitOverride((err) => {
   throw err;
 });
 
-// Add commands created via DI
-program.addCommand(createLoginCommand(container));
-program.addCommand(createListCommand(container));
-program.addCommand(createAiCheckCommand(container));
+// Add commands with services
+program.addCommand(createLoginCommand(configService, apiClient, outputService));
+program.addCommand(createListCommand(configService, apiClient, outputService));
+program.addCommand(createAiCheckCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook("preAction", (thisCommand) => {
