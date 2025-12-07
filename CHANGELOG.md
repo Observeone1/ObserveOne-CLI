@@ -30,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Critical**: Fixed API authentication header - CLI now uses `x-obs-cli` header instead of `Authorization: Bearer` to match backend expectations
 - **Critical**: Fixed SSE (Server-Sent Events) authentication for live test progress updates
 - Fixed `--api-url` flag not working - API client now reads URL dynamically from ConfigManager
 - Fixed API URL persistence - login command now saves the API URL used during authentication

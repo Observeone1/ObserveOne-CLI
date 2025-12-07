@@ -45,8 +45,20 @@ export function createAiCheckCommand(container: Container): Command {
       "console"
     )
     .option("-o, --output <file>", "Output file for reports")
+    .option("--api-url <url>", "Override API URL")
+    .option("--api-key <key>", "Override API key")
     .action(async (testNames, options) => {
       try {
+        // Handle API URL override first, before other operations
+        if (options.apiUrl) {
+          configService.setCommandLineApiUrl(options.apiUrl);
+        }
+
+        // Handle API key override
+        if (options.apiKey) {
+          configService.setApiKey(options.apiKey);
+        }
+
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(

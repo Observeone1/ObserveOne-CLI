@@ -26,6 +26,7 @@ const getDefaultApiUrl = () => {
  */
 export class ConfigService implements IConfigService {
   private config: Conf<ObserveOneConfig>;
+  private commandLineApiUrl?: string;
 
   constructor(config?: Conf<ObserveOneConfig>) {
     // Allow injecting config for testing
@@ -47,8 +48,15 @@ export class ConfigService implements IConfigService {
   }
 
   getApiUrl(): string {
-    // Always check environment first, then fall back to config
-    return process.env.OBS_API_URL || getDefaultApiUrl();
+    // Priority order: 1) command line option, 2) environment variable, 3) saved config, 4) default
+    return this.commandLineApiUrl || process.env.OBS_API_URL || this.config.get("apiUrl") || getDefaultApiUrl();
+  }
+
+  setCommandLineApiUrl(url: string): void {
+    // Ensure URL ends with /api
+    const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
+    const finalUrl = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
+    this.commandLineApiUrl = finalUrl;
   }
 
   isDevelopment(): boolean {

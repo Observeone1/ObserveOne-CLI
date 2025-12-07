@@ -23,8 +23,20 @@ export function createListCommand(container: Container): Command {
   return new Command("list")
     .description("List all available tests")
     .option("-f, --format <format>", "Output format (table, json)", "table")
+    .option("--api-url <url>", "Override API URL")
+    .option("--api-key <key>", "Override API key")
     .action(async (options) => {
       try {
+        // Handle API URL override first, before other operations
+        if (options.apiUrl) {
+          configService.setCommandLineApiUrl(options.apiUrl);
+        }
+
+        // Handle API key override
+        if (options.apiKey) {
+          configService.setApiKey(options.apiKey);
+        }
+
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(

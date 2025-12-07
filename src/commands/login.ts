@@ -28,9 +28,15 @@ export function createLoginCommand(container: Container): Command {
   return new Command("login")
     .description("Authenticate with ObserveOne platform")
     .option("-k, --api-key <key>", "API key to use for authentication")
+    .option("--api-url <url>", "Override API URL")
     .option("--skip-setup", "Skip project configuration setup")
     .action(async (options) => {
       try {
+        // Handle API URL override first, before other operations
+        if (options.apiUrl) {
+          configService.setCommandLineApiUrl(options.apiUrl);
+        }
+
         // Check for API key in command option first (highest priority)
         let apiKeyToUse = options.apiKey;
 

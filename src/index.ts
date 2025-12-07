@@ -67,7 +67,7 @@ program.hook("preAction", (thisCommand) => {
   }
 
   if (options.apiUrl) {
-    configService.setApiUrl(options.apiUrl);
+    configService.setCommandLineApiUrl(options.apiUrl);
   }
 
   if (options.apiKey) {
