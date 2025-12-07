@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-12-07
+
+### Fixed
+
+- **Command Options**: Added --api-url and --api-key options to all commands (ai-check, list, login)
+  - Fixes issue where --api-url flag was not properly recognized in subcommands
+  - Fixes issue where --api-url was treated as a test name instead of an option
+  - Adds command-specific API override options with proper precedence handling
+  - Ensures URL and key overrides work consistently across all commands
+
 ## [1.1.4] - 2025-12-07
 
 ### Fixed
