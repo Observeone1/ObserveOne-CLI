@@ -5,6 +5,14 @@ All notable changes to the ObserveOne CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2025-12-07
+
+### Fixed
+
+- **SSE Client**: Fixed issue where SSE client wasn't using the DI container, causing API URL overrides to not work during streaming
+  - Now properly resolves SSEClient from container in streamTestProgress function
+  - Ensures streaming requests use the same API URL as other requests when overridden via --api-url
+
 ## [1.1.5] - 2025-12-07
 
 ### Fixed

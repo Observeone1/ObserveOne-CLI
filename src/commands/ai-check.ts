@@ -243,12 +243,10 @@ async function streamTestProgress(
   results: TestResult[],
   testNames?: string[]
 ): Promise<void> {
-  const { SSEClient } = await import("../utils/sse-client.js");
   const { LiveProgressRenderer } = await import("../utils/live-progress.js");
   const { LogWriter } = await import("../utils/log-writer.js");
-
-  const sseClient = new SSEClient();
-
+  
+  const sseClient = container.resolve<ISSEClient>(SSE_CLIENT);
   // Check if verbose flag was passed
   const isVerbose =
     options.verbose ||
