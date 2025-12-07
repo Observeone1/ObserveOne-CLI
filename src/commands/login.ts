@@ -65,9 +65,7 @@ export function createLoginCommand(container: Container): Command {
             processService.exit(0);
             return;
           } else {
-            outputService.error("Invalid API key provided");
-            processService.exit(1);
-            return;
+            outputService.warning("Invalid API key provided, falling back to browser login.");
           }
         }
 
@@ -77,6 +75,7 @@ export function createLoginCommand(container: Container): Command {
         // Request auth session
         outputService.progress("Requesting authentication session...");
         const { request_id, auth_url } = await apiClient.requestCliAuth();
+        outputService.success("Successfully requested authentication session. Auth URL: " +  auth_url);
 
         console.log(
           chalk.gray("We'll open your browser to authenticate with ObserveOne")
