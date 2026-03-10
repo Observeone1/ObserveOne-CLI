@@ -56,12 +56,7 @@ export function createLoginCommand(
             apiClient.setApiKey(api_key);
             outputService.success("Successfully authenticated headlessly!");
 
-            // Skip interactive setup prompt for headless agents by default
             if (!options.skipSetup) {
-              // Assuming headless users probably don't want prompts, we could auto-skip or warn.
-              // We'll respect --skip-setup if explicitly provided, else run setup.
-              // But wait, setup is interactive (inquirer). Agents will hang.
-              // Let's force skip setup for headless unless they somehow pipe stdin.
               outputService.warning(
                 "Skipping interactive project setup in headless mode.",
               );
