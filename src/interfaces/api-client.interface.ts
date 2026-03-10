@@ -8,6 +8,10 @@ export interface IApiClient {
   setApiKey(apiKey: string): void;
   validateApiKey(apiKey: string): Promise<boolean>;
   validateToken(): Promise<boolean>;
+  provisionHeadlessAuth(
+    email?: string,
+    password?: string,
+  ): Promise<{ api_key: string }>;
   post(url: string, data?: any): Promise<any>;
   get(url: string): Promise<any>;
   getTests(): Promise<Test[]>;
@@ -29,7 +33,7 @@ export interface IApiClient {
   getExecutionResults(executionId: number): Promise<any[]>;
   cancelTask(
     taskId: string,
-    executionId?: number
+    executionId?: number,
   ): Promise<{
     success: boolean;
     taskId: string;
@@ -44,7 +48,7 @@ export interface IApiClient {
   pollExecutionStatus(
     executionId: number,
     maxAttempts?: number,
-    intervalMs?: number
+    intervalMs?: number,
   ): Promise<TestExecution>;
   requestCliAuth(): Promise<{ request_id: string; auth_url: string }>;
   checkCliAuthStatus(requestId: string): Promise<{

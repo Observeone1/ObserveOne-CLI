@@ -44,12 +44,12 @@ export class ApiClient implements IApiClient {
       (error) => {
         if (error.response?.status === 401) {
           throw new Error(
-            'Authentication failed. Please run "obs login" to authenticate.'
+            'Authentication failed. Please run "obs login" to authenticate.',
           );
         }
         if (error.response?.status === 403) {
           throw new Error(
-            "Access denied. You do not have permission to perform this action."
+            "Access denied. You do not have permission to perform this action.",
           );
         }
         if (error.response?.status === 404) {
@@ -59,7 +59,7 @@ export class ApiClient implements IApiClient {
           throw new Error(`Server error: ${error.response.status}`);
         }
         throw error;
-      }
+      },
     );
   }
 
@@ -70,9 +70,17 @@ export class ApiClient implements IApiClient {
 
   async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const response = await this.client.post("/api-keys/validate", {
-        key: apiKey,
-      });
+      // Temporarily set the key to test it
+      const currentKey = this.apiKey;
+      this.client.defaults.headers["x-obs1-cli"] = apiKey;
+
+      const response = await this.client.get("/cli/auth/verify");
+
+      // Restore previous key if validation was just a check
+      if (currentKey) {
+        this.client.defaults.headers["x-obs1-cli"] = currentKey;
+      }
+
       return response.data.valid === true;
     } catch (error: any) {
       return false;
@@ -81,13 +89,23 @@ export class ApiClient implements IApiClient {
 
   async validateToken(): Promise<boolean> {
     try {
-      // Use /browser-checks as a validation endpoint since it's protected
-      // and we know it exists. We limit to 1 result to keep it lightweight.
-      await this.client.get("/browser-checks?limit=1");
-      return true;
+      if (!this.apiKey) return false;
+      const response = await this.client.get("/cli/auth/verify");
+      return response.data.valid === true;
     } catch (error: any) {
       return false;
     }
+  }
+
+  async provisionHeadlessAuth(
+    email?: string,
+    password?: string,
+  ): Promise<{ api_key: string }> {
+    const response = await this.client.post("/cli/auth/provision", {
+      email,
+      password,
+    });
+    return response.data;
   }
 
   async post(url: string, data?: any): Promise<any> {
@@ -118,14 +136,14 @@ export class ApiClient implements IApiClient {
   }): Promise<{ id: number; message: string }> {
     const response = await this.client.post<{ id: number; message: string }>(
       "/browser-checks",
-      testData
+      testData,
     );
     return response.data;
   }
 
   async executeTest(testId: number): Promise<TestResult> {
     const response = await this.client.post<TestResult>(
-      `/browser-checks/${testId}/execute`
+      `/browser-checks/${testId}/execute`,
     );
     return response.data;
   }
@@ -138,28 +156,28 @@ export class ApiClient implements IApiClient {
   }): Promise<TestResult> {
     const response = await this.client.post<TestResult>(
       "/browser-checks/execute-adhoc",
-      testData
+      testData,
     );
     return response.data;
   }
 
   async getExecutionStatus(executionId: number): Promise<TestExecution> {
     const response = await this.client.get<TestExecution>(
-      `/browser-checks/execution/${executionId}`
+      `/browser-checks/execution/${executionId}`,
     );
     return response.data;
   }
 
   async getExecutionResults(executionId: number): Promise<any[]> {
     const response = await this.client.get<any[]>(
-      `/browser-checks/executions/${executionId}`
+      `/browser-checks/executions/${executionId}`,
     );
     return response.data;
   }
 
   async cancelTask(
     taskId: string,
-    executionId?: number
+    executionId?: number,
   ): Promise<{
     success: boolean;
     taskId: string;
@@ -186,7 +204,7 @@ export class ApiClient implements IApiClient {
   async pollExecutionStatus(
     executionId: number,
     maxAttempts: number = 60,
-    intervalMs: number = 5000
+    intervalMs: number = 5000,
   ): Promise<TestExecution> {
     let attempts = 0;
 
@@ -215,7 +233,7 @@ export class ApiClient implements IApiClient {
     }
 
     throw new Error(
-      `Test execution ${executionId} did not complete within the timeout period`
+      `Test execution ${executionId} did not complete within the timeout period`,
     );
   }
 

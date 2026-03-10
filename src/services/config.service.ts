@@ -49,7 +49,12 @@ export class ConfigService implements IConfigService {
 
   getApiUrl(): string {
     // Priority order: 1) command line option, 2) environment variable, 3) saved config, 4) default
-    return this.commandLineApiUrl || process.env.OBS_API_URL || this.config.get("apiUrl") || getDefaultApiUrl();
+    return (
+      this.commandLineApiUrl ||
+      process.env.OBS_API_URL ||
+      this.config.get("apiUrl") ||
+      getDefaultApiUrl()
+    );
   }
 
   setCommandLineApiUrl(url: string): void {
@@ -64,7 +69,7 @@ export class ConfigService implements IConfigService {
   }
 
   getApiKey(): string | undefined {
-    return this.config.get("apiKey") || process.env.OBS_API_KEY;
+    return process.env.OBS_API_KEY || this.config.get("apiKey");
   }
 
   setApiUrl(url: string): void {
