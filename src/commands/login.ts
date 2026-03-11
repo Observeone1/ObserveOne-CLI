@@ -16,20 +16,62 @@ const execAsync = promisify(execCallback);
 export function createLoginCommand(
   configService: IConfigService,
   apiClient: IApiClient,
-  outputService: IOutputService
+  outputService: IOutputService,
 ): Command {
   return new Command("login")
     .description("Authenticate with ObserveOne platform")
     .option("-k, --api-key <key>", "API key to use for authentication")
     .option("--api-url <url>", "Override API URL")
     .option("--skip-setup", "Skip project configuration setup")
+    .option(
+      "--headless",
+      "Authenticate headlessly using OBS_EMAIL and OBS_PASSWORD environment variables",
+    )
     .action(async (options) => {
       try {
         // Handle API URL override first, before other operations
         if (options.apiUrl) {
           configService.setCommandLineApiUrl(options.apiUrl);
         }
-        
+
+        // Headless Auth Flow (Agent / CI)
+        if (options.headless) {
+          const email = process.env.OBS_EMAIL;
+          const password = process.env.OBS_PASSWORD;
+
+          if (!email || !password) {
+            outputService.error(
+              "Headless authentication requires OBS_EMAIL and OBS_PASSWORD environment variables.",
+            );
+            process.exit(1);
+          }
+
+          outputService.progress("Provisioning headless M2M API key...");
+          try {
+            const { api_key } = await apiClient.provisionHeadlessAuth(
+              email,
+              password,
+            );
+            configService.setApiKey(api_key);
+            configService.setApiUrl(configService.getApiUrl());
+            apiClient.setApiKey(api_key);
+            outputService.success("Successfully authenticated headlessly!");
+
+            if (!options.skipSetup) {
+              outputService.warning(
+                "Skipping interactive project setup in headless mode.",
+              );
+            }
+            process.exit(0);
+          } catch (error: any) {
+            outputService.error(
+              `Headless authentication failed: ${error.message}`,
+            );
+            process.exit(1);
+          }
+          return;
+        }
+
         // Handle API key override
         if (options.apiKey) {
           configService.setApiKey(options.apiKey);
@@ -38,12 +80,12 @@ export function createLoginCommand(
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(
-            'Not authenticated. Please run "obs1 login" first.'
+            'Not authenticated. Please run "obs1 login" first.',
           );
           process.exit(1);
         }
 
-        // Check for API key in command option first (highest priority)  
+        // Check for API key in command option first (highest priority)
         let apiKeyToUse = options.apiKey;
 
         // If no explicit command option but global option was set, use that
@@ -61,7 +103,7 @@ export function createLoginCommand(
           const isValid = await apiClient.validateToken();
           if (isValid) {
             outputService.success(
-              "Successfully authenticated with provided API key"
+              "Successfully authenticated with provided API key",
             );
 
             // Setup project config if needed (skip in test mode)
@@ -72,7 +114,9 @@ export function createLoginCommand(
             process.exit(0);
             return;
           } else {
-            outputService.warning("Invalid API key provided, falling back to browser login.");
+            outputService.warning(
+              "Invalid API key provided, falling back to browser login.",
+            );
           }
         }
 
@@ -82,18 +126,21 @@ export function createLoginCommand(
         // Request auth session
         outputService.progress("Requesting authentication session...");
         const { request_id, auth_url } = await apiClient.requestCliAuth();
-        outputService.success("Successfully requested authentication session. Auth URL: " +  auth_url);
+        outputService.success(
+          "Successfully requested authentication session. Auth URL: " +
+            auth_url,
+        );
 
         console.log(
-          chalk.gray("We'll open your browser to authenticate with ObserveOne")
+          chalk.gray("We'll open your browser to authenticate with ObserveOne"),
         );
         console.log("");
         console.log(chalk.blue("Opening browser for authentication..."));
         console.log(chalk.gray(`Auth URL: ${auth_url}`));
         console.log(
           chalk.gray(
-            "If the browser doesn't open automatically, visit the URL above."
-          )
+            "If the browser doesn't open automatically, visit the URL above.",
+          ),
         );
         console.log("");
         console.log(chalk.yellow("⏳ Waiting for authentication..."));
@@ -132,12 +179,12 @@ export function createLoginCommand(
               console.log("");
               console.log(chalk.bold("Next steps:"));
               console.log(
-                chalk.gray('1. Run "obs list" to see available tests')
+                chalk.gray('1. Run "obs list" to see available tests'),
               );
               console.log(
                 chalk.gray(
-                  '2. Run "obs ai-check <test-name>" to execute tests'
-                )
+                  '2. Run "obs ai-check <test-name>" to execute tests',
+                ),
               );
 
               process.exit(0);
@@ -170,7 +217,7 @@ export function createLoginCommand(
  */
 async function setupProjectConfig(
   configService: IConfigService,
-  outputService: IOutputService
+  outputService: IOutputService,
 ): Promise<void> {
   const configPath = ".obs.config.json";
   if (!existsSync(configPath)) {
@@ -207,10 +254,7 @@ async function setupProjectConfig(
       },
     };
 
-    writeFileSync(
-      configPath,
-      JSON.stringify(projectConfig, null, 2)
-    );
+    writeFileSync(configPath, JSON.stringify(projectConfig, null, 2));
     configService.setProjectConfig(projectConfig.project);
     configService.setDefaultOptions(projectConfig.defaultOptions);
     outputService.success("Project configuration created!");
