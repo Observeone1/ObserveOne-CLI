@@ -13,7 +13,7 @@ export function createListCommand(
 ): Command {
 
   return new Command("list")
-    .description("List all available tests")
+    .description("List all AI browser checks")
     .option("-f, --format <format>", "Output format (table, json)", "table")
     .option("--api-url <url>", "Override API URL")
     .option("--api-key <key>", "Override API key")

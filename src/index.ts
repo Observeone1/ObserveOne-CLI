@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 
+// Silence dotenv/dotenvx before anything else
+process.env.DOTENV_QUIET = "true";
+process.env.DOTENV_CONFIG_SILENT = "true";
+
 import { Command } from "commander";
-import "dotenv/config";
+import dotenv from "dotenv";
+
+dotenv.config({ quiet: true } as any);
 import chalk from "chalk";
 import { readFileSync } from "fs";
 
@@ -14,6 +20,9 @@ import { OutputService } from "./services/output.service.js";
 import { createLoginCommand } from "./commands/login.js";
 import { createListCommand } from "./commands/list.js";
 import { createAiCheckCommand } from "./commands/ai-check.js";
+import { createMonitorCommand } from "./commands/monitor.js";
+import { createCheckCommand } from "./commands/check.js";
+import { createHeartbeatCommand } from "./commands/heartbeat.js";
 
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8")
@@ -53,6 +62,9 @@ program.exitOverride((err) => {
 program.addCommand(createLoginCommand(configService, apiClient, outputService));
 program.addCommand(createListCommand(configService, apiClient, outputService));
 program.addCommand(createAiCheckCommand(configService, apiClient, outputService));
+program.addCommand(createMonitorCommand(configService, apiClient, outputService));
+program.addCommand(createCheckCommand(configService, apiClient, outputService));
+program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook("preAction", (thisCommand) => {
