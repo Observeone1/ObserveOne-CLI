@@ -4,6 +4,14 @@ import { IApiClient } from "../interfaces/api-client.interface.js";
 import { IOutputService } from "../interfaces/output.interface.js";
 import { readFileSync, existsSync } from "fs";
 
+const chunkArray = <T>(arr: T[], size: number): T[][] => {
+  const result = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
+};
+
 export function createApplyCommand(
   configService: IConfigService,
   apiClient: IApiClient,
@@ -72,58 +80,64 @@ export function createApplyCommand(
             existingMonitors.map((m: any) => [m.name, m]),
           );
 
-          for (const monitorConfig of config.monitors) {
-            try {
-              if (!monitorConfig.name || !monitorConfig.url) {
-                throw new Error("Monitor must have 'name' and 'url'");
-              }
+          for (const chunk of chunkArray(config.monitors, 5)) {
+            await Promise.all(
+              chunk.map(async (monitorConfig: any) => {
+                try {
+                  if (!monitorConfig.name || !monitorConfig.url) {
+                    throw new Error("Monitor must have 'name' and 'url'");
+                  }
 
-              const existing = existingByName.get(monitorConfig.name);
-              if (existing) {
-                outputService.progress(
-                  `Updating monitor: ${monitorConfig.name}`,
-                );
-                await apiClient.updateUrlMonitor(
-                  existing.id || existing.data?.id,
-                  {
-                    name: monitorConfig.name || existing.name,
-                    url: monitorConfig.url || existing.url,
-                    timeout_ms:
-                      monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                    cron_expression:
-                      monitorConfig.interval ||
-                      monitorConfig.cron_expression ||
-                      existing.interval ||
-                      existing.cron_expression,
-                    alert_on_failure:
-                      monitorConfig.alert_on_failure ??
-                      existing.alert_on_failure ??
-                      true,
-                  },
-                );
-                summary.monitors.updated++;
-              } else {
-                outputService.progress(
-                  `Creating monitor: ${monitorConfig.name}`,
-                );
-                await apiClient.createUrlMonitor({
-                  ...monitorConfig,
-                  timeout_ms: monitorConfig.timeout_ms || 30000,
-                  cron_expression:
-                    monitorConfig.interval || monitorConfig.cron_expression,
-                });
-                summary.monitors.created++;
-              }
-            } catch (err: any) {
-              const details =
-                err.response?.data?.error ||
-                err.response?.data?.message ||
-                err.message;
-              errors.push(
-                `Monitor '${monitorConfig.name || "unknown"}': ${details}`,
-              );
-              summary.monitors.errors++;
-            }
+                  const existing = existingByName.get(monitorConfig.name);
+                  if (existing) {
+                    outputService.progress(
+                      `Updating monitor: ${monitorConfig.name}`,
+                    );
+                    await apiClient.updateUrlMonitor(
+                      existing.id || existing.data?.id,
+                      {
+                        name: monitorConfig.name || existing.name,
+                        url: monitorConfig.url || existing.url,
+                        timeout_ms:
+                          monitorConfig.timeout_ms ||
+                          existing.timeout_ms ||
+                          30000,
+                        cron_expression:
+                          monitorConfig.interval ||
+                          monitorConfig.cron_expression ||
+                          existing.interval ||
+                          existing.cron_expression,
+                        alert_on_failure:
+                          monitorConfig.alert_on_failure ??
+                          existing.alert_on_failure ??
+                          true,
+                      },
+                    );
+                    summary.monitors.updated++;
+                  } else {
+                    outputService.progress(
+                      `Creating monitor: ${monitorConfig.name}`,
+                    );
+                    await apiClient.createUrlMonitor({
+                      ...monitorConfig,
+                      timeout_ms: monitorConfig.timeout_ms || 30000,
+                      cron_expression:
+                        monitorConfig.interval || monitorConfig.cron_expression,
+                    });
+                    summary.monitors.created++;
+                  }
+                } catch (err: any) {
+                  const details =
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    err.message;
+                  errors.push(
+                    `Monitor '${monitorConfig.name || "unknown"}': ${details}`,
+                  );
+                  summary.monitors.errors++;
+                }
+              }),
+            );
           }
         }
 
@@ -135,56 +149,62 @@ export function createApplyCommand(
             existingChecks.map((c: any) => [c.name, c]),
           );
 
-          for (const checkConfig of config.api_checks) {
-            try {
-              if (!checkConfig.name || !checkConfig.url) {
-                throw new Error("API check must have 'name' and 'url'");
-              }
+          for (const chunk of chunkArray(config.api_checks, 5)) {
+            await Promise.all(
+              chunk.map(async (checkConfig: any) => {
+                try {
+                  if (!checkConfig.name || !checkConfig.url) {
+                    throw new Error("API check must have 'name' and 'url'");
+                  }
 
-              const existing = existingByName.get(checkConfig.name);
-              if (existing) {
-                outputService.progress(
-                  `Updating API check: ${checkConfig.name}`,
-                );
-                await apiClient.updateApiCheck(
-                  existing.id || existing.data?.id,
-                  {
-                    name: checkConfig.name || existing.name,
-                    url: checkConfig.url || existing.url,
-                    method:
-                      checkConfig.method?.toUpperCase() ||
-                      existing.method ||
-                      "GET",
-                    timeout_ms:
-                      checkConfig.timeout_ms || existing.timeout_ms || 30000,
-                    alert_on_failure:
-                      checkConfig.alert_on_failure ??
-                      existing.alert_on_failure ??
-                      true,
-                  },
-                );
-                summary.apiChecks.updated++;
-              } else {
-                outputService.progress(
-                  `Creating API check: ${checkConfig.name}`,
-                );
-                await apiClient.createApiCheck({
-                  ...checkConfig,
-                  timeout_ms: checkConfig.timeout_ms || 30000,
-                  method: checkConfig.method?.toUpperCase() || "GET",
-                });
-                summary.apiChecks.created++;
-              }
-            } catch (err: any) {
-              const details =
-                err.response?.data?.error ||
-                err.response?.data?.message ||
-                err.message;
-              errors.push(
-                `API Check '${checkConfig.name || "unknown"}': ${details}`,
-              );
-              summary.apiChecks.errors++;
-            }
+                  const existing = existingByName.get(checkConfig.name);
+                  if (existing) {
+                    outputService.progress(
+                      `Updating API check: ${checkConfig.name}`,
+                    );
+                    await apiClient.updateApiCheck(
+                      existing.id || existing.data?.id,
+                      {
+                        name: checkConfig.name || existing.name,
+                        url: checkConfig.url || existing.url,
+                        method:
+                          checkConfig.method?.toUpperCase() ||
+                          existing.method ||
+                          "GET",
+                        timeout_ms:
+                          checkConfig.timeout_ms ||
+                          existing.timeout_ms ||
+                          30000,
+                        alert_on_failure:
+                          checkConfig.alert_on_failure ??
+                          existing.alert_on_failure ??
+                          true,
+                      },
+                    );
+                    summary.apiChecks.updated++;
+                  } else {
+                    outputService.progress(
+                      `Creating API check: ${checkConfig.name}`,
+                    );
+                    await apiClient.createApiCheck({
+                      ...checkConfig,
+                      timeout_ms: checkConfig.timeout_ms || 30000,
+                      method: checkConfig.method?.toUpperCase() || "GET",
+                    });
+                    summary.apiChecks.created++;
+                  }
+                } catch (err: any) {
+                  const details =
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    err.message;
+                  errors.push(
+                    `API Check '${checkConfig.name || "unknown"}': ${details}`,
+                  );
+                  summary.apiChecks.errors++;
+                }
+              }),
+            );
           }
         }
 
@@ -248,45 +268,56 @@ export function createApplyCommand(
             existingAiChecks.map((t: any) => [t.name, t]),
           );
 
-          for (const aiConfig of config.ai_checks) {
-            try {
-              if (!aiConfig.name || !aiConfig.url || !aiConfig.prompt) {
-                throw new Error(
-                  "AI check must have 'name', 'url', and 'prompt'",
-                );
-              }
+          for (const chunk of chunkArray(config.ai_checks, 5)) {
+            await Promise.all(
+              chunk.map(async (aiConfig: any) => {
+                try {
+                  if (!aiConfig.name || !aiConfig.url || !aiConfig.prompt) {
+                    throw new Error(
+                      "AI check must have 'name', 'url', and 'prompt'",
+                    );
+                  }
 
-              const existing = existingByName.get(aiConfig.name);
-              if (existing) {
-                outputService.progress(`Updating AI check: ${aiConfig.name}`);
-                await apiClient.updateTest(existing.id || existing.data?.id, {
-                  name: aiConfig.name || existing.name,
-                  url: aiConfig.url || existing.url,
-                  prompt: aiConfig.prompt || existing.prompt,
-                  description:
-                    aiConfig.description || existing.description || "",
-                });
-                summary.aiChecks.updated++;
-              } else {
-                outputService.progress(`Creating AI check: ${aiConfig.name}`);
-                await apiClient.createTest({
-                  name: aiConfig.name,
-                  url: aiConfig.url,
-                  prompt: aiConfig.prompt,
-                  description: aiConfig.description || "Created via CLI",
-                });
-                summary.aiChecks.created++;
-              }
-            } catch (err: any) {
-              const details =
-                err.response?.data?.error ||
-                err.response?.data?.message ||
-                err.message;
-              errors.push(
-                `AI Check '${aiConfig.name || "unknown"}': ${details}`,
-              );
-              summary.aiChecks.errors++;
-            }
+                  const existing = existingByName.get(aiConfig.name);
+                  if (existing) {
+                    outputService.progress(
+                      `Updating AI check: ${aiConfig.name}`,
+                    );
+                    await apiClient.updateTest(
+                      existing.id || existing.data?.id,
+                      {
+                        name: aiConfig.name || existing.name,
+                        url: aiConfig.url || existing.url,
+                        prompt: aiConfig.prompt || existing.prompt,
+                        description:
+                          aiConfig.description || existing.description || "",
+                      },
+                    );
+                    summary.aiChecks.updated++;
+                  } else {
+                    outputService.progress(
+                      `Creating AI check: ${aiConfig.name}`,
+                    );
+                    await apiClient.createTest({
+                      name: aiConfig.name,
+                      url: aiConfig.url,
+                      prompt: aiConfig.prompt,
+                      description: aiConfig.description || "Created via CLI",
+                    });
+                    summary.aiChecks.created++;
+                  }
+                } catch (err: any) {
+                  const details =
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    err.message;
+                  errors.push(
+                    `AI Check '${aiConfig.name || "unknown"}': ${details}`,
+                  );
+                  summary.aiChecks.errors++;
+                }
+              }),
+            );
           }
         }
 
