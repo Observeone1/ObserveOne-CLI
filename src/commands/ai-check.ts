@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import inquirer from "inquirer";
 import chalk from "chalk";
 import ora from "ora";
 import { IConfigService } from "../interfaces/config.interface.js";
@@ -17,7 +18,12 @@ export function createAiCheckCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return new Command("ai-check")
+  const aiCheck = new Command("ai-check")
+    .description("Manage and run AI-powered tests");
+
+  // RUN (Default)
+  aiCheck
+    .command("run", { isDefault: true })
     .description("Run AI-powered tests")
     .argument("[test-names...]", "Test names to run (by name or ID)")
     .option("-u, --url <url>", "URL to test")
@@ -28,79 +34,233 @@ export function createAiCheckCommand(
     .option("-v, --verbose", "Show detailed step information during execution")
     .option("-w, --wait", "Wait for test completion")
     .option("--adhoc", "Run as ad-hoc test (don't save to database)")
-    .option(
-      "--reporter <reporter>",
-      "Output reporter (console, junit, json)",
-      "console"
-    )
+    .option("--reporter <reporter>", "Output reporter (console, junit, json)", "console")
     .option("-o, --output <file>", "Output file for reports")
     .option("--api-url <url>", "Override API URL")
     .option("--api-key <key>", "Override API key")
+    .option("-j, --json", "Output in JSON format")
     .action(async (testNames, options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+        outputService.enableJsonMode();
+      }
       try {
-        // Handle API URL override first, before other operations
-        if (options.apiUrl) {
-          configService.setCommandLineApiUrl(options.apiUrl);
-        }
-
-        // Handle API key override
-        if (options.apiKey) {
-          configService.setApiKey(options.apiKey);
-        }
+        if (options.apiUrl) configService.setCommandLineApiUrl(options.apiUrl);
+        if (options.apiKey) configService.setApiKey(options.apiKey);
 
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error(
-            'Not authenticated. Please run "obs login" first.'
-          );
+          outputService.error('Not authenticated. Please run "obs login" first.');
           process.exit(1);
         }
 
         const timeout = parseInt(options.timeout);
         const results: TestResult[] = [];
 
-        // If no test names provided, check for ad-hoc options
         if (testNames.length === 0) {
           if (!options.url || !options.prompt) {
-            outputService.error(
-              "Either provide test names or use --url and --prompt for ad-hoc testing"
-            );
+            outputService.error("Either provide test names or use --url and --prompt for ad-hoc testing");
             process.exit(1);
           }
-
-          // Run ad-hoc test
-          await runAdhocTest(
-            apiClient,
-            outputService,
-            configService,
-            options,
-            timeout,
-            results
-          );
+          await runAdhocTest(apiClient, outputService, configService, options, timeout, results);
         } else {
-          // Run named tests
-          await runNamedTests(
-            apiClient,
-            outputService,
-            configService,
-            testNames,
-            options,
-            timeout,
-            results
-          );
+          await runNamedTests(apiClient, outputService, configService, testNames, options, timeout, results);
         }
 
-        // Format and output results
-        await formatAndOutputResults(
-          results,
-          options,
-          outputService
-        );
+        await formatAndOutputResults(results, options, outputService);
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
     });
+
+  // LIST
+  aiCheck
+    .command("list")
+    .description("List all AI browser checks")
+    .option("-f, --format <format>", "Output format (table, json)", "table")
+    .option("-j, --json", "Output in JSON format")
+    .action(async (options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json" || options.json) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        outputService.progress("Fetching AI checks...");
+        const tests = await apiClient.getTests();
+
+        if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json" || options.json) {
+          outputService.formatJsonOutput(tests);
+        } else {
+          outputService.formatTestList(tests, process.env.OBS_VERBOSE === "true");
+        }
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  // GET
+  aiCheck
+    .command("get <id>")
+    .description("Get details of an AI browser check")
+    .option("-j, --json", "Output in JSON format")
+    .action(async (id, options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        const testId = parseInt(id);
+        if (isNaN(testId)) {
+          outputService.error("Invalid test ID.");
+          process.exit(1);
+        }
+
+        outputService.progress(`Fetching AI check ${testId}...`);
+        const testData = await apiClient.getTest(testId);
+
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput(testData);
+        } else {
+          outputService.formatTestList([testData], true);
+        }
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  // CREATE
+  aiCheck
+    .command("create")
+    .description("Create a new AI browser check")
+    .option("-n, --name <name>", "Test name")
+    .option("-u, --url <url>", "URL to test")
+    .option("-p, --prompt <prompt>", "Test prompt")
+    .option("-j, --json", "Output in JSON format")
+    .action(async (options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        let { name, url, prompt } = options;
+
+        if (!name || !url || !prompt) {
+          const answers = await inquirer.prompt([
+            {
+              type: "input",
+              name: "name",
+              message: "Check name:",
+              when: !name,
+              validate: (val) => (val.trim() ? true : "Name is required"),
+            },
+            {
+              type: "input",
+              name: "url",
+              message: "URL to test:",
+              when: !url,
+              validate: (val) => {
+                try {
+                  new URL(val);
+                  return true;
+                } catch {
+                  return "Invalid URL";
+                }
+              },
+            },
+            {
+              type: "input",
+              name: "prompt",
+              message: "What should the AI check? (prompt):",
+              when: !prompt,
+              validate: (val) => (val.trim() ? true : "Prompt is required"),
+            }
+          ]);
+          name = name || answers.name;
+          url = url || answers.url;
+          prompt = prompt || answers.prompt;
+        }
+
+        outputService.progress("Creating AI browser check...");
+        const newTest = await apiClient.createTest({
+          name,
+          url,
+          prompt,
+          description: "Created via CLI",
+        });
+
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput(newTest);
+        } else {
+          outputService.success(`AI browser check "${name}" created! (ID: ${newTest.id})`);
+        }
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  // DELETE
+  aiCheck
+    .command("delete <id>")
+    .description("Delete an AI browser check")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option("-j, --json", "Output in JSON format")
+    .action(async (id, options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        const testId = parseInt(id);
+        if (isNaN(testId)) {
+          outputService.error("Invalid test ID.");
+          process.exit(1);
+        }
+
+        if (!options.yes) {
+          const { confirm } = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "confirm",
+              message: `Are you sure you want to delete AI check ${testId}?`,
+              default: false,
+            }
+          ]);
+          if (!confirm) return;
+        }
+
+        outputService.progress(`Deleting AI check ${testId}...`);
+        await apiClient.deleteTest(testId);
+        outputService.success(`AI check ${testId} deleted successfully.`);
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  return aiCheck;
 }
 
 /**
@@ -352,6 +512,7 @@ async function formatAndOutputResults(
     options.reporter === "json" ||
     process.env.OBS_JSON_OUTPUT === "true"
   ) {
+    outputService.enableJsonMode();
     outputService.formatJsonOutput(results);
   } else if (options.reporter === "junit") {
     const junitReport = generateJUnitReport(results, outputService);

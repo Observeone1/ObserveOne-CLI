@@ -6,7 +6,7 @@ import {
 } from "../lib/test-runner.js";
 
 export async function testAiCheckWithInvalidTestName() {
-  const result = await runCLI(["ai-check", "nonexistent-test-name"]);
+  const result = await runCLI(["ai-check", "run", "nonexistent-test-name"]);
   
   // This should either fail with a test not found error or succeed with empty results
   // depending on the implementation
@@ -14,8 +14,8 @@ export async function testAiCheckWithInvalidTestName() {
     assertFailure(result, "AI check with invalid test name should fail");
     assertContains(
       result.stderr || result.stdout,
-      "Authentication failed",
-      "Should show authentication error when not logged in"
+      "not found",
+      "Should show 'not found' error for nonexistent test"
     );
   } else {
     // If it succeeds, that's also acceptable behavior
@@ -25,15 +25,15 @@ export async function testAiCheckWithInvalidTestName() {
 
 export async function testAiCheckWithMultipleTests() {
   // This test will fail if the tests don't exist, but that's expected
-  const result = await runCLI(["ai-check", "test1", "test2", "test3"]);
+  const result = await runCLI(["ai-check", "run", "test1", "test2", "test3"]);
   
   // The important thing is that the command parses and runs without crashing
   if (result.exitCode !== 0) {
     // If it fails due to missing tests, that's ok
     assertContains(
       result.stderr || result.stdout,
-      "Authentication failed",
-      "Should handle authentication failure for multiple tests"
+      "not found",
+      "Should handle 'not found' failure for multiple tests"
     );
   }
 }
@@ -41,6 +41,7 @@ export async function testAiCheckWithMultipleTests() {
 export async function testAiCheckWithAdHocTest() {
   const result = await runCLI([
     "ai-check",
+    "run",
     "--url",
     "https://example.com",
     "--prompt",

@@ -1,6 +1,10 @@
 import chalk from "chalk";
 import { IOutputService } from "../interfaces/output.interface.js";
-import { JsonEnvelope, Test, TestExecution, TestResult } from "../types/index.js";
+import { JsonEnvelope, Test, TestExecution,  TestResult,
+  UrlMonitor,
+  ApiCheck,
+  Heartbeat,
+} from "../types/index.js";
 
 /**
  * Output formatting service implementation
@@ -47,11 +51,11 @@ export class OutputService implements IOutputService {
 
   formatTestList(tests: Test[], verbose: boolean = false): void {
     if (tests.length === 0) {
-      this.info("No tests found.");
+      this.info("No AI browser checks found.");
       return;
     }
 
-    console.log(chalk.bold("\n📋 Available Tests:"));
+    console.log(chalk.bold("\n🤖 AI Browser Checks:"));
     console.log(chalk.gray("─".repeat(80)));
 
     tests.forEach((test, index) => {
@@ -61,34 +65,90 @@ export class OutputService implements IOutputService {
       }
       console.log(chalk.gray(`   URL: ${test.url}`));
       console.log(chalk.gray(`   ID: ${test.id}`));
-      console.log(
-        chalk.gray(
-          `   Created: ${new Date(test.created_at).toLocaleDateString()}`
-        )
-      );
 
       if (verbose) {
-        // Show additional fields in verbose mode
-        if ((test as any).prompt) {
-          console.log(chalk.gray(`   Prompt: ${(test as any).prompt}`));
-        }
-        if ((test as any).status) {
-          console.log(chalk.gray(`   Status: ${(test as any).status}`));
-        }
-        if ((test as any).uptime_percentage !== undefined) {
-          console.log(
-            chalk.gray(
-              `   Uptime: ${(test as any).uptime_percentage.toFixed(2)}%`
-            )
-          );
-        }
+        console.log(chalk.gray(`   Prompt: ${test.prompt}`));
         console.log(
           chalk.gray(
-            `   Updated: ${new Date(test.updated_at).toLocaleDateString()}`
+            `   Created: ${new Date(test.created_at).toLocaleString()}`
           )
         );
       }
+      console.log("");
+    });
+  }
 
+  formatMonitorList(monitors: UrlMonitor[], verbose: boolean = false): void {
+    if (monitors.length === 0) {
+      this.info("No URL monitors found.");
+      return;
+    }
+
+    console.log(chalk.bold("\n🌐 URL Monitors:"));
+    console.log(chalk.gray("─".repeat(80)));
+
+    monitors.forEach((monitor, index) => {
+      const status = monitor.is_active ? chalk.green("ACTIVE") : chalk.yellow("PAUSED");
+      console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
+      
+      console.log(chalk.gray(`   URL: ${monitor.url}`));
+      console.log(chalk.gray(`   ID: ${monitor.id}`));
+
+      if (verbose) {
+        if (monitor.description) console.log(chalk.gray(`   Desc: ${monitor.description}`));
+        console.log(chalk.gray(`   Interval: ${monitor.cron_expression || "Default"}`));
+        console.log(chalk.gray(`   Alerts: ${monitor.alert_on_failure ? "ON" : "OFF"}`));
+      }
+      console.log("");
+    });
+  }
+
+  formatApiCheckList(checks: ApiCheck[], verbose: boolean = false): void {
+    if (checks.length === 0) {
+      this.info("No API checks found.");
+      return;
+    }
+
+    console.log(chalk.bold("\n🔌 API Checks:"));
+    console.log(chalk.gray("─".repeat(80)));
+
+    checks.forEach((check, index) => {
+      const status = check.is_active ? chalk.green("ACTIVE") : chalk.yellow("PAUSED");
+      console.log(chalk.bold(`${index + 1}. ${check.name} [${status}]`));
+      
+      console.log(chalk.gray(`   Endpoint: ${check.method} ${check.url}`));
+      console.log(chalk.gray(`   ID: ${check.id}`));
+
+      if (verbose) {
+        if (check.description) console.log(chalk.gray(`   Desc: ${check.description}`));
+        console.log(chalk.gray(`   Assertions: ${check.assertions?.length || 0}`));
+      }
+      console.log("");
+    });
+  }
+
+  formatHeartbeatList(heartbeats: Heartbeat[], verbose: boolean = false): void {
+    if (heartbeats.length === 0) {
+      this.info("No heartbeats found.");
+      return;
+    }
+
+    console.log(chalk.bold("\n💓 Heartbeats:"));
+    console.log(chalk.gray("─".repeat(80)));
+
+    heartbeats.forEach((hb, index) => {
+      const statusColor = hb.status === "UP" ? chalk.green : hb.status === "DOWN" ? chalk.red : chalk.yellow;
+      const status = statusColor(hb.status);
+      const activeStatus = hb.is_active ? "" : chalk.yellow(" (PAUSED)");
+      
+      console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}${activeStatus}`));
+      console.log(chalk.gray(`   Key: ${hb.ping_key}`));
+      console.log(chalk.gray(`   ID: ${hb.id}`));
+
+      if (verbose) {
+        console.log(chalk.gray(`   Period: ${hb.period}s (Grace: ${hb.grace_period}s)`));
+        console.log(chalk.gray(`   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : "Never"}`));
+      }
       console.log("");
     });
   }

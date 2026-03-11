@@ -100,6 +100,60 @@ export interface JUnitTestCase {
   };
 }
 
+export interface UrlMonitor {
+  id: number;
+  name: string;
+  description?: string;
+  url: string;
+  timeout_ms: number;
+  is_active: boolean;
+  alert_on_failure: boolean;
+  cron_expression?: string;
+  assertions: Array<{
+    operator: string;
+    status_code: number;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiCheck {
+  id: number;
+  name: string;
+  description?: string;
+  url: string;
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeout_ms: number;
+  is_active: boolean;
+  alert_on_failure: boolean;
+  cron_expression?: string;
+  assertions?: Array<{
+    type: string;
+    path?: string;
+    operator: string;
+    value: string;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Heartbeat {
+  id: number;
+  name: string;
+  description?: string;
+  period: number;
+  grace_period: number;
+  ping_key: string;
+  is_active: boolean;
+  alert_on_failure: boolean;
+  last_ping_at?: string;
+  status: "UP" | "DOWN" | "PENDING";
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JsonEnvelope<T = any> {
   status: "SUCCESS" | "ERROR";
   data?: T;

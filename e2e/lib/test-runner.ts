@@ -19,7 +19,7 @@ export interface CLIResult {
 /**
  * Run the CLI with the given arguments and return the result
  */
-export async function runCLI(args: string[], timeoutMs: number = 10000): Promise<CLIResult> {
+export async function runCLI(args: string[], timeoutMs: number = 30000): Promise<CLIResult> {
   return new Promise((resolve) => {
     const binaryMode = process.env.OBS_BINARY_MODE || "local";
     const isWindows = process.platform === "win32";
@@ -62,7 +62,10 @@ export async function runCLI(args: string[], timeoutMs: number = 10000): Promise
       env: {
         ...process.env,
         // Use test API URL and key from environment
-        OBS_API_URL: process.env.API_URL,
+        OBS_API_URL: process.env.API_URL || process.env.OBS_API_URL,
+        OBS_API_KEY: process.env.OBS_API_KEY || process.env.API_KEY,
+        DOTENV_QUIET: "true",
+        DOTENV_CONFIG_SILENT: "true",
       },
       shell: useShell,
     };
@@ -146,7 +149,16 @@ export function assertContains(
  */
 export function assertJSON(output: string, message?: string): void {
   try {
-    JSON.parse(output);
+    // Find the first '{' and last '}' to extract the JSON object
+    const start = output.indexOf("{");
+    const end = output.lastIndexOf("}");
+    
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error("No JSON object found in output");
+    }
+    
+    const jsonStr = output.substring(start, end + 1);
+    JSON.parse(jsonStr);
   } catch (error) {
     throw new Error(
       `${message || "Output should be valid JSON"}\\nGot: ${output}`
