@@ -1,4 +1,11 @@
-import { Test, TestExecution, TestResult } from "../types/index.js";
+import {
+  Test,
+  TestExecution,
+  TestResult,
+  UrlMonitor,
+  ApiCheck,
+  Heartbeat,
+} from "../types/index.js";
 
 /**
  * API Client interface
@@ -14,6 +21,8 @@ export interface IApiClient {
   ): Promise<{ api_key: string }>;
   post(url: string, data?: any): Promise<any>;
   get(url: string): Promise<any>;
+
+  // Browser Tests (AI Checks)
   getTests(): Promise<Test[]>;
   getTest(testId: number): Promise<Test>;
   createTest(testData: {
@@ -22,6 +31,8 @@ export interface IApiClient {
     prompt: string;
     description?: string;
   }): Promise<{ id: number; message: string }>;
+  updateTest(testId: number, testData: any): Promise<Test>;
+  deleteTest(testId: number): Promise<void>;
   executeTest(testId: number): Promise<TestResult>;
   executeAdhocTest(testData: {
     name: string;
@@ -40,6 +51,31 @@ export interface IApiClient {
     status?: string;
     message?: string;
   }>;
+
+  // URL Monitors
+  getUrlMonitors(): Promise<UrlMonitor[]>;
+  getUrlMonitor(id: number): Promise<UrlMonitor>;
+  createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor>;
+  updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
+  deleteUrlMonitor(id: number): Promise<void>;
+  toggleUrlMonitor(id: number): Promise<boolean>;
+
+  // API Checks
+  getApiChecks(): Promise<ApiCheck[]>;
+  getApiCheck(id: number): Promise<ApiCheck>;
+  createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck>;
+  updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
+  deleteApiCheck(id: number): Promise<void>;
+  toggleApiCheck(id: number): Promise<boolean>;
+
+  // Heartbeats
+  getHeartbeats(): Promise<Heartbeat[]>;
+  getHeartbeat(id: number): Promise<Heartbeat>;
+  createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat>;
+  updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
+  deleteHeartbeat(id: number): Promise<void>;
+  toggleHeartbeat(id: number): Promise<boolean>;
+
   healthCheck(): Promise<{
     status: string;
     timestamp: string;
