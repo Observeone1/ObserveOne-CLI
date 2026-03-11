@@ -3,6 +3,8 @@ import { IConfigService } from "../interfaces/config.interface.js";
 import { IApiClient } from "../interfaces/api-client.interface.js";
 import { IOutputService } from "../interfaces/output.interface.js";
 import { readFileSync, existsSync } from "fs";
+import ora from "ora";
+import chalk from "chalk";
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const result = [];
@@ -11,6 +13,8 @@ const chunkArray = <T>(arr: T[], size: number): T[][] => {
   }
   return result;
 };
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function createApplyCommand(
   configService: IConfigService,
@@ -23,9 +27,22 @@ export function createApplyCommand(
     .option("-f, --file <path>", "Path to the JSON configuration file")
     .option("-j, --json", "Output in JSON format")
     .action(async (fileArg, options) => {
-      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+      const isVerbose = process.env.OBS_VERBOSE === "true";
+      const isJson = process.env.OBS_JSON_OUTPUT === "true" || options.json;
+
+      if (isJson) {
         outputService.enableJsonMode();
       }
+
+      let spinner: any = null;
+
+      const logProgress = (msg: string) => {
+        if (isVerbose && !isJson) {
+          outputService.progress(msg);
+        } else if (spinner) {
+          spinner.text = msg;
+        }
+      };
 
       try {
         const apiKey = configService.getApiKey();
@@ -53,12 +70,17 @@ export function createApplyCommand(
           }
         }
 
-        outputService.progress(`Reading configuration from ${targetFile}...`);
+        if (!isVerbose && !isJson) {
+          spinner = ora("Applying declarative configuration...").start();
+        }
+
+        logProgress(`Reading configuration from ${targetFile}...`);
         const fileContent = readFileSync(targetFile, "utf-8");
         let config: any;
         try {
           config = JSON.parse(fileContent);
         } catch (e: any) {
+          if (spinner) spinner.fail("Invalid JSON");
           outputService.error(`Invalid JSON in ${targetFile}: ${e.message}`);
           process.exit(1);
         }
@@ -71,16 +93,19 @@ export function createApplyCommand(
         };
 
         const errors: string[] = [];
+        const delayMs = 1000; // 1 second between chunks to respect 100 req/min rate limit
 
         // 1. Process URL Monitors
         if (config.monitors && Array.isArray(config.monitors)) {
-          outputService.progress("Fetching existing monitors...");
+          logProgress("Fetching existing monitors...");
           const existingMonitors = await apiClient.getUrlMonitors();
           const existingByName = new Map(
             existingMonitors.map((m: any) => [m.name, m]),
           );
 
-          for (const chunk of chunkArray(config.monitors, 5)) {
+          const chunks = chunkArray(config.monitors, 5);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i] as any[];
             await Promise.all(
               chunk.map(async (monitorConfig: any) => {
                 try {
@@ -90,9 +115,7 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(monitorConfig.name);
                   if (existing) {
-                    outputService.progress(
-                      `Updating monitor: ${monitorConfig.name}`,
-                    );
+                    logProgress(`Updating monitor: ${monitorConfig.name}`);
                     await apiClient.updateUrlMonitor(
                       existing.id || existing.data?.id,
                       {
@@ -115,9 +138,7 @@ export function createApplyCommand(
                     );
                     summary.monitors.updated++;
                   } else {
-                    outputService.progress(
-                      `Creating monitor: ${monitorConfig.name}`,
-                    );
+                    logProgress(`Creating monitor: ${monitorConfig.name}`);
                     await apiClient.createUrlMonitor({
                       ...monitorConfig,
                       timeout_ms: monitorConfig.timeout_ms || 30000,
@@ -138,18 +159,21 @@ export function createApplyCommand(
                 }
               }),
             );
+            if (i < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 2. Process API Checks
         if (config.api_checks && Array.isArray(config.api_checks)) {
-          outputService.progress("Fetching existing API checks...");
+          logProgress("Fetching existing API checks...");
           const existingChecks = await apiClient.getApiChecks();
           const existingByName = new Map(
             existingChecks.map((c: any) => [c.name, c]),
           );
 
-          for (const chunk of chunkArray(config.api_checks, 5)) {
+          const chunks = chunkArray(config.api_checks, 5);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i] as any[];
             await Promise.all(
               chunk.map(async (checkConfig: any) => {
                 try {
@@ -159,9 +183,7 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(checkConfig.name);
                   if (existing) {
-                    outputService.progress(
-                      `Updating API check: ${checkConfig.name}`,
-                    );
+                    logProgress(`Updating API check: ${checkConfig.name}`);
                     await apiClient.updateApiCheck(
                       existing.id || existing.data?.id,
                       {
@@ -183,9 +205,7 @@ export function createApplyCommand(
                     );
                     summary.apiChecks.updated++;
                   } else {
-                    outputService.progress(
-                      `Creating API check: ${checkConfig.name}`,
-                    );
+                    logProgress(`Creating API check: ${checkConfig.name}`);
                     await apiClient.createApiCheck({
                       ...checkConfig,
                       timeout_ms: checkConfig.timeout_ms || 30000,
@@ -205,70 +225,80 @@ export function createApplyCommand(
                 }
               }),
             );
+            if (i < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 3. Process Heartbeats
         if (config.heartbeats && Array.isArray(config.heartbeats)) {
-          outputService.progress("Fetching existing heartbeats...");
+          logProgress("Fetching existing heartbeats...");
           const existingHeartbeats = await apiClient.getHeartbeats();
           const existingByName = new Map(
             existingHeartbeats.map((h: any) => [h.name, h]),
           );
 
-          for (const hbConfig of config.heartbeats) {
-            try {
-              if (!hbConfig.name || !hbConfig.period) {
-                throw new Error("Heartbeat must have 'name' and 'period'");
-              }
+          const chunks = chunkArray(config.heartbeats, 5);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i] as any[];
+            await Promise.all(
+              chunk.map(async (hbConfig: any) => {
+                try {
+                  if (!hbConfig.name || !hbConfig.period) {
+                    throw new Error("Heartbeat must have 'name' and 'period'");
+                  }
 
-              const existing = existingByName.get(hbConfig.name);
-              if (existing) {
-                outputService.progress(`Updating heartbeat: ${hbConfig.name}`);
-                await apiClient.updateHeartbeat(
-                  existing.id || existing.data?.id,
-                  {
-                    name: hbConfig.name || existing.name,
-                    period: hbConfig.period || existing.period,
-                    description: existing.description || "Updated via CLI",
-                    grace_period:
-                      hbConfig.grace ||
-                      hbConfig.grace_period ||
-                      existing.grace_period ||
-                      60,
-                  },
-                );
-                summary.heartbeats.updated++;
-              } else {
-                outputService.progress(`Creating heartbeat: ${hbConfig.name}`);
-                await apiClient.createHeartbeat({
-                  name: hbConfig.name,
-                  period: hbConfig.period,
-                });
-                summary.heartbeats.created++;
-              }
-            } catch (err: any) {
-              const details =
-                err.response?.data?.error ||
-                err.response?.data?.message ||
-                err.message;
-              errors.push(
-                `Heartbeat '${hbConfig.name || "unknown"}': ${details}`,
-              );
-              summary.heartbeats.errors++;
-            }
+                  const existing = existingByName.get(hbConfig.name);
+                  if (existing) {
+                    logProgress(`Updating heartbeat: ${hbConfig.name}`);
+                    await apiClient.updateHeartbeat(
+                      existing.id || existing.data?.id,
+                      {
+                        name: hbConfig.name || existing.name,
+                        period: hbConfig.period || existing.period,
+                        description: existing.description || "Updated via CLI",
+                        grace_period:
+                          hbConfig.grace ||
+                          hbConfig.grace_period ||
+                          existing.grace_period ||
+                          60,
+                      },
+                    );
+                    summary.heartbeats.updated++;
+                  } else {
+                    logProgress(`Creating heartbeat: ${hbConfig.name}`);
+                    await apiClient.createHeartbeat({
+                      name: hbConfig.name,
+                      period: hbConfig.period,
+                    });
+                    summary.heartbeats.created++;
+                  }
+                } catch (err: any) {
+                  const details =
+                    err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    err.message;
+                  errors.push(
+                    `Heartbeat '${hbConfig.name || "unknown"}': ${details}`,
+                  );
+                  summary.heartbeats.errors++;
+                }
+              }),
+            );
+            if (i < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 4. Process AI Checks
         if (config.ai_checks && Array.isArray(config.ai_checks)) {
-          outputService.progress("Fetching existing AI checks...");
+          logProgress("Fetching existing AI checks...");
           const existingAiChecks = await apiClient.getTests();
           const existingByName = new Map(
             existingAiChecks.map((t: any) => [t.name, t]),
           );
 
-          for (const chunk of chunkArray(config.ai_checks, 5)) {
+          const chunks = chunkArray(config.ai_checks, 5);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i] as any[];
             await Promise.all(
               chunk.map(async (aiConfig: any) => {
                 try {
@@ -280,9 +310,7 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(aiConfig.name);
                   if (existing) {
-                    outputService.progress(
-                      `Updating AI check: ${aiConfig.name}`,
-                    );
+                    logProgress(`Updating AI check: ${aiConfig.name}`);
                     await apiClient.updateTest(
                       existing.id || existing.data?.id,
                       {
@@ -295,9 +323,7 @@ export function createApplyCommand(
                     );
                     summary.aiChecks.updated++;
                   } else {
-                    outputService.progress(
-                      `Creating AI check: ${aiConfig.name}`,
-                    );
+                    logProgress(`Creating AI check: ${aiConfig.name}`);
                     await apiClient.createTest({
                       name: aiConfig.name,
                       url: aiConfig.url,
@@ -318,10 +344,15 @@ export function createApplyCommand(
                 }
               }),
             );
+            if (i < chunks.length - 1) await delay(delayMs);
           }
         }
 
-        if (process.env.OBS_JSON_OUTPUT === "true") {
+        if (spinner) {
+          spinner.stop();
+        }
+
+        if (isJson) {
           outputService.formatJsonOutput({
             summary,
             errors: errors.length > 0 ? errors : undefined,
@@ -350,6 +381,7 @@ export function createApplyCommand(
           }
         }
       } catch (error: any) {
+        if (spinner) spinner.stop();
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
