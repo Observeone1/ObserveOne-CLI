@@ -19,7 +19,7 @@ export interface CLIResult {
 /**
  * Run the CLI with the given arguments and return the result
  */
-export async function runCLI(args: string[]): Promise<CLIResult> {
+export async function runCLI(args: string[], timeoutMs: number = 10000): Promise<CLIResult> {
   return new Promise((resolve) => {
     const binaryMode = process.env.OBS_BINARY_MODE || "local";
     const isWindows = process.platform === "win32";
@@ -80,7 +80,12 @@ export async function runCLI(args: string[]): Promise<CLIResult> {
       stderr += data.toString();
     });
 
+    const timeoutTimer = setTimeout(() => {
+      child.kill("SIGTERM");
+    }, timeoutMs);
+
     child.on("close", (code) => {
+      clearTimeout(timeoutTimer);
       resolve({
         stdout,
         stderr,

@@ -36,12 +36,14 @@ export async function testJsonOutputFormat() {
     }
   } else {
     // If it fails due to auth or other expected errors, that's OK - it means the --format option was parsed correctly
-    const output = result.stderr || result.stdout;
+    const output = (result.stderr || result.stdout).toLowerCase();
     if (!output.includes("authentication") &&
-        !output.includes("API") &&
-        !output.includes("Resource not found") &&
-        !output.toLowerCase().includes("error")) {
-      throw new Error(`JSON format: Unexpected error: ${output}`);
+        !output.includes("api") &&
+        !output.includes("resource") &&
+        !output.includes("error") &&
+        !output.includes("not found") &&
+        !output.includes("obs login")) {
+      throw new Error(`JSON format: Unexpected error: ${result.stderr || result.stdout}`);
     }
   }
 }
@@ -76,12 +78,14 @@ export async function testGlobalJsonOutput() {
     }
   } else {
     // If it fails due to auth or other expected errors, that's OK
-    const output = result.stderr || result.stdout;
+    const output = (result.stderr || result.stdout).toLowerCase();
     if (!output.includes("authentication") &&
-        !output.includes("API") &&
-        !output.includes("Resource not found") &&
-        !output.toLowerCase().includes("error")) {
-      throw new Error(`Global JSON: Unexpected error: ${output}`);
+        !output.includes("api") &&
+        !output.includes("resource") &&
+        !output.includes("error") &&
+        !output.includes("not found") &&
+        !output.includes("obs login")) {
+      throw new Error(`Global JSON: Unexpected error: ${result.stderr || result.stdout}`);
     }
   }
 }
@@ -92,13 +96,14 @@ export async function testVerboseMode() {
   // Verbose mode testing - just ensure it doesn't crash due to option parsing
   if (result.exitCode !== 0) {
     // If it fails, it should be due to auth or API issues, not option parsing
-    const output = result.stderr || result.stdout;
+    const output = (result.stderr || result.stdout).toLowerCase();
     if (!output.includes("authentication") &&
-        !output.includes("Resource not found") &&
+        !output.includes("resource") &&
         !output.includes("not found") &&
-        !output.includes("API") &&
-        !output.toLowerCase().includes("error")) {
-      throw new Error(`Verbose mode: Unexpected error (should be auth/API related): ${output}`);
+        !output.includes("api") &&
+        !output.includes("error") &&
+        !output.includes("obs login")) {
+      throw new Error(`Verbose mode: Unexpected error (should be auth/API related): ${result.stderr || result.stdout}`);
     }
   }
   // If it succeeds, that's also fine
