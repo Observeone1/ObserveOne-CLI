@@ -23,9 +23,10 @@ import { createAiCheckCommand } from "./commands/ai-check.js";
 import { createMonitorCommand } from "./commands/monitor.js";
 import { createCheckCommand } from "./commands/check.js";
 import { createHeartbeatCommand } from "./commands/heartbeat.js";
+import { createApplyCommand } from "./commands/apply.js";
 
 const packageJson = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8")
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const { version } = packageJson;
 
@@ -40,7 +41,7 @@ const program = new Command();
 program
   .name("obs")
   .description(
-    "ObserveOne CLI - AI-powered website monitoring and testing from the command line"
+    "ObserveOne CLI - AI-powered website monitoring and testing from the command line",
   )
   .version(version)
   .option("-v, --verbose", "Enable verbose output")
@@ -61,10 +62,17 @@ program.exitOverride((err) => {
 // Add commands with services
 program.addCommand(createLoginCommand(configService, apiClient, outputService));
 program.addCommand(createListCommand(configService, apiClient, outputService));
-program.addCommand(createAiCheckCommand(configService, apiClient, outputService));
-program.addCommand(createMonitorCommand(configService, apiClient, outputService));
+program.addCommand(
+  createAiCheckCommand(configService, apiClient, outputService),
+);
+program.addCommand(
+  createMonitorCommand(configService, apiClient, outputService),
+);
 program.addCommand(createCheckCommand(configService, apiClient, outputService));
-program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
+program.addCommand(
+  createHeartbeatCommand(configService, apiClient, outputService),
+);
+program.addCommand(createApplyCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook("preAction", (thisCommand) => {
@@ -108,15 +116,19 @@ function handleFatalError(error: any, prefix: string) {
     return;
   }
 
-  if (process.env.OBS_JSON_OUTPUT === "true" || process.argv.includes("--json")) {
+  if (
+    process.env.OBS_JSON_OUTPUT === "true" ||
+    process.argv.includes("--json")
+  ) {
     const envelope = {
       status: "ERROR",
       error: {
-        message: msg || (typeof error === "string" ? error : "Unknown fatal error"),
+        message:
+          msg || (typeof error === "string" ? error : "Unknown fatal error"),
       },
       metadata: {
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
     console.log(JSON.stringify(envelope, null, 2));
   } else {
