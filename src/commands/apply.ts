@@ -210,6 +210,12 @@ export function createApplyCommand(
                   {
                     name: hbConfig.name || existing.name,
                     period: hbConfig.period || existing.period,
+                    description: existing.description || "Updated via CLI",
+                    grace_period:
+                      hbConfig.grace ||
+                      hbConfig.grace_period ||
+                      existing.grace_period ||
+                      60,
                   },
                 );
                 summary.heartbeats.updated++;
@@ -257,6 +263,8 @@ export function createApplyCommand(
                   name: aiConfig.name || existing.name,
                   url: aiConfig.url || existing.url,
                   prompt: aiConfig.prompt || existing.prompt,
+                  description:
+                    aiConfig.description || existing.description || "",
                 });
                 summary.aiChecks.updated++;
               } else {
@@ -265,6 +273,7 @@ export function createApplyCommand(
                   name: aiConfig.name,
                   url: aiConfig.url,
                   prompt: aiConfig.prompt,
+                  description: aiConfig.description || "Created via CLI",
                 });
                 summary.aiChecks.created++;
               }
