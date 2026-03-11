@@ -16,10 +16,11 @@ import { writeFileSync } from "fs";
 export function createAiCheckCommand(
   configService: IConfigService,
   apiClient: IApiClient,
-  outputService: IOutputService
+  outputService: IOutputService,
 ): Command {
-  const aiCheck = new Command("ai-check")
-    .description("Manage and run AI-powered tests");
+  const aiCheck = new Command("ai-check").description(
+    "Manage and run AI-powered tests",
+  );
 
   // RUN (Default)
   aiCheck
@@ -34,7 +35,11 @@ export function createAiCheckCommand(
     .option("-v, --verbose", "Show detailed step information during execution")
     .option("-w, --wait", "Wait for test completion")
     .option("--adhoc", "Run as ad-hoc test (don't save to database)")
-    .option("--reporter <reporter>", "Output reporter (console, junit, json)", "console")
+    .option(
+      "--reporter <reporter>",
+      "Output reporter (console, junit, json)",
+      "console",
+    )
     .option("-o, --output <file>", "Output file for reports")
     .option("--api-url <url>", "Override API URL")
     .option("--api-key <key>", "Override API key")
@@ -49,7 +54,9 @@ export function createAiCheckCommand(
 
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -58,12 +65,29 @@ export function createAiCheckCommand(
 
         if (testNames.length === 0) {
           if (!options.url || !options.prompt) {
-            outputService.error("Either provide test names or use --url and --prompt for ad-hoc testing");
+            outputService.error(
+              "Either provide test names or use --url and --prompt for ad-hoc testing",
+            );
             process.exit(1);
           }
-          await runAdhocTest(apiClient, outputService, configService, options, timeout, results);
+          await runAdhocTest(
+            apiClient,
+            outputService,
+            configService,
+            options,
+            timeout,
+            results,
+          );
         } else {
-          await runNamedTests(apiClient, outputService, configService, testNames, options, timeout, results);
+          await runNamedTests(
+            apiClient,
+            outputService,
+            configService,
+            testNames,
+            options,
+            timeout,
+            results,
+          );
         }
 
         await formatAndOutputResults(results, options, outputService);
@@ -80,23 +104,36 @@ export function createAiCheckCommand(
     .option("-f, --format <format>", "Output format (table, json)", "table")
     .option("-j, --json", "Output in JSON format")
     .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json" || options.json) {
+      if (
+        process.env.OBS_JSON_OUTPUT === "true" ||
+        options.format === "json" ||
+        options.json
+      ) {
         outputService.enableJsonMode();
       }
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
         outputService.progress("Fetching AI checks...");
         const tests = await apiClient.getTests();
 
-        if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json" || options.json) {
+        if (
+          process.env.OBS_JSON_OUTPUT === "true" ||
+          options.format === "json" ||
+          options.json
+        ) {
           outputService.formatJsonOutput(tests);
         } else {
-          outputService.formatTestList(tests, process.env.OBS_VERBOSE === "true");
+          outputService.formatTestList(
+            tests,
+            process.env.OBS_VERBOSE === "true",
+          );
         }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
@@ -116,7 +153,9 @@ export function createAiCheckCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -155,7 +194,9 @@ export function createAiCheckCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -190,7 +231,7 @@ export function createAiCheckCommand(
               message: "What should the AI check? (prompt):",
               when: !prompt,
               validate: (val) => (val.trim() ? true : "Prompt is required"),
-            }
+            },
           ]);
           name = name || answers.name;
           url = url || answers.url;
@@ -208,7 +249,9 @@ export function createAiCheckCommand(
         if (process.env.OBS_JSON_OUTPUT === "true") {
           outputService.formatJsonOutput(newTest);
         } else {
-          outputService.success(`AI browser check "${name}" created! (ID: ${newTest.id})`);
+          outputService.success(
+            `AI browser check "${name}" created! (ID: ${newTest.id})`,
+          );
         }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
@@ -229,7 +272,9 @@ export function createAiCheckCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -246,14 +291,18 @@ export function createAiCheckCommand(
               name: "confirm",
               message: `Are you sure you want to delete AI check ${testId}?`,
               default: false,
-            }
+            },
           ]);
           if (!confirm) return;
         }
 
         outputService.progress(`Deleting AI check ${testId}...`);
         await apiClient.deleteTest(testId);
-        outputService.success(`AI check ${testId} deleted successfully.`);
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput({ success: true, id: testId });
+        } else {
+          outputService.success(`AI check ${testId} deleted successfully.`);
+        }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
@@ -272,10 +321,12 @@ async function runAdhocTest(
   configService: IConfigService,
   options: any,
   timeout: number,
-  results: TestResult[]
+  results: TestResult[],
 ): Promise<void> {
   const isJson = process.env.OBS_JSON_OUTPUT === "true";
-  const spinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora("Running ad-hoc test...").start();
+  const spinner = isJson
+    ? { start: () => {}, succeed: () => {}, fail: () => {} }
+    : ora("Running ad-hoc test...").start();
 
   try {
     const result = await apiClient.executeAdhocTest({
@@ -296,7 +347,7 @@ async function runAdhocTest(
         options.name || "Ad-hoc Test",
         options,
         timeout,
-        results
+        results,
       );
     }
   } catch (error) {
@@ -315,10 +366,12 @@ async function runNamedTests(
   testNames: string[],
   options: any,
   timeout: number,
-  results: TestResult[]
+  results: TestResult[],
 ): Promise<void> {
   const isJson = process.env.OBS_JSON_OUTPUT === "true";
-  const spinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora("Fetching test details...").start();
+  const spinner = isJson
+    ? { start: () => {}, succeed: () => {}, fail: () => {} }
+    : ora("Fetching test details...").start();
 
   try {
     const tests = await apiClient.getTests();
@@ -343,7 +396,9 @@ async function runNamedTests(
 
     // Execute each test
     for (const test of testsToRun) {
-      const testSpinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora(`Running test: ${test.name}`).start();
+      const testSpinner = isJson
+        ? { start: () => {}, succeed: () => {}, fail: () => {} }
+        : ora(`Running test: ${test.name}`).start();
 
       try {
         const result = await apiClient.executeTest(test.id);
@@ -359,7 +414,7 @@ async function runNamedTests(
             options,
             timeout,
             results,
-            testNames
+            testNames,
           );
         }
       } catch (error) {
@@ -383,7 +438,7 @@ async function streamTestProgress(
   options: any,
   timeout: number,
   results: TestResult[],
-  testNames?: string[]
+  testNames?: string[],
 ): Promise<void> {
   const sseClient = new SSEClient(configService);
   const { LiveProgressRenderer } = await import("../utils/live-progress.js");
@@ -423,7 +478,7 @@ async function streamTestProgress(
         renderer.updateStep(
           stepCounter,
           step.next_goal || "Processing...",
-          step
+          step,
         );
         logger.writeStep(step);
       } else if (message.type === "screenshot") {
@@ -476,7 +531,7 @@ async function streamTestProgress(
         logger.close();
         completed = true;
       }
-    }
+    },
   );
 
   // Wait for completion
@@ -506,12 +561,9 @@ async function streamTestProgress(
 async function formatAndOutputResults(
   results: TestResult[],
   options: any,
-  outputService: IOutputService
+  outputService: IOutputService,
 ): Promise<void> {
-  if (
-    options.reporter === "json" ||
-    process.env.OBS_JSON_OUTPUT === "true"
-  ) {
+  if (options.reporter === "json" || process.env.OBS_JSON_OUTPUT === "true") {
     outputService.enableJsonMode();
     outputService.formatJsonOutput(results);
   } else if (options.reporter === "junit") {
@@ -557,7 +609,7 @@ async function formatAndOutputResults(
  */
 function generateJUnitReport(
   results: TestResult[],
-  outputService: IOutputService
+  outputService: IOutputService,
 ): string {
   const testSuite = {
     name: "ObserveOne Tests",

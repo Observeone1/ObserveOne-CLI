@@ -11,10 +11,9 @@ import { IOutputService } from "../interfaces/output.interface.js";
 export function createHeartbeatCommand(
   configService: IConfigService,
   apiClient: IApiClient,
-  outputService: IOutputService
+  outputService: IOutputService,
 ): Command {
-  const heartbeat = new Command("heartbeat")
-    .description("Manage heartbeats");
+  const heartbeat = new Command("heartbeat").description("Manage heartbeats");
 
   // LIST
   heartbeat
@@ -23,23 +22,35 @@ export function createHeartbeatCommand(
     .option("-f, --format <format>", "Output format (table, json)", "table")
     .option("-j, --json", "Output in JSON format")
     .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json" || options.json) {
+      if (
+        process.env.OBS_JSON_OUTPUT === "true" ||
+        options.format === "json" ||
+        options.json
+      ) {
         outputService.enableJsonMode();
       }
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
         outputService.progress("Fetching heartbeats...");
         const heartbeats = await apiClient.getHeartbeats();
 
-        if (process.env.OBS_JSON_OUTPUT === "true" || options.format === "json") {
+        if (
+          process.env.OBS_JSON_OUTPUT === "true" ||
+          options.format === "json"
+        ) {
           outputService.formatJsonOutput(heartbeats);
         } else {
-          outputService.formatHeartbeatList(heartbeats, process.env.OBS_VERBOSE === "true");
+          outputService.formatHeartbeatList(
+            heartbeats,
+            process.env.OBS_VERBOSE === "true",
+          );
         }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
@@ -59,7 +70,9 @@ export function createHeartbeatCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -98,7 +111,9 @@ export function createHeartbeatCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -123,7 +138,7 @@ export function createHeartbeatCommand(
               name: "grace",
               message: "Grace period (seconds):",
               default: 60,
-            }
+            },
           ]);
           name = answers.name;
           period = answers.period;
@@ -141,9 +156,17 @@ export function createHeartbeatCommand(
         if (process.env.OBS_JSON_OUTPUT === "true") {
           outputService.formatJsonOutput(newHb);
         } else {
-          outputService.success(`Heartbeat "${newHb.name}" created! UUID: ${newHb.ping_key}`);
-          console.log(`\nTo ping this heartbeat, send a GET or POST request to:`);
-          console.log(chalk.cyan(`${configService.getApiUrl()}/heartbeats/ping/${newHb.ping_key}`));
+          outputService.success(
+            `Heartbeat "${newHb.name}" created! UUID: ${newHb.ping_key}`,
+          );
+          console.log(
+            `\nTo ping this heartbeat, send a GET or POST request to:`,
+          );
+          console.log(
+            chalk.cyan(
+              `${configService.getApiUrl()}/heartbeats/ping/${newHb.ping_key}`,
+            ),
+          );
         }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
@@ -164,7 +187,9 @@ export function createHeartbeatCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -181,14 +206,18 @@ export function createHeartbeatCommand(
               name: "confirm",
               message: `Are you sure you want to delete heartbeat ${hbId}?`,
               default: false,
-            }
+            },
           ]);
           if (!confirm) return;
         }
 
         outputService.progress(`Deleting heartbeat ${hbId}...`);
         await apiClient.deleteHeartbeat(hbId);
-        outputService.success(`Heartbeat ${hbId} deleted successfully.`);
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput({ success: true, id: hbId });
+        } else {
+          outputService.success(`Heartbeat ${hbId} deleted successfully.`);
+        }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
@@ -207,7 +236,9 @@ export function createHeartbeatCommand(
       try {
         const apiKey = configService.getApiKey();
         if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
           process.exit(1);
         }
 
@@ -219,7 +250,9 @@ export function createHeartbeatCommand(
 
         outputService.progress(`Toggling heartbeat ${hbId}...`);
         const isActive = await apiClient.toggleHeartbeat(hbId);
-        outputService.success(`Heartbeat ${hbId} is now ${isActive ? "ACTIVE" : "PAUSED"}.`);
+        outputService.success(
+          `Heartbeat ${hbId} is now ${isActive ? "ACTIVE" : "PAUSED"}.`,
+        );
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);

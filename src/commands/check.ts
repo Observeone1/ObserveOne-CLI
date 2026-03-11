@@ -212,7 +212,11 @@ export function createCheckCommand(
 
         outputService.progress(`Deleting check ${checkId}...`);
         await apiClient.deleteApiCheck(checkId);
-        outputService.success(`API check ${checkId} deleted successfully.`);
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput({ success: true, id: checkId });
+        } else {
+          outputService.success(`API check ${checkId} deleted successfully.`);
+        }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
