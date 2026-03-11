@@ -1,6 +1,8 @@
 # ObserveOne CLI
 
-AI-powered website monitoring and testing from your terminal. Run intelligent browser tests directly from the command line with real-time progress updates.
+AI-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
+
+The `obs` CLI allows developers and AI Agents to manage URL Monitors, API Checks, Heartbeats, and AI Browser tests using simple commands or declarative JSON configuration files.
 
 ## Installation
 
@@ -11,228 +13,202 @@ npm install -g @observe1/cli
 ## Quick Start
 
 1. **Login to ObserveOne**
-
    ```bash
    obs login
    ```
 
-2. **List your tests**
-
+2. **Pull your existing configuration**
    ```bash
-   obs list
+   obs export
    ```
 
-3. **Run a test**
-
+3. **Manage a monitor**
    ```bash
-   obs ai-check my-test
+   obs monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
+   obs monitor list
    ```
 
-## Commands
+---
 
-### `obs login`
+## 🏗️ Config-as-Code (Declarative Workflow)
 
-Authenticate with the ObserveOne platform.
+ObserveOne supports an Infrastructure-as-Code (IaC) workflow using JSON. You can define all your monitors, API checks, and heartbeats in a single `observeone.json` file and sync them to your account.
 
+### `obs export`
+Fetch all your existing remote resources from the ObserveOne backend and save them locally.
 ```bash
-# Interactive login (opens browser)
-obs login
+# Generates observeone.json in the current directory
+obs export
 
-# Login with API key
-obs login --api-key <your-api-key>
+# Save to a custom file
+obs export -f my-stack.json
 ```
 
-**Options:**
+### `obs apply`
+Sync your local JSON configuration to the ObserveOne backend. The CLI will automatically detect matching resources and perform surgical `create` and `update` API calls.
+```bash
+# Sync observeone.json
+obs apply
 
-- `-k, --api-key <key>` - API key for authentication
+# Sync a custom file
+obs apply -f my-stack.json
+```
+
+**Example `observeone.json` schema:**
+```json
+{
+  "monitors": [
+    {
+      "name": "Production Website",
+      "url": "https://example.com",
+      "interval": "*/5 * * * *",
+      "alert_on_failure": true
+    }
+  ],
+  "api_checks": [
+    {
+      "name": "Health API",
+      "url": "https://api.example.com/health",
+      "method": "GET"
+    }
+  ],
+  "heartbeats": [
+    {
+      "name": "Database Backup Job",
+      "period": 86400
+    }
+  ]
+}
+```
 
 ---
 
-### `obs list`
+## 🛠️ Resource Management (CRUD)
 
-List all your available tests.
+You can manually create, read, update, delete, and toggle individual resources directly from the terminal.
 
+### URL Monitors
+Manage basic HTTP ping monitors.
 ```bash
-# Display as a table
-obs list
-
-# Output as JSON
-obs list --format json
+obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
+obs monitor list
+obs monitor get <id>
+obs monitor update <id> --name "Updated Frontend" --interval "*/10 * * * *"
+obs monitor toggle <id>
+obs monitor delete <id> -y
 ```
 
-**Options:**
+### API Checks
+Manage complex API health checks.
+```bash
+obs check create --name "Auth API" --url "https://api.example.com/auth" --method "POST"
+obs check list
+obs check update <id> --method "GET"
+obs check toggle <id>
+obs check delete <id> -y
+```
 
-- `-f, --format <format>` - Output format: `table` (default) or `json`
+### Heartbeats (Cron Monitoring)
+Manage heartbeat checks (for monitoring background jobs or cron tasks).
+```bash
+obs heartbeat create --name "Daily Backup" --period 86400
+obs heartbeat list
+obs heartbeat update <id> --period 43200
+obs heartbeat toggle <id>
+obs heartbeat delete <id> -y
+```
+
+### AI Browser Checks
+Manage and execute intelligent Playwright-driven browser tests using natural language prompts.
+```bash
+obs ai-check create --name "Login Flow" --url "https://app.com" --prompt "Login with test@example.com"
+obs ai-check list
+obs ai-check get <id>
+obs ai-check delete <id> -y
+```
+
+#### Running AI Checks
+You can execute pre-configured checks or run them "ad-hoc" on the fly.
+```bash
+# Run an existing test by name or ID
+obs ai-check run "Login Flow"
+obs ai-check run 123
+
+# Run multiple tests sequentially
+obs ai-check run test1 test2 test3
+
+# Run an ad-hoc test without saving it to the database
+obs ai-check run --adhoc --url https://example.com --prompt "Verify the hero section exists"
+```
 
 ---
 
-### `obs ai-check`
+## 🤖 AI Agent Integration (Headless Mode)
 
-Run AI-powered browser tests with live progress updates.
+The `obs` CLI is explicitly designed to be used by AI coding agents (like Cursor, GitHub Copilot, Claude Code, or custom bots). 
+
+### The `--json` Flag
+Append `--json` to **any** command. The CLI will automatically suppress all human-readable output (chalk colors, loading spinners, raw logs) and return a strict, machine-readable `JsonEnvelope`.
 
 ```bash
-# Run test by name
-obs ai-check my-test
-
-# Run multiple tests
-obs ai-check test1 test2 test3
-
-# Run test by ID
-obs ai-check 123
-
-# Run with verbose output (see detailed steps)
-obs ai-check my-test --verbose
-
-# Run ad-hoc test (without saving to database)
-obs ai-check --url https://example.com --prompt "Click the login button"
-
-# Generate JUnit report
-obs ai-check my-test --reporter junit --output results.xml
+obs monitor list --json
+obs apply -f my-stack.json --json
 ```
 
-**Options:**
+**Guaranteed Agent Response Schema:**
+```json
+{
+  "status": "SUCCESS",
+  "data": { ... },
+  "metadata": {
+    "timestamp": "2026-03-11T12:00:00.000Z"
+  }
+}
+```
+*(If an error occurs, `status` will be `"ERROR"` and the envelope will contain a strict `error` object, preventing the agent's JSON parser from crashing).*
 
-- `-u, --url <url>` - URL to test (for ad-hoc tests)
-- `-p, --prompt <prompt>` - Test instructions (for ad-hoc tests)
-- `-n, --name <name>` - Test name (for ad-hoc tests)
-- `-d, --description <description>` - Test description (for ad-hoc tests)
-- `-t, --timeout <timeout>` - Timeout in milliseconds (default: 300000)
-- `-v, --verbose` - Show detailed step-by-step execution
-- `--adhoc` - Run as ad-hoc test without saving
-- `--reporter <reporter>` - Output reporter: `console` (default), `junit`, or `json`
-- `-o, --output <file>` - Output file for reports
+### Headless Authentication
+Agents can authenticate securely using environment variables without interactive browser prompts:
+```bash
+export OBS_EMAIL="agent@company.com"
+export OBS_PASSWORD="secure-password"
 
-**Live Progress Features:**
+# Automatically provisions and saves an API key to local config
+obs login --headless
+```
 
-- **Real-time updates**: Watch your test execution live with step-by-step progress
-- **Compact mode** (default): Shows spinner with current step and elapsed time
-- **Verbose mode** (`--verbose`): Displays detailed logs of every action
-- **Screenshot tracking**: Shows count of screenshots captured
-- **Log files**: Full execution logs saved to `.obs/logs/execution-<id>.log`
+Alternatively, inject an existing API key directly into the environment:
+```bash
+export OBS_API_KEY="your_api_key_here"
+```
 
 ---
 
-## Global Options
+## ⚙️ Global Configuration
 
 Available for all commands:
-
 ```bash
 obs <command> [options]
 ```
 
 **Options:**
-
-- `-v, --verbose` - Enable verbose output
-- `--json` - Output in JSON format
+- `-v, --verbose` - Enable verbose output and stack traces
+- `--json` - Output in strict JSON format
 - `--api-url <url>` - Override API URL
 - `--api-key <key>` - Override API key
 - `--version` - Show version number
 - `--help` - Show help
 
-## Configuration
-
-### Global Configuration
-
-Stored in your system's config directory:
-
-- **macOS/Linux**: `~/.config/obs/config.json`
-- **Windows**: `%APPDATA%/obs/config.json`
-
-### Project Configuration
-
-Create `.obs.config.json` in your project root:
-
-```json
-{
-  "project": {
-    "name": "My Project",
-    "description": "Project description"
-  },
-  "apiUrl": "https://api.observeone.com",
-  "defaultOptions": {
-    "timeout": 300000,
-    "retries": 3,
-    "verbose": false
-  }
-}
-```
-
 ### Environment Variables
-
 ```bash
-# Override API URL
 export OBS_API_URL=https://api.observeone.com
-
-# Override API key
 export OBS_API_KEY=your-api-key
-
-# Enable verbose mode
 export OBS_VERBOSE=true
-
-# Enable JSON output
 export OBS_JSON_OUTPUT=true
 ```
 
-## Examples
-
-### Run tests and watch progress
-
-```bash
-# Run with compact progress (default)
-obs ai-check homepage-test
-
-# Run with detailed step-by-step output
-obs ai-check homepage-test --verbose
-```
-
-### Ad-hoc testing
-
-```bash
-# Quick test without saving
-obs ai-check \
-  --url https://example.com \
-  --prompt "Navigate to login page and verify the form exists" \
-  --name "Login Page Check"
-```
-
-### CI/CD Integration
-
-```bash
-# Generate JUnit XML for CI systems
-obs ai-check my-test --reporter junit --output test-results.xml
-
-# JSON output for parsing
-obs ai-check my-test --reporter json --output results.json
-
-# Exit code: 0 for success, 1 for failure
-obs ai-check my-test && echo "Tests passed!"
-```
-
-## Logs
-
-Detailed execution logs are automatically saved to your system's config directory:
-
-- **Windows**: `%APPDATA%\observeone-nodejs\Config\logs\`
-- **macOS/Linux**: `~/.config/observeone-nodejs/logs/`
-
-Log files are named: `execution-<task-id>-<timestamp>.log`
-
-Each log includes:
-
-- Timestamp
-- Step-by-step actions
-- Goals and results
-- Screenshot captures
-- Final completion status
-
-## Support
-
-- **npm**: [npmjs.com/package/@observeone/cli](https://www.npmjs.com/package/@observeone/cli)
-
 ## License
-
 MIT
 
 ---
-
 **Happy Testing! 🚀**
