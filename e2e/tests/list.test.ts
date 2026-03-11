@@ -12,13 +12,10 @@ export async function testListCommand() {
     }
   } else {
     // If it fails, it should be due to authentication or similar expected errors
-    const output = result.stderr || result.stdout;
-    if (!output.includes("authentication") &&
-        !output.includes("Resource not found") &&
-        !output.includes("not found") &&
-        !output.includes("API") &&
-        !output.toLowerCase().includes("error")) {
-      throw new Error(`Unexpected error in list command: ${output}`);
-    }
+    assertContains(
+      result.stdout + result.stderr,
+      "obs login",
+      "Should prompt to log in when not authenticated"
+    );
   }
 }

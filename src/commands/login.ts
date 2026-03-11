@@ -55,12 +55,15 @@ export function createLoginCommand(
             configService.setApiKey(api_key);
             configService.setApiUrl(configService.getApiUrl());
             apiClient.setApiKey(api_key);
-            outputService.success("Successfully authenticated headlessly!");
-
-            if (!options.skipSetup) {
-              outputService.warning(
-                "Skipping interactive project setup in headless mode.",
-              );
+            if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+              outputService.formatJsonOutput({ authenticated: true });
+            } else {
+              outputService.success("Successfully authenticated headlessly!");
+              if (!options.skipSetup) {
+                outputService.warning(
+                  "Skipping interactive project setup in headless mode.",
+                );
+              }
             }
             process.exit(0);
           } catch (error: any) {
@@ -80,7 +83,7 @@ export function createLoginCommand(
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(
-            'Not authenticated. Please run "obs1 login" first.',
+            'Not authenticated. Please run "obs login" first.',
           );
           process.exit(1);
         }
@@ -114,9 +117,10 @@ export function createLoginCommand(
             process.exit(0);
             return;
           } else {
-            outputService.warning(
-              "Invalid API key provided, falling back to browser login.",
+            outputService.error(
+              "Invalid API key provided. Please check your key and try again.",
             );
+            process.exit(1);
           }
         }
 

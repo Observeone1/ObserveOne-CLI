@@ -13,11 +13,7 @@ export async function testListWithoutAuthentication() {
   if (result.exitCode !== 0) {
     const output = result.stderr || result.stdout;
     // Check for authentication-related errors
-    if (!output.includes("authentication") &&
-        !output.includes("Resource not found") &&
-        !output.includes("not found") &&
-        !output.includes("API") &&
-        !output.toLowerCase().includes("error")) {
+    if (!output.includes("Authentication failed") && !output.includes("obs login")) {
       throw new Error(`Expected authentication/resource error, got: ${output}`);
     }
   }
@@ -29,14 +25,15 @@ export async function testAiCheckWithoutAuthentication() {
 
   // May fail due to auth, test not found, or other reasons - all are valid
   if (result.exitCode !== 0) {
-    const output = result.stderr || result.stdout;
+    const output = (result.stderr || result.stdout).toLowerCase();
     // Check for authentication, resource not found, or other expected errors
     if (!output.includes("authentication") &&
         !output.includes("not found") &&
-        !output.includes("Test") &&
-        !output.includes("Resource") &&
-        !output.toLowerCase().includes("error")) {
-      throw new Error(`Unexpected error: Expected auth/resource error, got: ${output}`);
+        !output.includes("test") &&
+        !output.includes("resource") &&
+        !output.includes("error") &&
+        !output.includes("obs login")) {
+      throw new Error(`Unexpected error: Expected auth/resource error, got: ${result.stderr || result.stdout}`);
     }
   }
   // If it succeeds, that's also fine

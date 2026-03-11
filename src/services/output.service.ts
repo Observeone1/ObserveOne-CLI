@@ -1,29 +1,47 @@
 import chalk from "chalk";
 import { IOutputService } from "../interfaces/output.interface.js";
-import { Test, TestExecution, TestResult } from "../types/index.js";
+import { JsonEnvelope, Test, TestExecution, TestResult } from "../types/index.js";
 
 /**
  * Output formatting service implementation
  * Handles console output and formatting
  */
 export class OutputService implements IOutputService {
+  private isJsonMode: boolean = false;
+
+  enableJsonMode(): void {
+    this.isJsonMode = true;
+  }
   success(message: string): void {
+    if (this.isJsonMode) return;
     console.log(chalk.green(`✅ ${message}`));
   }
 
   error(message: string): void {
+    if (this.isJsonMode) {
+      const envelope: JsonEnvelope = {
+        status: "ERROR",
+        error: { message },
+        metadata: { timestamp: new Date().toISOString() }
+      };
+      console.log(JSON.stringify(envelope, null, 2));
+      return;
+    }
     console.error(chalk.red(`❌ ${message}`));
   }
 
   warning(message: string): void {
+    if (this.isJsonMode) return;
     console.log(chalk.yellow(`⚠️  ${message}`));
   }
 
   info(message: string): void {
+    if (this.isJsonMode) return;
     console.log(chalk.blue(`ℹ️  ${message}`));
   }
 
   progress(message: string): void {
+    if (this.isJsonMode) return;
     console.log(chalk.cyan(`🔄 ${message}`));
   }
 
@@ -126,7 +144,14 @@ export class OutputService implements IOutputService {
   }
 
   formatJsonOutput(data: any): void {
-    console.log(JSON.stringify(data, null, 2));
+    const envelope: JsonEnvelope = {
+      status: "SUCCESS",
+      data,
+      metadata: {
+        timestamp: new Date().toISOString()
+      }
+    };
+    console.log(JSON.stringify(envelope, null, 2));
   }
 
   formatJUnitReport(testSuite: any): string {

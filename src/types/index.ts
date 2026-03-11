@@ -99,3 +99,16 @@ export interface JUnitTestCase {
     stackTrace?: string;
   };
 }
+
+export interface JsonEnvelope<T = any> {
+  status: "SUCCESS" | "ERROR";
+  data?: T;
+  error?: {
+    message: string;
+    details?: any;
+  };
+  metadata: {
+    timestamp: string;
+    version?: string;
+  };
+}

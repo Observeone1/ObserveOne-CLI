@@ -65,6 +65,7 @@ program.hook("preAction", (thisCommand) => {
 
   if (options.json) {
     process.env.OBS_JSON_OUTPUT = "true";
+    outputService.enableJsonMode();
   }
 
   if (options.apiUrl) {
@@ -82,8 +83,8 @@ program.configureOutput({
   writeOut: (str) => process.stdout.write(str),
 });
 
-// Handle uncaught errors
-process.on("uncaughtException", (error: any) => {
+// Helper for formatting fatal errors
+function handleFatalError(error: any, prefix: string) {
   const msg = error?.message || "";
   const code = error?.code || "";
   if (
@@ -91,36 +92,44 @@ process.on("uncaughtException", (error: any) => {
     code === "commander.helpDisplayed" ||
     code === "commander.version"
   ) {
-    // Treat help/version display as normal exit
     process.exit(0);
     return;
   }
-  console.error(chalk.red("❌ Uncaught Exception:"), msg);
-  if (process.env.OBS_VERBOSE === "true") {
-    console.error(error.stack);
+
+  if (process.env.OBS_JSON_OUTPUT === "true" || process.argv.includes("--json")) {
+    const envelope = {
+      status: "ERROR",
+      error: {
+        message: msg || (typeof error === "string" ? error : "Unknown fatal error"),
+      },
+      metadata: {
+        timestamp: new Date().toISOString()
+      }
+    };
+    console.log(JSON.stringify(envelope, null, 2));
+  } else {
+    console.error(chalk.red(`❌ ${prefix}:`), msg || error);
+    if (process.env.OBS_VERBOSE === "true" && error?.stack) {
+      console.error(error.stack);
+    }
   }
   process.exit(1);
+}
+
+// Handle uncaught errors
+process.on("uncaughtException", (error: any) => {
+  handleFatalError(error, "Uncaught Exception");
 });
 
-process.on("unhandledRejection", (reason) => {
-  console.error(chalk.red("❌ Unhandled Rejection:"), reason);
-  process.exit(1);
+process.on("unhandledRejection", (reason: any) => {
+  handleFatalError(reason, "Unhandled Rejection");
 });
 
 // Parse arguments with safety net for help/version
 try {
   program.parse();
 } catch (err: any) {
-  const msg = err?.message || "";
-  const code = err?.code || "";
-  if (
-    msg.includes("(outputHelp)") ||
-    code === "commander.helpDisplayed" ||
-    code === "commander.version"
-  ) {
-    process.exit(0);
-  }
-  throw err;
+  handleFatalError(err, "Parse Error");
 }
 
 export { program };
