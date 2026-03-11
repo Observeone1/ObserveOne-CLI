@@ -231,7 +231,19 @@ export async function testHeartbeatLifecycle() {
     ]);
     assertSuccess(getResult, "Heartbeat get failed");
 
-    // 4. Toggle
+    // 4. Update
+    console.log(`      - Updating heartbeat ${hbId}...`);
+    const updateResult = await runCLI([
+      "heartbeat",
+      "update",
+      hbId!.toString(),
+      "--period",
+      "1200",
+      "--json",
+    ]);
+    assertSuccess(updateResult, "Heartbeat update failed");
+
+    // 5. Toggle
     console.log(`      - Toggling heartbeat ${hbId}...`);
     const toggleResult = await runCLI([
       "heartbeat",
