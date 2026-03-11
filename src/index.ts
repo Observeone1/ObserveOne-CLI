@@ -24,6 +24,7 @@ import { createMonitorCommand } from "./commands/monitor.js";
 import { createCheckCommand } from "./commands/check.js";
 import { createHeartbeatCommand } from "./commands/heartbeat.js";
 import { createApplyCommand } from "./commands/apply.js";
+import { createExportCommand } from "./commands/export.js";
 
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -73,6 +74,9 @@ program.addCommand(
   createHeartbeatCommand(configService, apiClient, outputService),
 );
 program.addCommand(createApplyCommand(configService, apiClient, outputService));
+program.addCommand(
+  createExportCommand(configService, apiClient, outputService),
+);
 
 // Global options handler
 program.hook("preAction", (thisCommand) => {
