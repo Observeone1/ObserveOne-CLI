@@ -114,7 +114,8 @@ async function runAdhocTest(
   timeout: number,
   results: TestResult[]
 ): Promise<void> {
-  const spinner = ora("Running ad-hoc test...").start();
+  const isJson = process.env.OBS_JSON_OUTPUT === "true";
+  const spinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora("Running ad-hoc test...").start();
 
   try {
     const result = await apiClient.executeAdhocTest({
@@ -156,7 +157,8 @@ async function runNamedTests(
   timeout: number,
   results: TestResult[]
 ): Promise<void> {
-  const spinner = ora("Fetching test details...").start();
+  const isJson = process.env.OBS_JSON_OUTPUT === "true";
+  const spinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora("Fetching test details...").start();
 
   try {
     const tests = await apiClient.getTests();
@@ -181,7 +183,7 @@ async function runNamedTests(
 
     // Execute each test
     for (const test of testsToRun) {
-      const testSpinner = ora(`Running test: ${test.name}`).start();
+      const testSpinner = isJson ? { start: () => {}, succeed: () => {}, fail: () => {} } : ora(`Running test: ${test.name}`).start();
 
       try {
         const result = await apiClient.executeTest(test.id);

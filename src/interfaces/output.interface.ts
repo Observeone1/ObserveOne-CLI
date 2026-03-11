@@ -5,6 +5,7 @@ import { Test, TestExecution, TestResult } from "../types/index.js";
  * Abstracts console output and formatting
  */
 export interface IOutputService {
+  enableJsonMode(): void;
   success(message: string): void;
   error(message: string): void;
   warning(message: string): void;

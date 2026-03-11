@@ -55,12 +55,15 @@ export function createLoginCommand(
             configService.setApiKey(api_key);
             configService.setApiUrl(configService.getApiUrl());
             apiClient.setApiKey(api_key);
-            outputService.success("Successfully authenticated headlessly!");
-
-            if (!options.skipSetup) {
-              outputService.warning(
-                "Skipping interactive project setup in headless mode.",
-              );
+            if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+              outputService.formatJsonOutput({ authenticated: true });
+            } else {
+              outputService.success("Successfully authenticated headlessly!");
+              if (!options.skipSetup) {
+                outputService.warning(
+                  "Skipping interactive project setup in headless mode.",
+                );
+              }
             }
             process.exit(0);
           } catch (error: any) {
