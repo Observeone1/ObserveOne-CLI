@@ -53,7 +53,10 @@ export class ApiClient implements IApiClient {
           );
         }
         if (error.response?.status === 404) {
-          throw new Error("Resource not found.");
+          const attemptedUrl = error.config?.baseURL 
+            ? `${error.config.baseURL}${error.config.url}` 
+            : error.config?.url;
+          throw new Error(`Resource not found. (Attempted API URL: ${attemptedUrl || 'unknown'})`);
         }
         if (error.response?.status >= 500) {
           throw new Error(`Server error: ${error.response.status}`);
@@ -101,11 +104,19 @@ export class ApiClient implements IApiClient {
     email?: string,
     password?: string,
   ): Promise<{ api_key: string }> {
-    const response = await this.client.post("/cli/auth/provision", {
-      email,
-      password,
-    });
-    return response.data;
+    try {
+      const response = await this.client.post("/cli/auth/provision", {
+        email,
+        password,
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        const url = this.configService.getApiUrl() || this.client.defaults.baseURL;
+        throw new Error(`Failed to connect to ObserveOne API. Ensure the server is running or the API URL is correct. (Attempted: ${url})`);
+      }
+      throw error;
+    }
   }
 
   async post(url: string, data?: any): Promise<any> {

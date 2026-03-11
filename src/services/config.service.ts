@@ -49,6 +49,12 @@ export class ConfigService implements IConfigService {
 
   getApiUrl(): string {
     // Priority order: 1) command line option, 2) environment variable, 3) saved config, 4) default
+    
+    // If explicitly running in dev mode, force the dev URL unless explicitly locally overridden
+    if (this.isDevelopment() && !this.commandLineApiUrl && !process.env.OBS_API_URL) {
+      return "http://localhost:8080/api";
+    }
+
     return (
       this.commandLineApiUrl ||
       process.env.OBS_API_URL ||

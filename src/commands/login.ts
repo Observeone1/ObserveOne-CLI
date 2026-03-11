@@ -53,6 +53,7 @@ export function createLoginCommand(
               password,
             );
             configService.setApiKey(api_key);
+            configService.setApiUrl(configService.getApiUrl());
             apiClient.setApiKey(api_key);
             outputService.success("Successfully authenticated headlessly!");
 
