@@ -51,7 +51,7 @@ export function createAiCheckCommand(
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(
-            'Not authenticated. Please run "obs1 login" first.'
+            'Not authenticated. Please run "obs login" first.'
           );
           process.exit(1);
         }

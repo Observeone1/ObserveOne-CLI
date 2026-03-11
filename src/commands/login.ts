@@ -83,7 +83,7 @@ export function createLoginCommand(
         const apiKey = configService.getApiKey();
         if (!apiKey) {
           outputService.error(
-            'Not authenticated. Please run "obs1 login" first.',
+            'Not authenticated. Please run "obs login" first.',
           );
           process.exit(1);
         }
@@ -117,9 +117,10 @@ export function createLoginCommand(
             process.exit(0);
             return;
           } else {
-            outputService.warning(
-              "Invalid API key provided, falling back to browser login.",
+            outputService.error(
+              "Invalid API key provided. Please check your key and try again.",
             );
+            process.exit(1);
           }
         }
 
