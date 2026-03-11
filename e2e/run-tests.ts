@@ -1,4 +1,10 @@
 import "dotenv/config"; // Load environment variables
+
+// Check for --ci flag to disable colors for cleaner CI logs
+if (process.argv.includes("--ci")) {
+  process.env.FORCE_COLOR = "0";
+}
+
 import { readdirSync } from "fs";
 import { join } from "path";
 import { pathToFileURL } from "url";
@@ -12,7 +18,13 @@ interface TestResult {
 }
 
 async function runTests(): Promise<void> {
-  console.log(chalk.cyan.bold("\n🧪 Running E2E Tests\n"));
+  const isCI = process.argv.includes("--ci");
+
+  if (isCI) {
+    console.log("Running E2E Tests in CI mode...");
+  } else {
+    console.log(chalk.cyan.bold("\n🧪 Running E2E Tests\n"));
+  }
 
   // Display binary mode being used
   const binaryMode = process.env.OBS_BINARY_MODE || "local";
@@ -22,15 +34,17 @@ async function runTests(): Promise<void> {
     global: "globally installed obs",
   };
   const modeDesc = modeDescriptions[binaryMode] || `custom (${binaryMode})`;
-  console.log(chalk.gray(`Binary mode: ${chalk.white(binaryMode)} - ${modeDesc}`));
+  console.log(
+    chalk.gray(`Binary mode: ${chalk.white(binaryMode)} - ${modeDesc}`),
+  );
 
   // Display test configuration
   const apiUrl = process.env.API_URL || process.env.OBS_API_URL || "(not set)";
   const apiKey = process.env.OBS_API_KEY || process.env.API_KEY;
-  const maskedApiKey = apiKey 
+  const maskedApiKey = apiKey
     ? `${apiKey.slice(0, 8)}***${apiKey.slice(-4)}`
     : "(not set)";
-  
+
   console.log(chalk.gray(`API URL: ${chalk.white(apiUrl)}`));
   console.log(chalk.gray(`API Key: ${chalk.white(maskedApiKey)}\n`));
 
@@ -50,7 +64,8 @@ async function runTests(): Promise<void> {
 
     // Find all exported test functions
     const testFunctions = Object.entries(testModule).filter(
-      ([key]) => key.startsWith("test") && typeof testModule[key] === "function"
+      ([key]) =>
+        key.startsWith("test") && typeof testModule[key] === "function",
     );
 
     for (const [name, testFn] of testFunctions) {
@@ -62,7 +77,11 @@ async function runTests(): Promise<void> {
         const duration = Date.now() - start;
         results.push({ name, passed: true, duration });
         passedTests++;
-        console.log(chalk.green(`    ✓ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`));
+        console.log(
+          chalk.green(
+            `    ✓ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`,
+          ),
+        );
       } catch (error: any) {
         const duration = Date.now() - start;
         results.push({
@@ -71,7 +90,11 @@ async function runTests(): Promise<void> {
           error: error.message,
           duration,
         });
-        console.log(chalk.red(`    ✗ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`));
+        console.log(
+          chalk.red(
+            `    ✗ ${name.replace(/([A-Z])/g, " $1").trim()} (${duration}ms)`,
+          ),
+        );
         if (error.message) {
           console.log(chalk.gray(`      ${error.message}`));
         }
@@ -85,10 +108,10 @@ async function runTests(): Promise<void> {
   console.log(chalk.bold("\n\n Summary\n"));
   console.log(chalk.gray("─".repeat(50)));
 
-  if (results.some(r => !r.passed)) {
+  if (results.some((r) => !r.passed)) {
     console.log(chalk.red.bold("  ❌ Failed Tests"));
     console.log(chalk.gray("  ─".repeat(25)));
-    const failedTests = results.filter(r => !r.passed);
+    const failedTests = results.filter((r) => !r.passed);
     for (const result of failedTests) {
       console.log(chalk.red(`  ✗ ${result.name}`));
       console.log(chalk.gray(`    ${result.error}`));
