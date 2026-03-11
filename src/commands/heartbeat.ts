@@ -174,6 +174,63 @@ export function createHeartbeatCommand(
       }
     });
 
+  // UPDATE
+  heartbeat
+    .command("update <id>")
+    .description("Update a heartbeat")
+    .option("-n, --name <name>", "New heartbeat name")
+    .option("-p, --period <seconds>", "New expected period in seconds")
+    .option("-j, --json", "Output in JSON format")
+    .action(async (id, options) => {
+      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error(
+            'Not authenticated. Please run "obs login" first.',
+          );
+          process.exit(1);
+        }
+
+        const hbId = parseInt(id);
+        if (isNaN(hbId)) {
+          outputService.error("Invalid heartbeat ID.");
+          process.exit(1);
+        }
+
+        const { name, period } = options;
+        if (!name && !period) {
+          outputService.error(
+            "Please provide at least one field to update (--name or --period).",
+          );
+          process.exit(1);
+        }
+
+        outputService.progress(`Updating heartbeat ${hbId}...`);
+        const existing = await apiClient.getHeartbeat(hbId);
+
+        const payload = {
+          name: name || existing.name,
+          period: period ? parseInt(period) : existing.period,
+          description: existing.description || "Updated via CLI",
+          grace_period: existing.grace_period || 60,
+        };
+
+        const updatedHb = await apiClient.updateHeartbeat(hbId, payload);
+
+        if (process.env.OBS_JSON_OUTPUT === "true") {
+          outputService.formatJsonOutput(updatedHb);
+        } else {
+          outputService.success(`Heartbeat ${hbId} updated successfully.`);
+        }
+      } catch (error: any) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
   // DELETE
   heartbeat
     .command("delete <id>")

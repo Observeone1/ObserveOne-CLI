@@ -11,9 +11,10 @@ export function createApplyCommand(
 ): Command {
   const apply = new Command("apply")
     .description("Apply configuration from a JSON file (declarative workflow)")
-    .argument("[file]", "Path to the JSON configuration file", "obs.json")
+    .argument("[file]", "Path to the JSON configuration file")
+    .option("-f, --file <path>", "Path to the JSON configuration file")
     .option("-j, --json", "Output in JSON format")
-    .action(async (file, options) => {
+    .action(async (fileArg, options) => {
       if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
         outputService.enableJsonMode();
       }
@@ -28,12 +29,18 @@ export function createApplyCommand(
         }
 
         // Try to read the file
-        let targetFile = file;
+        let targetFile = options.file || fileArg || "obs.json";
         if (!existsSync(targetFile)) {
-          if (file === "obs.json" && existsSync("observeone.json")) {
+          if (fileArg === "obs.json" && existsSync("observeone.json")) {
+            targetFile = "observeone.json";
+          } else if (
+            !options.file &&
+            !fileArg &&
+            existsSync("observeone.json")
+          ) {
             targetFile = "observeone.json";
           } else {
-            outputService.error(`Configuration file not found: ${file}`);
+            outputService.error(`Configuration file not found: ${targetFile}`);
             process.exit(1);
           }
         }
