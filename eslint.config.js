@@ -37,8 +37,26 @@ export default [
     },
     rules: {
       ...sharedRules,
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
+    },
+  },
+  {
+    // unit tests
+    files: ['src/__tests__/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      ...sharedRules,
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ];
