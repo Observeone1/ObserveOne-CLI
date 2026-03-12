@@ -213,34 +213,28 @@ export class ApiClient implements IApiClient {
     const response = await this.client.get<
       UrlMonitor[] | { monitors?: UrlMonitor[]; data?: UrlMonitor[] }
     >('/url-monitors');
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    return data.monitors || data.data || [];
+    return this.unwrapList(response.data, ['monitors', 'data']);
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
     const response = await this.client.get<
       UrlMonitor | { monitor?: UrlMonitor; data?: UrlMonitor }
     >(`/url-monitors/${id}`);
-    const data = response.data as any;
-    return data.monitor || data.data || data;
+    return this.unwrapSingle(response.data, ['monitor', 'data']);
   }
 
   async createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor> {
     const response = await this.client.post<
-      Partial<UrlMonitor>,
       UrlMonitor | { monitor?: UrlMonitor; data?: UrlMonitor }
     >('/url-monitors', data);
-    const result = response as any;
-    return result.monitor || result.data || result;
+    return this.unwrapSingle(response.data, ['monitor', 'data']);
   }
 
   async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
     const response = await this.client.put<
       UrlMonitor | { monitor?: UrlMonitor; data?: UrlMonitor }
     >(`/url-monitors/${id}`, data);
-    const result = response.data as any;
-    return result.monitor || result.data || result;
+    return this.unwrapSingle(response.data, ['monitor', 'data']);
   }
 
   async deleteUrlMonitor(id: number): Promise<void> {
@@ -260,7 +254,7 @@ export class ApiClient implements IApiClient {
     const response = await this.client.get<
       ApiCheck[] | { apiChecks?: ApiCheck[]; data?: ApiCheck[] }
     >('/api-checks');
-    const data = response.data as any;
+    const data = response.data as ApiCheck[] | { apiChecks?: ApiCheck[]; data?: ApiCheck[] };
     if (Array.isArray(data)) return data;
     return data.apiChecks || data.data || [];
   }
@@ -269,17 +263,21 @@ export class ApiClient implements IApiClient {
     const response = await this.client.get<ApiCheck | { apiCheck?: ApiCheck; data?: ApiCheck }>(
       `/api-checks/${id}`
     );
-    const data = response.data as any;
-    return data.apiCheck || data.data || data;
+    const data = response.data;
+    if ((data as ApiCheck).id !== undefined) return data as ApiCheck;
+    const wrapped = data as { apiCheck?: ApiCheck; data?: ApiCheck };
+    return wrapped.apiCheck || wrapped.data || (data as ApiCheck);
   }
 
   async createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck> {
-    const response = await this.client.post<
-      Partial<ApiCheck>,
-      ApiCheck | { apiCheck?: ApiCheck; data?: ApiCheck }
-    >('/api-checks', data);
-    const result = response as any;
-    return result.apiCheck || result.data || result;
+    const response = await this.client.post<ApiCheck | { apiCheck?: ApiCheck; data?: ApiCheck }>(
+      '/api-checks',
+      data
+    );
+    const result = response.data;
+    if ((result as ApiCheck).id !== undefined) return result as ApiCheck;
+    const wrapped = result as { apiCheck?: ApiCheck; data?: ApiCheck };
+    return wrapped.apiCheck || wrapped.data || (result as ApiCheck);
   }
 
   async updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck> {
@@ -287,8 +285,10 @@ export class ApiClient implements IApiClient {
       `/api-checks/${id}`,
       data
     );
-    const result = response.data as any;
-    return result.apiCheck || result.data || result;
+    const result = response.data;
+    if ((result as ApiCheck).id !== undefined) return result as ApiCheck;
+    const wrapped = result as { apiCheck?: ApiCheck; data?: ApiCheck };
+    return wrapped.apiCheck || wrapped.data || (result as ApiCheck);
   }
 
   async deleteApiCheck(id: number): Promise<void> {
@@ -308,7 +308,7 @@ export class ApiClient implements IApiClient {
     const response = await this.client.get<
       Heartbeat[] | { heartbeats?: Heartbeat[]; data?: Heartbeat[] }
     >('/heartbeats');
-    const data = response.data as any;
+    const data = response.data as Heartbeat[] | { heartbeats?: Heartbeat[]; data?: Heartbeat[] };
     if (Array.isArray(data)) return data;
     return data.heartbeats || data.data || [];
   }
@@ -317,17 +317,20 @@ export class ApiClient implements IApiClient {
     const response = await this.client.get<Heartbeat | { heartbeat?: Heartbeat; data?: Heartbeat }>(
       `/heartbeats/${id}`
     );
-    const data = response.data as any;
-    return data.heartbeat || data.data || data;
+    const data = response.data;
+    if ((data as Heartbeat).id !== undefined) return data as Heartbeat;
+    const wrapped = data as { heartbeat?: Heartbeat; data?: Heartbeat };
+    return wrapped.heartbeat || wrapped.data || (data as Heartbeat);
   }
 
   async createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat> {
     const response = await this.client.post<
-      Partial<Heartbeat>,
       Heartbeat | { heartbeat?: Heartbeat; data?: Heartbeat }
     >('/heartbeats', data);
-    const result = response as any;
-    return result.heartbeat || result.data || result;
+    const result = response.data;
+    if ((result as Heartbeat).id !== undefined) return result as Heartbeat;
+    const wrapped = result as { heartbeat?: Heartbeat; data?: Heartbeat };
+    return wrapped.heartbeat || wrapped.data || (result as Heartbeat);
   }
 
   async updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat> {
@@ -335,8 +338,10 @@ export class ApiClient implements IApiClient {
       `/heartbeats/${id}`,
       data
     );
-    const result = response.data as any;
-    return result.heartbeat || result.data || result;
+    const result = response.data;
+    if ((result as Heartbeat).id !== undefined) return result as Heartbeat;
+    const wrapped = result as { heartbeat?: Heartbeat; data?: Heartbeat };
+    return wrapped.heartbeat || wrapped.data || (result as Heartbeat);
   }
 
   async deleteHeartbeat(id: number): Promise<void> {
@@ -412,5 +417,38 @@ export class ApiClient implements IApiClient {
       api_key?: string;
     }>(`/cli/auth/check/${requestId}`);
     return response.data;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private unwrapSingle<T>(payload: unknown, keys: string[]): T {
+    if (this.isRecord(payload)) {
+      for (const key of keys) {
+        const candidate = payload[key];
+        if (candidate !== undefined) {
+          return candidate as T;
+        }
+      }
+    }
+    return payload as T;
+  }
+
+  private unwrapList<T>(payload: unknown, keys: string[]): T[] {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (this.isRecord(payload)) {
+      for (const key of keys) {
+        const candidate = payload[key];
+        if (Array.isArray(candidate)) {
+          return candidate;
+        }
+      }
+    }
+
+    return [];
   }
 }

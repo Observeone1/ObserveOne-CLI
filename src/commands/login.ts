@@ -58,8 +58,10 @@ export function createLoginCommand(
               }
             }
             process.exit(0);
-          } catch (error: any) {
-            outputService.error(`Headless authentication failed: ${error.message}`);
+          } catch (error: unknown) {
+            const message =
+              error instanceof Error ? error.message : 'Unknown headless authentication error';
+            outputService.error(`Headless authentication failed: ${message}`);
             process.exit(1);
           }
           return;

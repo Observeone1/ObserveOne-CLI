@@ -17,7 +17,7 @@ export class SSEClient implements ISSEClient {
   connect(
     taskId: string,
     onMessage: (message: SSEMessage) => void,
-    onError: (error: any) => void
+    onError: (error: unknown) => void
   ): void {
     const apiUrl = this.configService.getApiUrl();
     const apiKey = this.configService.getApiKey();
@@ -41,7 +41,7 @@ export class SSEClient implements ISSEClient {
     url: string,
     apiKey: string,
     onMessage: (message: SSEMessage) => void,
-    onError: (error: any) => void
+    onError: (error: unknown) => void
   ): Promise<void> {
     try {
       const response = await fetch(url, {
@@ -80,7 +80,7 @@ export class SSEClient implements ISSEClient {
             const data = line.slice(5).trim();
             if (data) {
               try {
-                const parsed = JSON.parse(data);
+                const parsed = JSON.parse(data) as SSEMessage;
                 onMessage(parsed);
               } catch (error) {
                 console.error('Failed to parse SSE message:', error);
@@ -89,11 +89,18 @@ export class SSEClient implements ISSEClient {
           }
         }
       }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error: unknown) {
+      if (!this.isAbortError(error)) {
         onError(error);
       }
     }
+  }
+
+  private isAbortError(error: unknown): boolean {
+    if (typeof error === 'object' && error !== null && 'name' in error) {
+      return (error as { name?: string }).name === 'AbortError';
+    }
+    return false;
   }
 
   close(): void {

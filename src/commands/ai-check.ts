@@ -67,7 +67,7 @@ export function createAiCheckCommand(
         }
 
         await formatAndOutputResults(results, options, outputService);
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -98,7 +98,7 @@ export function createAiCheckCommand(
         } else {
           outputService.formatTestList(tests, process.env.OBS_VERBOSE === 'true');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -134,7 +134,7 @@ export function createAiCheckCommand(
         } else {
           outputService.formatTestList([testData], true);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -210,7 +210,7 @@ export function createAiCheckCommand(
         } else {
           outputService.success(`AI browser check "${name}" created! (ID: ${newTest.id})`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -258,7 +258,7 @@ export function createAiCheckCommand(
         } else {
           outputService.success(`AI check ${testId} deleted successfully.`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -388,7 +388,7 @@ async function streamTestProgress(
   configService: IConfigService,
   result: TestResult,
   testName: string,
-  options: any,
+  options: OptionValues,
   timeout: number,
   results: TestResult[],
   testNames?: string[]
@@ -469,8 +469,14 @@ async function streamTestProgress(
     },
     (error) => {
       if (!completed) {
-        renderer.error(`Connection error: ${error.message}`);
-        logger.writeComplete('failed', `Connection error: ${error.message}`);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : 'Unknown error';
+        renderer.error(`Connection error: ${errorMessage}`);
+        logger.writeComplete('failed', `Connection error: ${errorMessage}`);
         sseClient.close();
         logger.close();
         completed = true;
@@ -504,7 +510,7 @@ async function streamTestProgress(
  */
 async function formatAndOutputResults(
   results: TestResult[],
-  options: any,
+  options: OptionValues,
   outputService: IOutputService
 ): Promise<void> {
   if (options.reporter === 'json' || process.env.OBS_JSON_OUTPUT === 'true') {

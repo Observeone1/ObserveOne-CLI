@@ -87,7 +87,7 @@ export function createMonitorCommand(
           name: name || existing.name,
           url: url || existing.url,
           timeout_ms: existing.timeout_ms || 30000,
-          cron_expression: interval || (existing as any).interval || existing.cron_expression,
+          cron_expression: interval || existing.cron_expression || '*/5 * * * *',
           alert_on_failure: existing.alert_on_failure ?? true,
         },
       };

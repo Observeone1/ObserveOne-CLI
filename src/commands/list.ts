@@ -44,7 +44,7 @@ export function createListCommand(
           const isVerbose = process.env.OBS_VERBOSE === 'true';
           outputService.formatTestList(tests, isVerbose);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }

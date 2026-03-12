@@ -4,7 +4,7 @@
 process.env.DOTENV_QUIET = 'true';
 process.env.DOTENV_CONFIG_SILENT = 'true';
 
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -47,9 +47,8 @@ program
   .option('--api-key <key>', 'Override API key');
 
 // Global error handler: don't treat help/version as errors
-program.exitOverride((err) => {
-  const anyErr: any = err as any;
-  const code = anyErr?.code || '';
+program.exitOverride((err: CommanderError) => {
+  const code = err?.code || '';
   if (code === 'commander.helpDisplayed' || code === 'commander.version') {
     process.exit(0);
   }
@@ -96,11 +95,17 @@ program.configureOutput({
 });
 
 // Helper for formatting fatal errors
-function handleFatalError(error: any, prefix: string) {
-  const msg = error?.message || '';
-  const code = error?.code || '';
+function isErrorWithCode(
+  value: unknown
+): value is { message?: string; code?: string; stack?: string } {
+  return typeof value === 'object' && value !== null;
+}
+
+function handleFatalError(error: unknown, prefix: string) {
+  const message = isErrorWithCode(error) && typeof error.message === 'string' ? error.message : '';
+  const code = isErrorWithCode(error) && typeof error.code === 'string' ? error.code : '';
   if (
-    msg.includes('(outputHelp)') ||
+    message.includes('(outputHelp)') ||
     code === 'commander.helpDisplayed' ||
     code === 'commander.version'
   ) {
@@ -112,7 +117,7 @@ function handleFatalError(error: any, prefix: string) {
     const envelope = {
       status: 'ERROR',
       error: {
-        message: msg || (typeof error === 'string' ? error : 'Unknown fatal error'),
+        message: message || (typeof error === 'string' ? error : 'Unknown fatal error'),
       },
       metadata: {
         timestamp: new Date().toISOString(),
@@ -120,8 +125,8 @@ function handleFatalError(error: any, prefix: string) {
     };
     console.log(JSON.stringify(envelope, null, 2));
   } else {
-    console.error(chalk.red(`❌ ${prefix}:`), msg || error);
-    if (process.env.OBS_VERBOSE === 'true' && error?.stack) {
+    console.error(chalk.red(`❌ ${prefix}:`), message || error);
+    if (process.env.OBS_VERBOSE === 'true' && isErrorWithCode(error) && error.stack) {
       console.error(error.stack);
     }
   }
@@ -129,18 +134,18 @@ function handleFatalError(error: any, prefix: string) {
 }
 
 // Handle uncaught errors
-process.on('uncaughtException', (error: any) => {
+process.on('uncaughtException', (error: unknown) => {
   handleFatalError(error, 'Uncaught Exception');
 });
 
-process.on('unhandledRejection', (reason: any) => {
+process.on('unhandledRejection', (reason: unknown) => {
   handleFatalError(reason, 'Unhandled Rejection');
 });
 
 // Parse arguments with safety net for help/version
 try {
   program.parse();
-} catch (err: any) {
+} catch (err) {
   handleFatalError(err, 'Parse Error');
 }
 

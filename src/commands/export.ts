@@ -3,6 +3,24 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { writeFileSync } from 'fs';
+import { ApiCheck, Heartbeat, Test, UrlMonitor } from '../types/index.js';
+
+type ExportMonitor = Pick<UrlMonitor, 'name' | 'url' | 'timeout_ms' | 'alert_on_failure'> & {
+  interval?: string;
+};
+type ExportApiCheck = Pick<ApiCheck, 'name' | 'url' | 'method' | 'timeout_ms' | 'alert_on_failure'>;
+type ExportHeartbeat = Pick<Heartbeat, 'name' | 'period'> & {
+  grace?: number;
+  description?: string;
+};
+type ExportAiCheck = Pick<Test, 'name' | 'url' | 'prompt'>;
+
+interface ExportConfig {
+  monitors?: ExportMonitor[];
+  api_checks?: ExportApiCheck[];
+  heartbeats?: ExportHeartbeat[];
+  ai_checks?: ExportAiCheck[];
+}
 
 export function createExportCommand(
   configService: IConfigService,
@@ -35,22 +53,29 @@ export function createExportCommand(
           apiClient.getTests().catch(() => []),
         ]);
 
-        const config: any = {};
+        const config: ExportConfig = {};
 
         // 1. Map Monitors
         if (monitors.length > 0) {
-          config.monitors = monitors.map((m: any) => ({
-            name: m.name,
-            url: m.url,
-            interval: m.interval || m.cron_expression,
-            timeout_ms: m.timeout_ms,
-            alert_on_failure: m.alert_on_failure,
-          }));
+          config.monitors = monitors.map((m: UrlMonitor) => {
+            const monitorConfig: ExportMonitor = {
+              name: m.name,
+              url: m.url,
+              timeout_ms: m.timeout_ms,
+              alert_on_failure: m.alert_on_failure,
+            };
+
+            if (m.cron_expression) {
+              monitorConfig.interval = m.cron_expression;
+            }
+
+            return monitorConfig;
+          });
         }
 
         // 2. Map API Checks
         if (apiChecks.length > 0) {
-          config.api_checks = apiChecks.map((c: any) => ({
+          config.api_checks = apiChecks.map((c: ApiCheck) => ({
             name: c.name,
             url: c.url,
             method: c.method,
@@ -61,17 +86,27 @@ export function createExportCommand(
 
         // 3. Map Heartbeats
         if (heartbeats.length > 0) {
-          config.heartbeats = heartbeats.map((h: any) => ({
-            name: h.name,
-            period: h.period,
-            grace: h.grace_period,
-            description: h.description,
-          }));
+          config.heartbeats = heartbeats.map((h: Heartbeat) => {
+            const heartbeatConfig: ExportHeartbeat = {
+              name: h.name,
+              period: h.period,
+            };
+
+            if (typeof h.grace_period === 'number') {
+              heartbeatConfig.grace = h.grace_period;
+            }
+
+            if (h.description) {
+              heartbeatConfig.description = h.description;
+            }
+
+            return heartbeatConfig;
+          });
         }
 
         // 4. Map AI Checks
         if (aiChecks.length > 0) {
-          config.ai_checks = aiChecks.map((t: any) => ({
+          config.ai_checks = aiChecks.map((t: Test) => ({
             name: t.name,
             url: t.url,
             prompt: t.prompt,
@@ -101,7 +136,7 @@ export function createExportCommand(
           console.log(`  Heartbeats: ${heartbeats.length}`);
           console.log(`  AI Checks:  ${aiChecks.length}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }

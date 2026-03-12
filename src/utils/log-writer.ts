@@ -2,6 +2,24 @@ import fs from 'fs';
 import path from 'path';
 import { ConfigService } from '../services/config.service.js';
 
+type Action = Record<string, unknown>;
+
+interface StepResult {
+  extracted_content?: string;
+  success?: boolean;
+  error?: string;
+}
+
+interface ExecutionStep {
+  step_number?: number;
+  next_goal?: string;
+  evaluation?: string;
+  memory?: string;
+  actions?: Action[];
+  result?: StepResult[];
+  [key: string]: unknown;
+}
+
 export class LogWriter {
   private logPath: string;
   private stream: fs.WriteStream;
@@ -28,7 +46,7 @@ export class LogWriter {
     this.writeLine('');
   }
 
-  writeStep(step: any): void {
+  writeStep(step: ExecutionStep): void {
     const timestamp = new Date().toISOString();
     this.writeLine(`[${timestamp}] Step ${step.step_number || 'N/A'}`);
     this.writeLine('-'.repeat(70));
@@ -47,27 +65,24 @@ export class LogWriter {
 
     if (step.actions && step.actions.length > 0) {
       this.writeLine('Actions:');
-      step.actions.forEach((action: any, index: number) => {
+      step.actions.forEach((action, index: number) => {
         const actionType = Object.keys(action)[0];
-        if (actionType) {
-          const params = action[actionType];
-          const paramStr = Object.entries(params)
-            .map(([k, v]) => `${k}=${v}`)
-            .join(', ');
-          this.writeLine(`  ${index + 1}. ${actionType} (${paramStr})`);
-        }
+        if (!actionType) return;
+        const params = action[actionType];
+        const paramStr = this.stringifyParams(params);
+        this.writeLine(`  ${index + 1}. ${actionType}${paramStr ? ` (${paramStr})` : ''}`);
       });
     }
 
     if (step.result && step.result.length > 0) {
       this.writeLine('Results:');
-      step.result.forEach((result: any, index: number) => {
+      step.result.forEach((result, index: number) => {
         if (result.extracted_content) {
           this.writeLine(`  ${index + 1}. ${result.extracted_content}`);
         } else if (result.error) {
           this.writeLine(`  ${index + 1}. Error: ${result.error}`);
         } else {
-          this.writeLine(`  ${index + 1}. Success: ${result.success}`);
+          this.writeLine(`  ${index + 1}. Success${result.success === false ? '' : ''}`);
         }
       });
     }
@@ -75,7 +90,7 @@ export class LogWriter {
     this.writeLine('');
   }
 
-  writeMessage(type: string, message: any): void {
+  writeMessage(type: string, message: unknown): void {
     const timestamp = new Date().toISOString();
     this.writeLine(`[${timestamp}] ${type.toUpperCase()}`);
     this.writeLine(JSON.stringify(message, null, 2));
@@ -107,5 +122,18 @@ export class LogWriter {
 
   getPath(): string {
     return this.logPath;
+  }
+
+  private stringifyParams(params: unknown): string {
+    if (this.isRecord(params)) {
+      return Object.entries(params)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ');
+    }
+    return typeof params === 'string' ? params : '';
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 }

@@ -20,8 +20,7 @@ export default [
     },
     rules: {
       ...sharedRules,
-      // TODO(CQ-1): re-enable once all prod types are tightened
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {
