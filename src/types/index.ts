@@ -44,61 +44,6 @@ export interface TestResult {
   duration?: number;
 }
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  token?: string;
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-  };
-  error?: string;
-}
-
-export interface CliOptions {
-  verbose?: boolean;
-  json?: boolean;
-  apiUrl?: string;
-  apiKey?: string;
-  timeout?: number;
-  retries?: number;
-  reporter?: "console" | "junit" | "json";
-  output?: string;
-}
-
-export interface WatchOptions {
-  interval?: number;
-  maxRuns?: number;
-  stopOnFailure?: boolean;
-}
-
-export interface JUnitTestSuite {
-  name: string;
-  tests: number;
-  failures: number;
-  errors: number;
-  time: number;
-  testCases: JUnitTestCase[];
-}
-
-export interface JUnitTestCase {
-  name: string;
-  classname: string;
-  time: number;
-  status: "passed" | "failed" | "skipped";
-  failure?: {
-    message: string;
-    type: string;
-    stackTrace?: string;
-  };
-}
 
 export interface UrlMonitor {
   id: number;

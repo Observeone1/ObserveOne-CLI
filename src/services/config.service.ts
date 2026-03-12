@@ -131,13 +131,5 @@ export class ConfigService implements IConfigService {
     return this.config.path;
   }
 
-  getSupabaseUrl(): string {
-    return (
-      process.env.VITE_SUPABASE_URL || "https://your-supabase-url.supabase.co"
-    );
-  }
 
-  getSupabaseAnonKey(): string {
-    return process.env.VITE_SUPABASE_ANON_KEY || "your-anon-key";
-  }
 }
