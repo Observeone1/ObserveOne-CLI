@@ -25,6 +25,9 @@ jobs:
       - name: Run type check
         run: npm run check
 
+      - name: Run knip check
+        run: npm run knip
+
   build:
     runs-on: ubuntu-slim
 
