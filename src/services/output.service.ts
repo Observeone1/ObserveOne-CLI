@@ -1,10 +1,14 @@
-import chalk from "chalk";
-import { IOutputService } from "../interfaces/output.interface.js";
-import { JsonEnvelope, Test, TestExecution,  TestResult,
+import chalk from 'chalk';
+import { IOutputService } from '../interfaces/output.interface.js';
+import {
+  JsonEnvelope,
+  Test,
+  TestExecution,
+  TestResult,
   UrlMonitor,
   ApiCheck,
   Heartbeat,
-} from "../types/index.js";
+} from '../types/index.js';
 
 /**
  * Output formatting service implementation
@@ -24,9 +28,9 @@ export class OutputService implements IOutputService {
   error(message: string): void {
     if (this.isJsonMode) {
       const envelope: JsonEnvelope = {
-        status: "ERROR",
+        status: 'ERROR',
         error: { message },
-        metadata: { timestamp: new Date().toISOString() }
+        metadata: { timestamp: new Date().toISOString() },
       };
       console.log(JSON.stringify(envelope, null, 2));
       return;
@@ -51,12 +55,12 @@ export class OutputService implements IOutputService {
 
   formatTestList(tests: Test[], verbose: boolean = false): void {
     if (tests.length === 0) {
-      this.info("No AI browser checks found.");
+      this.info('No AI browser checks found.');
       return;
     }
 
-    console.log(chalk.bold("\n🤖 AI Browser Checks:"));
-    console.log(chalk.gray("─".repeat(80)));
+    console.log(chalk.bold('\n🤖 AI Browser Checks:'));
+    console.log(chalk.gray('─'.repeat(80)));
 
     tests.forEach((test, index) => {
       console.log(chalk.bold(`${index + 1}. ${test.name}`));
@@ -68,54 +72,50 @@ export class OutputService implements IOutputService {
 
       if (verbose) {
         console.log(chalk.gray(`   Prompt: ${test.prompt}`));
-        console.log(
-          chalk.gray(
-            `   Created: ${new Date(test.created_at).toLocaleString()}`
-          )
-        );
+        console.log(chalk.gray(`   Created: ${new Date(test.created_at).toLocaleString()}`));
       }
-      console.log("");
+      console.log('');
     });
   }
 
   formatMonitorList(monitors: UrlMonitor[], verbose: boolean = false): void {
     if (monitors.length === 0) {
-      this.info("No URL monitors found.");
+      this.info('No URL monitors found.');
       return;
     }
 
-    console.log(chalk.bold("\n🌐 URL Monitors:"));
-    console.log(chalk.gray("─".repeat(80)));
+    console.log(chalk.bold('\n🌐 URL Monitors:'));
+    console.log(chalk.gray('─'.repeat(80)));
 
     monitors.forEach((monitor, index) => {
-      const status = monitor.is_active ? chalk.green("ACTIVE") : chalk.yellow("PAUSED");
+      const status = monitor.is_active ? chalk.green('ACTIVE') : chalk.yellow('PAUSED');
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
-      
+
       console.log(chalk.gray(`   URL: ${monitor.url}`));
       console.log(chalk.gray(`   ID: ${monitor.id}`));
 
       if (verbose) {
         if (monitor.description) console.log(chalk.gray(`   Desc: ${monitor.description}`));
-        console.log(chalk.gray(`   Interval: ${monitor.cron_expression || "Default"}`));
-        console.log(chalk.gray(`   Alerts: ${monitor.alert_on_failure ? "ON" : "OFF"}`));
+        console.log(chalk.gray(`   Interval: ${monitor.cron_expression || 'Default'}`));
+        console.log(chalk.gray(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
       }
-      console.log("");
+      console.log('');
     });
   }
 
   formatApiCheckList(checks: ApiCheck[], verbose: boolean = false): void {
     if (checks.length === 0) {
-      this.info("No API checks found.");
+      this.info('No API checks found.');
       return;
     }
 
-    console.log(chalk.bold("\n🔌 API Checks:"));
-    console.log(chalk.gray("─".repeat(80)));
+    console.log(chalk.bold('\n🔌 API Checks:'));
+    console.log(chalk.gray('─'.repeat(80)));
 
     checks.forEach((check, index) => {
-      const status = check.is_active ? chalk.green("ACTIVE") : chalk.yellow("PAUSED");
+      const status = check.is_active ? chalk.green('ACTIVE') : chalk.yellow('PAUSED');
       console.log(chalk.bold(`${index + 1}. ${check.name} [${status}]`));
-      
+
       console.log(chalk.gray(`   Endpoint: ${check.method} ${check.url}`));
       console.log(chalk.gray(`   ID: ${check.id}`));
 
@@ -123,33 +123,38 @@ export class OutputService implements IOutputService {
         if (check.description) console.log(chalk.gray(`   Desc: ${check.description}`));
         console.log(chalk.gray(`   Assertions: ${check.assertions?.length || 0}`));
       }
-      console.log("");
+      console.log('');
     });
   }
 
   formatHeartbeatList(heartbeats: Heartbeat[], verbose: boolean = false): void {
     if (heartbeats.length === 0) {
-      this.info("No heartbeats found.");
+      this.info('No heartbeats found.');
       return;
     }
 
-    console.log(chalk.bold("\n💓 Heartbeats:"));
-    console.log(chalk.gray("─".repeat(80)));
+    console.log(chalk.bold('\n💓 Heartbeats:'));
+    console.log(chalk.gray('─'.repeat(80)));
 
     heartbeats.forEach((hb, index) => {
-      const statusColor = hb.status === "UP" ? chalk.green : hb.status === "DOWN" ? chalk.red : chalk.yellow;
+      const statusColor =
+        hb.status === 'UP' ? chalk.green : hb.status === 'DOWN' ? chalk.red : chalk.yellow;
       const status = statusColor(hb.status);
-      const activeStatus = hb.is_active ? "" : chalk.yellow(" (PAUSED)");
-      
+      const activeStatus = hb.is_active ? '' : chalk.yellow(' (PAUSED)');
+
       console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}${activeStatus}`));
       console.log(chalk.gray(`   Key: ${hb.ping_key}`));
       console.log(chalk.gray(`   ID: ${hb.id}`));
 
       if (verbose) {
         console.log(chalk.gray(`   Period: ${hb.period}s (Grace: ${hb.grace_period}s)`));
-        console.log(chalk.gray(`   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : "Never"}`));
+        console.log(
+          chalk.gray(
+            `   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : 'Never'}`
+          )
+        );
       }
-      console.log("");
+      console.log('');
     });
   }
 
@@ -157,17 +162,15 @@ export class OutputService implements IOutputService {
     const statusColor = this.getStatusColor(execution.status);
     const statusIcon = this.getStatusIcon(execution.status);
 
-    console.log(chalk.bold("\n📊 Test Execution Status:"));
-    console.log(chalk.gray("─".repeat(50)));
+    console.log(chalk.bold('\n📊 Test Execution Status:'));
+    console.log(chalk.gray('─'.repeat(50)));
     console.log(`Status: ${statusColor(`${statusIcon} ${execution.status}`)}`);
     console.log(`Execution ID: ${execution.id}`);
     console.log(`Test ID: ${execution.test_id}`);
     console.log(`Started: ${new Date(execution.started_at).toLocaleString()}`);
 
     if (execution.completed_at) {
-      console.log(
-        `Completed: ${new Date(execution.completed_at).toLocaleString()}`
-      );
+      console.log(`Completed: ${new Date(execution.completed_at).toLocaleString()}`);
     }
 
     if (execution.error_message) {
@@ -183,8 +186,8 @@ export class OutputService implements IOutputService {
     const statusColor = this.getStatusColor(result.status);
     const statusIcon = this.getStatusIcon(result.status);
 
-    console.log(chalk.bold("\n🎯 Test Result:"));
-    console.log(chalk.gray("─".repeat(50)));
+    console.log(chalk.bold('\n🎯 Test Result:'));
+    console.log(chalk.gray('─'.repeat(50)));
     console.log(`Status: ${statusColor(`${statusIcon} ${result.status}`)}`);
     console.log(`Message: ${result.message}`);
 
@@ -197,44 +200,61 @@ export class OutputService implements IOutputService {
     }
 
     if (result.screenshots && result.screenshots.length > 0) {
-      console.log(
-        chalk.blue(`\n📸 Screenshots: ${result.screenshots.length} captured`)
-      );
+      console.log(chalk.blue(`\n📸 Screenshots: ${result.screenshots.length} captured`));
     }
   }
 
   formatJsonOutput(data: any): void {
     const envelope: JsonEnvelope = {
-      status: "SUCCESS",
+      status: 'SUCCESS',
       data,
       metadata: {
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
     console.log(JSON.stringify(envelope, null, 2));
   }
 
+  private escapeXml(unsafe: string): string {
+    return unsafe.replace(/[<>&'"]/g, function (c) {
+      switch (c) {
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        case '&':
+          return '&amp;';
+        case "'":
+          return '&apos;';
+        case '"':
+          return '&quot;';
+        default:
+          return c;
+      }
+    });
+  }
+
   formatJUnitReport(testSuite: any): string {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="${testSuite.name}" tests="${testSuite.tests}" failures="${
+<testsuite name="${this.escapeXml(testSuite.name)}" tests="${testSuite.tests}" failures="${
       testSuite.failures
     }" errors="${testSuite.errors}" time="${testSuite.time}">
 ${testSuite.testCases
   .map((testCase: any) => {
-    let xml = `  <testcase name="${testCase.name}" classname="${testCase.classname}" time="${testCase.time}">`;
+    let xml = `  <testcase name="${this.escapeXml(testCase.name)}" classname="${this.escapeXml(testCase.classname)}" time="${testCase.time}">`;
 
-    if (testCase.status === "failed" && testCase.failure) {
-      xml += `\r\n    <failure message="${testCase.failure.message}" type="${
+    if (testCase.status === 'failed' && testCase.failure) {
+      xml += `\r\n    <failure message="${this.escapeXml(testCase.failure.message)}" type="${this.escapeXml(
         testCase.failure.type
-      }">\r\n${testCase.failure.stackTrace || ""}\r\n    </failure>`;
-    } else if (testCase.status === "skipped") {
+      )}">\r\n${this.escapeXml(testCase.failure.stackTrace || '')}\r\n    </failure>`;
+    } else if (testCase.status === 'skipped') {
       xml += `\r\n    <skipped/>`;
     }
 
     xml += `\r\n  </testcase>`;
     return xml;
   })
-  .join("\n")}
+  .join('\n')}
 </testsuite>`;
 
     return xml;
@@ -242,15 +262,15 @@ ${testSuite.testCases
 
   private getStatusColor(status: string): (text: string) => string {
     switch (status.toUpperCase()) {
-      case "SUCCESS":
+      case 'SUCCESS':
         return chalk.green;
-      case "FAILED":
+      case 'FAILED':
         return chalk.red;
-      case "RUNNING":
+      case 'RUNNING':
         return chalk.blue;
-      case "PENDING":
+      case 'PENDING':
         return chalk.yellow;
-      case "CANCELLED":
+      case 'CANCELLED':
         return chalk.gray;
       default:
         return chalk.white;
@@ -259,18 +279,18 @@ ${testSuite.testCases
 
   private getStatusIcon(status: string): string {
     switch (status.toUpperCase()) {
-      case "SUCCESS":
-        return "✅";
-      case "FAILED":
-        return "❌";
-      case "RUNNING":
-        return "🔄";
-      case "PENDING":
-        return "⏳";
-      case "CANCELLED":
-        return "⏹️";
+      case 'SUCCESS':
+        return '✅';
+      case 'FAILED':
+        return '❌';
+      case 'RUNNING':
+        return '🔄';
+      case 'PENDING':
+        return '⏳';
+      case 'CANCELLED':
+        return '⏹️';
       default:
-        return "❓";
+        return '❓';
     }
   }
 
@@ -278,17 +298,14 @@ ${testSuite.testCases
     if (error.response) {
       // API error
       const status = error.response.status;
-      const message =
-        error.response.data?.error ||
-        error.response.data?.message ||
-        error.message;
+      const message = error.response.data?.error || error.response.data?.message || error.message;
       return `API Error (${status}): ${message}`;
     } else if (error.request) {
       // Network error
       return `Network Error: Unable to connect to API. Please check your internet connection and API URL.`;
     } else {
       // Other error
-      return error.message || "An unknown error occurred";
+      return error.message || 'An unknown error occurred';
     }
   }
 }

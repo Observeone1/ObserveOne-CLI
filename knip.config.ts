@@ -3,5 +3,6 @@ export default {
     ignore: [
         'e2e/**/*',
     ],
+    ignoreDependencies: ['@vitest/coverage-v8'],
     ignoreExportsUsedInFile: true,
 };

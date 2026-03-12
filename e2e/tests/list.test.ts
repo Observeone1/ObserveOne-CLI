@@ -1,7 +1,7 @@
-import { runCLI, assertSuccess, assertContains } from "../lib/test-runner.js";
+import { runCLI, assertSuccess, assertContains } from '../lib/test-runner.js';
 
 export async function testListCommand() {
-  const result = await runCLI(["list"]);
+  const result = await runCLI(['list']);
 
   // List command may succeed or fail depending on auth, both are valid
   if (result.exitCode === 0) {
@@ -14,8 +14,8 @@ export async function testListCommand() {
     // If it fails, it should be due to authentication or similar expected errors
     assertContains(
       result.stdout + result.stderr,
-      "obs login",
-      "Should prompt to log in when not authenticated"
+      'obs login',
+      'Should prompt to log in when not authenticated'
     );
   }
 }

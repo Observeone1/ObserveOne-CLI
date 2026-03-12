@@ -13,7 +13,11 @@
     "build": "node scripts/build.js",
     "dev": "tsx src/index.ts",
     "check": "tsc --noEmit",
-    "test": "tsx e2e/run-tests.ts",
+    "lint": "eslint \"src/**/*.ts\" \"e2e/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"e2e/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"e2e/**/*.ts\"",
+    "test": "vitest run && tsx e2e/run-tests.ts",
+    "test:unit": "vitest run",
     "test:e2e": "tsx e2e/run-tests.ts",
     "knip": "knip",
     "prepublishOnly": "npm run build"
@@ -43,9 +47,14 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "eslint": "^10.0.3",
     "knip": "^5.86.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=16.0.0"
