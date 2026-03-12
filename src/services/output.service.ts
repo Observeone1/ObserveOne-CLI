@@ -214,19 +214,32 @@ export class OutputService implements IOutputService {
     console.log(JSON.stringify(envelope, null, 2));
   }
 
+  private escapeXml(unsafe: string): string {
+    return unsafe.replace(/[<>&'"]/g, function (c) {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  }
+
   formatJUnitReport(testSuite: any): string {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="${testSuite.name}" tests="${testSuite.tests}" failures="${
+<testsuite name="${this.escapeXml(testSuite.name)}" tests="${testSuite.tests}" failures="${
       testSuite.failures
     }" errors="${testSuite.errors}" time="${testSuite.time}">
 ${testSuite.testCases
   .map((testCase: any) => {
-    let xml = `  <testcase name="${testCase.name}" classname="${testCase.classname}" time="${testCase.time}">`;
+    let xml = `  <testcase name="${this.escapeXml(testCase.name)}" classname="${this.escapeXml(testCase.classname)}" time="${testCase.time}">`;
 
     if (testCase.status === "failed" && testCase.failure) {
-      xml += `\r\n    <failure message="${testCase.failure.message}" type="${
-        testCase.failure.type
-      }">\r\n${testCase.failure.stackTrace || ""}\r\n    </failure>`;
+      xml += `\r\n    <failure message="${this.escapeXml(testCase.failure.message)}" type="${
+        this.escapeXml(testCase.failure.type)
+      }">\r\n${this.escapeXml(testCase.failure.stackTrace || "")}\r\n    </failure>`;
     } else if (testCase.status === "skipped") {
       xml += `\r\n    <skipped/>`;
     }

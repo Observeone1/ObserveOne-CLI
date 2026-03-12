@@ -22,6 +22,10 @@ export class SSEClient implements ISSEClient {
     const apiUrl = this.configService.getApiUrl();
     const apiKey = this.configService.getApiKey();
 
+    if (!apiKey) {
+      throw new Error("Cannot connect to SSE stream: No API key found. Please run 'obs login' first.");
+    }
+
     const url = `${apiUrl}/browser-checks/events/${taskId}`;
 
     this.abortController = new AbortController();

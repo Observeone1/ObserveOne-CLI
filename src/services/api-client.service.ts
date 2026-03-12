@@ -237,7 +237,7 @@ export class ApiClient implements IApiClient {
   // URL Monitors
   async getUrlMonitors(): Promise<UrlMonitor[]> {
     const response = await this.client.get<any>("/url-monitors");
-    return response.data.monitors || response.data.data || [];
+    return Array.isArray(response.data) ? response.data : (response.data.monitors || response.data.data || []);
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
