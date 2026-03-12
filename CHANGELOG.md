@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-03-12
+
+### Fixed
+- Enforced JSON mode consistency across commands, including `ai-check run` immediate JSON output unless `--wait`
+- Added JSON outputs for toggle commands and JSON apply now exits non-zero on errors
+- Removed legacy `obs list` command and updated references
+- Default export file is now `obs.json` (with `observeone.json` fallback) and docs aligned to match
+- Split CI checks into separate jobs for clearer status signals
+
 ## [1.0.2] - 2026-03-12
 
 ### Added
