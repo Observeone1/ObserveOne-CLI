@@ -1,8 +1,8 @@
 # ObserveOne CLI
 
-AI-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
+Artificial intelligence (AI)-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
 
-The `obs` CLI allows developers and AI Agents to manage URL Monitors, API Checks, Heartbeats, and AI Browser tests using simple commands or declarative JSON configuration files.
+The `obs` command-line interface (CLI) allows developers and artificial intelligence (AI) agents to manage URL Monitors, Application Programming Interface (API) Checks, Heartbeats, and AI Browser tests using simple commands or declarative JavaScript Object Notation (JSON) configuration files.
 
 ## Installation
 
@@ -32,12 +32,12 @@ npm install -g @observeone/cli
 
 ## 🏗️ Config-as-Code (Declarative Workflow)
 
-ObserveOne supports an Infrastructure-as-Code (IaC) workflow using JSON. You can define all your monitors, API checks, and heartbeats in a single `observeone.json` file and sync them to your account.
+ObserveOne supports an Infrastructure-as-Code (IaC) workflow using JSON. You can define all your monitors, API checks, and heartbeats in a single `obs.json` file and sync them to your account.
 
 ### `obs export`
 Fetch all your existing remote resources from the ObserveOne backend and save them locally.
 ```bash
-# Generates observeone.json in the current directory
+# Generates obs.json in the current directory
 obs export
 
 # Save to a custom file
@@ -47,14 +47,14 @@ obs export -f my-stack.json
 ### `obs apply`
 Sync your local JSON configuration to the ObserveOne backend. The CLI will automatically detect matching resources and perform surgical `create` and `update` API calls.
 ```bash
-# Sync observeone.json
+# Sync obs.json
 obs apply
 
 # Sync a custom file
 obs apply -f my-stack.json
 ```
 
-**Example `observeone.json` schema:**
+**Example `obs.json` schema:**
 ```json
 {
   "monitors": [
