@@ -4,7 +4,7 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora from 'ora';
-import chalk from 'chalk';
+import { deepEqual, normalizeResource } from '../utils/deep-equal.js';
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const result = [];
@@ -80,10 +80,10 @@ export function createApplyCommand(
         }
 
         const summary = {
-          monitors: { created: 0, updated: 0, errors: 0 },
-          apiChecks: { created: 0, updated: 0, errors: 0 },
-          heartbeats: { created: 0, updated: 0, errors: 0 },
-          aiChecks: { created: 0, updated: 0, errors: 0 },
+          monitors: { created: 0, updated: 0, unchanged: 0, errors: 0 },
+          apiChecks: { created: 0, updated: 0, unchanged: 0, errors: 0 },
+          heartbeats: { created: 0, updated: 0, unchanged: 0, errors: 0 },
+          aiChecks: { created: 0, updated: 0, unchanged: 0, errors: 0 },
         };
 
         const errors: string[] = [];
@@ -107,6 +107,35 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(monitorConfig.name);
                   if (existing) {
+                    // Normalize both objects for comparison
+                    const normalizedLocal = normalizeResource(
+                      {
+                        name: monitorConfig.name,
+                        url: monitorConfig.url,
+                        timeout_ms: monitorConfig.timeout_ms || 30000,
+                        cron_expression: monitorConfig.interval || monitorConfig.cron_expression,
+                        alert_on_failure: monitorConfig.alert_on_failure ?? true,
+                      },
+                      { timeout_ms: 30000, alert_on_failure: true }
+                    );
+                    const normalizedRemote = normalizeResource(
+                      {
+                        name: existing.name,
+                        url: existing.url,
+                        timeout_ms: existing.timeout_ms || 30000,
+                        cron_expression: existing.interval || existing.cron_expression,
+                        alert_on_failure: existing.alert_on_failure ?? true,
+                      },
+                      { timeout_ms: 30000, alert_on_failure: true }
+                    );
+
+                    // Skip update if no changes
+                    if (deepEqual(normalizedLocal, normalizedRemote)) {
+                      logProgress(`Monitor unchanged: ${monitorConfig.name}`);
+                      summary.monitors.unchanged++;
+                      return;
+                    }
+
                     logProgress(`Updating monitor: ${monitorConfig.name}`);
                     await apiClient.updateUrlMonitor(existing.id || existing.data?.id, {
                       name: monitorConfig.name || existing.name,
@@ -160,6 +189,35 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(checkConfig.name);
                   if (existing) {
+                    // Normalize both objects for comparison
+                    const normalizedLocal = normalizeResource(
+                      {
+                        name: checkConfig.name,
+                        url: checkConfig.url,
+                        method: checkConfig.method?.toUpperCase() || 'GET',
+                        timeout_ms: checkConfig.timeout_ms || 30000,
+                        alert_on_failure: checkConfig.alert_on_failure ?? true,
+                      },
+                      { timeout_ms: 30000, alert_on_failure: true, method: 'GET' }
+                    );
+                    const normalizedRemote = normalizeResource(
+                      {
+                        name: existing.name,
+                        url: existing.url,
+                        method: existing.method?.toUpperCase() || 'GET',
+                        timeout_ms: existing.timeout_ms || 30000,
+                        alert_on_failure: existing.alert_on_failure ?? true,
+                      },
+                      { timeout_ms: 30000, alert_on_failure: true, method: 'GET' }
+                    );
+
+                    // Skip update if no changes
+                    if (deepEqual(normalizedLocal, normalizedRemote)) {
+                      logProgress(`API check unchanged: ${checkConfig.name}`);
+                      summary.apiChecks.unchanged++;
+                      return;
+                    }
+
                     logProgress(`Updating API check: ${checkConfig.name}`);
                     await apiClient.updateApiCheck(existing.id || existing.data?.id, {
                       name: checkConfig.name || existing.name,
@@ -209,6 +267,31 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(hbConfig.name);
                   if (existing) {
+                    // Normalize both objects for comparison
+                    const normalizedLocal = normalizeResource(
+                      {
+                        name: hbConfig.name,
+                        period: hbConfig.period,
+                        grace_period: hbConfig.grace || hbConfig.grace_period || 60,
+                      },
+                      { grace_period: 60 }
+                    );
+                    const normalizedRemote = normalizeResource(
+                      {
+                        name: existing.name,
+                        period: existing.period,
+                        grace_period: existing.grace_period || existing.grace || 60,
+                      },
+                      { grace_period: 60 }
+                    );
+
+                    // Skip update if no changes
+                    if (deepEqual(normalizedLocal, normalizedRemote)) {
+                      logProgress(`Heartbeat unchanged: ${hbConfig.name}`);
+                      summary.heartbeats.unchanged++;
+                      return;
+                    }
+
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
                     await apiClient.updateHeartbeat(existing.id || existing.data?.id, {
                       name: hbConfig.name || existing.name,
@@ -256,6 +339,33 @@ export function createApplyCommand(
 
                   const existing = existingByName.get(aiConfig.name);
                   if (existing) {
+                    // Normalize both objects for comparison
+                    const normalizedLocal = normalizeResource(
+                      {
+                        name: aiConfig.name,
+                        url: aiConfig.url,
+                        prompt: aiConfig.prompt,
+                        description: aiConfig.description || '',
+                      },
+                      { description: '' }
+                    );
+                    const normalizedRemote = normalizeResource(
+                      {
+                        name: existing.name,
+                        url: existing.url,
+                        prompt: existing.prompt,
+                        description: existing.description || '',
+                      },
+                      { description: '' }
+                    );
+
+                    // Skip update if no changes
+                    if (deepEqual(normalizedLocal, normalizedRemote)) {
+                      logProgress(`AI check unchanged: ${aiConfig.name}`);
+                      summary.aiChecks.unchanged++;
+                      return;
+                    }
+
                     logProgress(`Updating AI check: ${aiConfig.name}`);
                     await apiClient.updateTest(existing.id || existing.data?.id, {
                       name: aiConfig.name || existing.name,
@@ -299,16 +409,16 @@ export function createApplyCommand(
           outputService.success('Apply completed.');
           console.log('');
           console.log(
-            `  Monitors:   ${summary.monitors.created} created, ${summary.monitors.updated} updated`
+            `  Monitors:   ${summary.monitors.created} created, ${summary.monitors.updated} updated, ${summary.monitors.unchanged} unchanged`
           );
           console.log(
-            `  API Checks: ${summary.apiChecks.created} created, ${summary.apiChecks.updated} updated`
+            `  API Checks: ${summary.apiChecks.created} created, ${summary.apiChecks.updated} updated, ${summary.apiChecks.unchanged} unchanged`
           );
           console.log(
-            `  Heartbeats: ${summary.heartbeats.created} created, ${summary.heartbeats.updated} updated`
+            `  Heartbeats: ${summary.heartbeats.created} created, ${summary.heartbeats.updated} updated, ${summary.heartbeats.unchanged} unchanged`
           );
           console.log(
-            `  AI Checks:  ${summary.aiChecks.created} created, ${summary.aiChecks.updated} updated`
+            `  AI Checks:  ${summary.aiChecks.created} created, ${summary.aiChecks.updated} updated, ${summary.aiChecks.unchanged} unchanged`
           );
 
           if (errors.length > 0) {
