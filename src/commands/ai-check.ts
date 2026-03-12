@@ -5,7 +5,6 @@ import ora from 'ora';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { ISSEClient } from '../interfaces/sse-client.interface.js';
 import { SSEClient } from '../services/sse-client.service.js';
 import { TestResult } from '../types/index.js';
 import { writeFileSync } from 'fs';
@@ -62,17 +61,9 @@ export function createAiCheckCommand(
             );
             process.exit(1);
           }
-          await runAdhocTest(apiClient, outputService, configService, options, timeout, results);
+          await runAdhocTest(apiClient, configService, options, timeout, results);
         } else {
-          await runNamedTests(
-            apiClient,
-            outputService,
-            configService,
-            testNames,
-            options,
-            timeout,
-            results
-          );
+          await runNamedTests(apiClient, configService, testNames, options, timeout, results);
         }
 
         await formatAndOutputResults(results, options, outputService);
@@ -281,7 +272,6 @@ export function createAiCheckCommand(
  */
 async function runAdhocTest(
   apiClient: IApiClient,
-  outputService: IOutputService,
   configService: IConfigService,
   options: any,
   timeout: number,
@@ -325,7 +315,6 @@ async function runAdhocTest(
  */
 async function runNamedTests(
   apiClient: IApiClient,
-  outputService: IOutputService,
   configService: IConfigService,
   testNames: string[],
   options: any,

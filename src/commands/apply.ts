@@ -4,7 +4,6 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora from 'ora';
-import chalk from 'chalk';
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const result = [];

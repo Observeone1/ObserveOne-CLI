@@ -6,13 +6,11 @@ export interface ProgressOptions {
 }
 
 export class LiveProgressRenderer {
-  private currentStep = 0;
   private totalSteps = 0;
   private startTime = Date.now();
   private screenshotCount = 0;
   private spinner: Ora;
   private verbose: boolean;
-  private testName: string = '';
 
   constructor(options: ProgressOptions = {}) {
     this.verbose = options.verbose || false;
@@ -20,14 +18,12 @@ export class LiveProgressRenderer {
   }
 
   start(testName: string): void {
-    this.testName = testName;
     console.log(chalk.bold(`\n🎯 Test: ${testName}`));
     console.log(chalk.gray('━'.repeat(50)));
     this.spinner.start(chalk.blue('Connecting to execution stream...'));
   }
 
   updateStep(stepNumber: number, goal: string, details?: any): void {
-    this.currentStep = stepNumber;
     const elapsed = this.getElapsedTime();
 
     if (this.verbose && details) {
