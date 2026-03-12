@@ -3,8 +3,6 @@ title: AI Agent Integration
 description: How to configure autonomous AI agents to use the ObserveOne CLI
 ---
 
-# AI Agent Integration
-
 The ObserveOne CLI is explicitly designed to be driven by autonomous coding agents (such as Claude Code, Cursor, GitHub Copilot Workspaces, or custom bots). It features resilient machine-to-machine contracts and headless execution modes.
 
 ## The `--json` Flag

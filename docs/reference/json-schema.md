@@ -1,9 +1,7 @@
 ---
 title: JSON Schema Reference
-description: The observeone.json configuration schema
+description: The observeone.json configuration schema for declarative workflows
 ---
-
-# JSON Schema
 
 When using `obs apply`, the CLI expects your `observeone.json` file to follow this structure. All arrays are optional.
 

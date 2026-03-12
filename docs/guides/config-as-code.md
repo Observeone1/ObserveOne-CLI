@@ -1,9 +1,7 @@
 ---
-title: Config-as-Code (Declarative Workflow)
-description: Manage your ObserveOne infrastructure using JSON
+title: Config-as-Code
+description: Manage your ObserveOne infrastructure using JSON declarative workflows
 ---
-
-# Config-as-Code
 
 ObserveOne supports an Infrastructure-as-Code (IaC) workflow. You can define all your monitors, API checks, and heartbeats in a single JSON file and seamlessly synchronize them to your account.
 

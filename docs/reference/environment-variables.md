@@ -1,9 +1,7 @@
 ---
 title: Environment Variables
-description: Configure the CLI via environment variables
+description: Configure the ObserveOne CLI via environment variables for CI/CD and AI Agent automation
 ---
-
-# Environment Variables
 
 You can configure the ObserveOne CLI globally using standard environment variables. This is especially useful for CI/CD pipelines, Docker containers, or autonomous AI agents.
 
@@ -23,12 +21,6 @@ export OBS_JSON_OUTPUT="true"
 Enables verbose output, including detailed API execution logs and stack traces on failure.
 ```bash
 export OBS_VERBOSE="true"
-```
-
-### `OBS_API_URL`
-Overrides the default production API endpoint. Highly useful for local development and E2E testing against a staging backend.
-```bash
-export OBS_API_URL="http://localhost:8080/api"
 ```
 
 ### Headless Provisioning Variables
