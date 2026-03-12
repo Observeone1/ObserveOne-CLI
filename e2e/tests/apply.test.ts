@@ -51,20 +51,52 @@ export async function testDeclarativeApply() {
       throw new Error('Expected 1 API check to be created');
     }
 
-    // 3. Second Apply (Update/No-op)
-    console.log('      - Running second apply (update)...');
+    // 3. Second Apply (No-op - unchanged)
+    console.log('      - Running second apply (unchanged - should skip updates)...');
     const updateResult = await runCLI(['apply', testConfigFile, '--json']);
     assertSuccess(updateResult, 'Second apply failed');
 
     const parsedUpdate = JSON.parse(updateResult.stdout);
-    if (parsedUpdate.data?.summary?.monitors?.updated !== 1) {
-      throw new Error('Expected 1 monitor to be updated');
+    // With delta optimization, unchanged resources should be skipped (not updated)
+    if (parsedUpdate.data?.summary?.monitors?.unchanged !== 1) {
+      throw new Error('Expected 1 monitor to be unchanged (delta optimization)');
     }
-    if (parsedUpdate.data?.summary?.apiChecks?.updated !== 1) {
-      throw new Error('Expected 1 API check to be updated');
+    if (parsedUpdate.data?.summary?.apiChecks?.unchanged !== 1) {
+      throw new Error('Expected 1 API check to be unchanged (delta optimization)');
+    }
+    // Verify no updates were made since config didn't change
+    if (parsedUpdate.data?.summary?.monitors?.updated !== 0) {
+      throw new Error('Expected 0 monitors updated (config unchanged)');
+    }
+    if (parsedUpdate.data?.summary?.apiChecks?.updated !== 0) {
+      throw new Error('Expected 0 API checks updated (config unchanged)');
     }
 
-    // 4. Verify resources exist in list
+    // 4. Third Apply with modification (should update only changed)
+    console.log('      - Running third apply with modification...');
+    const modifiedConfig = {
+      ...configContent,
+      monitors: [
+        {
+          ...configContent.monitors[0],
+          interval: '*/15 * * * *', // Changed interval
+        },
+      ],
+    };
+    writeFileSync(testConfigFile, JSON.stringify(modifiedConfig, null, 2));
+
+    const modifyResult = await runCLI(['apply', testConfigFile, '--json']);
+    assertSuccess(modifyResult, 'Third apply (modify) failed');
+
+    const parsedModify = JSON.parse(modifyResult.stdout);
+    if (parsedModify.data?.summary?.monitors?.updated !== 1) {
+      throw new Error('Expected 1 monitor to be updated after modification');
+    }
+    if (parsedModify.data?.summary?.apiChecks?.unchanged !== 1) {
+      throw new Error('Expected 1 API check to remain unchanged');
+    }
+
+    // 5. Verify resources exist in list
     const listResult = await runCLI(['monitor', 'list', '--json']);
     assertContains(listResult.stdout, configContent.monitors[0].name);
   } finally {
