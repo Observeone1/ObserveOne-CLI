@@ -33,6 +33,9 @@ jobs:
       - name: Run knip check
         run: pnpm run knip
 
+      - name: Run unit tests
+        run: pnpm run test:unit
+
   build:
     runs-on: ubuntu-slim
 
