@@ -11,7 +11,7 @@ export function createExportCommand(
 ): Command {
   const exportCmd = new Command('export')
     .description('Export existing remote resources into a declarative JSON file')
-    .option('-f, --file <path>', 'Path to save the JSON configuration file', 'observeone.json')
+    .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
     .action(async (options) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
