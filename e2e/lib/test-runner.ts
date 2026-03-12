@@ -83,7 +83,10 @@ export async function runCLI(args: string[], timeoutMs: number = 30000): Promise
       stderr += data.toString();
     });
 
+    let timedOut = false;
+
     const timeoutTimer = setTimeout(() => {
+      timedOut = true;
       child.kill('SIGTERM');
     }, timeoutMs);
 
@@ -92,7 +95,7 @@ export async function runCLI(args: string[], timeoutMs: number = 30000): Promise
       resolve({
         stdout,
         stderr,
-        exitCode: code ?? 0,
+        exitCode: timedOut ? 124 : (code ?? 0),
       });
     });
   });
