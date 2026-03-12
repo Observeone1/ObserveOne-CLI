@@ -39,9 +39,12 @@ export function createAiCheckCommand(
     .option('--api-key <key>', 'Override API key')
     .option('-j, --json', 'Output in JSON format')
     .action(async (testNames, options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+      const isJson =
+        process.env.OBS_JSON_OUTPUT === 'true' || options.json || options.reporter === 'json';
+      if (isJson) {
         outputService.enableJsonMode();
       }
+      const shouldWait = isJson ? options.wait === true : true;
       try {
         if (options.apiUrl) configService.setCommandLineApiUrl(options.apiUrl);
         if (options.apiKey) configService.setApiKey(options.apiKey);
@@ -62,7 +65,16 @@ export function createAiCheckCommand(
             );
             process.exit(1);
           }
-          await runAdhocTest(apiClient, outputService, configService, options, timeout, results);
+          await runAdhocTest(
+            apiClient,
+            outputService,
+            configService,
+            options,
+            timeout,
+            results,
+            shouldWait,
+            isJson
+          );
         } else {
           await runNamedTests(
             apiClient,
@@ -71,7 +83,9 @@ export function createAiCheckCommand(
             testNames,
             options,
             timeout,
-            results
+            results,
+            shouldWait,
+            isJson
           );
         }
 
@@ -285,9 +299,10 @@ async function runAdhocTest(
   configService: IConfigService,
   options: any,
   timeout: number,
-  results: TestResult[]
+  results: TestResult[],
+  shouldWait: boolean,
+  isJson: boolean
 ): Promise<void> {
-  const isJson = process.env.OBS_JSON_OUTPUT === 'true';
   const spinner = isJson
     ? { start: () => {}, succeed: () => {}, fail: () => {} }
     : ora('Running ad-hoc test...').start();
@@ -304,14 +319,16 @@ async function runAdhocTest(
     spinner.succeed('Ad-hoc test started');
 
     // Use SSE streaming for live progress
-    if (result.task_id) {
+    if (result.task_id && shouldWait) {
       await streamTestProgress(
         configService,
         result,
         options.name || 'Ad-hoc Test',
         options,
         timeout,
-        results
+        results,
+        undefined,
+        isJson
       );
     }
   } catch (error) {
@@ -330,9 +347,10 @@ async function runNamedTests(
   testNames: string[],
   options: any,
   timeout: number,
-  results: TestResult[]
+  results: TestResult[],
+  shouldWait: boolean,
+  isJson: boolean
 ): Promise<void> {
-  const isJson = process.env.OBS_JSON_OUTPUT === 'true';
   const spinner = isJson
     ? { start: () => {}, succeed: () => {}, fail: () => {} }
     : ora('Fetching test details...').start();
@@ -370,7 +388,7 @@ async function runNamedTests(
         testSpinner.succeed(`Test "${test.name}" started`);
 
         // Use SSE streaming for live progress
-        if (result.task_id) {
+        if (result.task_id && shouldWait) {
           await streamTestProgress(
             configService,
             result,
@@ -378,7 +396,8 @@ async function runNamedTests(
             options,
             timeout,
             results,
-            testNames
+            testNames,
+            isJson
           );
         }
       } catch (error) {
@@ -402,11 +421,13 @@ async function streamTestProgress(
   options: any,
   timeout: number,
   results: TestResult[],
-  testNames?: string[]
+  testNames?: string[],
+  silent: boolean = false
 ): Promise<void> {
   const sseClient = new SSEClient(configService);
-  const { LiveProgressRenderer } = await import('../utils/live-progress.js');
-  const { LogWriter } = await import('../utils/log-writer.js');
+  const startTime = Date.now();
+  let renderer: any = null;
+  let logger: any = null;
 
   // Check if verbose flag was passed
   const isVerbose =
@@ -414,12 +435,15 @@ async function streamTestProgress(
     (testNames && (testNames.includes('--verbose') || testNames.includes('-v'))) ||
     process.env.OBS_VERBOSE === 'true';
 
-  const renderer = new LiveProgressRenderer({
-    verbose: isVerbose,
-  });
-  const logger = new LogWriter(result.task_id!);
-
-  renderer.start(testName);
+  if (!silent) {
+    const { LiveProgressRenderer } = await import('../utils/live-progress.js');
+    const { LogWriter } = await import('../utils/log-writer.js');
+    renderer = new LiveProgressRenderer({
+      verbose: isVerbose,
+    });
+    logger = new LogWriter(result.task_id!);
+    renderer.start(testName);
+  }
 
   // Track completion
   let completed = false;
@@ -433,23 +457,29 @@ async function streamTestProgress(
         stepCounter++;
         const step = message.step;
 
-        if (message.screenshot) {
+        if (!silent) {
+          if (message.screenshot) {
+            renderer.addScreenshot();
+            logger.writeScreenshot(stepCounter);
+          }
+
+          renderer.updateStep(stepCounter, step.next_goal || 'Processing...', step);
+          logger.writeStep(step);
+        }
+      } else if (message.type === 'screenshot') {
+        if (!silent) {
           renderer.addScreenshot();
           logger.writeScreenshot(stepCounter);
         }
-
-        renderer.updateStep(stepCounter, step.next_goal || 'Processing...', step);
-        logger.writeStep(step);
-      } else if (message.type === 'screenshot') {
-        renderer.addScreenshot();
-        logger.writeScreenshot(stepCounter);
       } else if (message.type === 'complete' || message.type === 'task_completed') {
         const status = message.status === 'failed' ? 'failed' : 'success';
-        renderer.complete(status, message.message);
-        logger.writeComplete(status, message.message);
+        if (!silent) {
+          renderer.complete(status, message.message);
+          logger.writeComplete(status, message.message);
+        }
 
         // Calculate duration
-        const duration = Date.now() - renderer.getStartTime();
+        const duration = Date.now() - startTime;
 
         results[results.length - 1] = {
           ...result,
@@ -460,11 +490,15 @@ async function streamTestProgress(
 
         completed = true;
         sseClient.close();
-        logger.close();
-        console.log(chalk.gray(`\nDetailed logs: ${logger.getPath()}`));
+        if (!silent) {
+          logger.close();
+          console.log(chalk.gray(`\nDetailed logs: ${logger.getPath()}`));
+        }
       } else if (message.type === 'error') {
-        renderer.error(message.message || 'Test failed');
-        logger.writeComplete('failed', message.message);
+        if (!silent) {
+          renderer.error(message.message || 'Test failed');
+          logger.writeComplete('failed', message.message);
+        }
 
         results[results.length - 1] = {
           ...result,
@@ -474,15 +508,26 @@ async function streamTestProgress(
 
         completed = true;
         sseClient.close();
-        logger.close();
+        if (!silent) {
+          logger.close();
+        }
       }
     },
     (error) => {
       if (!completed) {
-        renderer.error(`Connection error: ${error.message}`);
-        logger.writeComplete('failed', `Connection error: ${error.message}`);
+        if (!silent) {
+          renderer.error(`Connection error: ${error.message}`);
+          logger.writeComplete('failed', `Connection error: ${error.message}`);
+        }
+        results[results.length - 1] = {
+          ...result,
+          status: 'FAILED' as const,
+          message: `Connection error: ${error.message}`,
+        };
         sseClient.close();
-        logger.close();
+        if (!silent) {
+          logger.close();
+        }
         completed = true;
       }
     }
@@ -500,9 +545,18 @@ async function streamTestProgress(
     setTimeout(() => {
       if (!completed) {
         clearInterval(checkInterval);
-        renderer.error('Test execution timed out');
+        if (!silent) {
+          renderer.error('Test execution timed out');
+        }
+        results[results.length - 1] = {
+          ...result,
+          status: 'FAILED' as const,
+          message: 'Test execution timed out',
+        };
         sseClient.close();
-        logger.close();
+        if (!silent) {
+          logger.close();
+        }
         resolve();
       }
     }, timeout);

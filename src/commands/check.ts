@@ -207,7 +207,8 @@ export function createCheckCommand(
     .description('Pause or resume an API check')
     .option('-j, --json', 'Output in JSON format')
     .action(async (id, options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
+      if (isJson) {
         outputService.enableJsonMode();
       }
       try {
@@ -225,7 +226,14 @@ export function createCheckCommand(
 
         outputService.progress(`Toggling check ${checkId}...`);
         const isActive = await apiClient.toggleApiCheck(checkId);
-        outputService.success(`API check ${checkId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`);
+        if (isJson) {
+          outputService.formatJsonOutput({
+            id: checkId,
+            is_active: isActive,
+          });
+        } else {
+          outputService.success(`API check ${checkId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`);
+        }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);

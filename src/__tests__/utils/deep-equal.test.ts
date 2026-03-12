@@ -56,7 +56,18 @@ describe('deepEqual', () => {
     });
 
     it('should handle nested arrays', () => {
-      expect(deepEqual([[1, 2], [3, 4]], [[1, 2], [3, 4]])).toBe(true);
+      expect(
+        deepEqual(
+          [
+            [1, 2],
+            [3, 4],
+          ],
+          [
+            [1, 2],
+            [3, 4],
+          ]
+        )
+      ).toBe(true);
     });
   });
 
@@ -74,12 +85,7 @@ describe('deepEqual', () => {
     });
 
     it('should handle nested objects', () => {
-      expect(
-        deepEqual(
-          { a: { b: { c: 1 } } },
-          { a: { b: { c: 1 } } }
-        )
-      ).toBe(true);
+      expect(deepEqual({ a: { b: { c: 1 } } }, { a: { b: { c: 1 } } })).toBe(true);
     });
 
     it('should handle objects with different key orders', () => {
@@ -90,18 +96,21 @@ describe('deepEqual', () => {
   describe('mixed structures', () => {
     it('should handle objects with arrays', () => {
       expect(
-        deepEqual(
-          { name: 'test', values: [1, 2, 3] },
-          { name: 'test', values: [1, 2, 3] }
-        )
+        deepEqual({ name: 'test', values: [1, 2, 3] }, { name: 'test', values: [1, 2, 3] })
       ).toBe(true);
     });
 
     it('should handle arrays of objects', () => {
       expect(
         deepEqual(
-          [{ id: 1, name: 'a' }, { id: 2, name: 'b' }],
-          [{ id: 1, name: 'a' }, { id: 2, name: 'b' }]
+          [
+            { id: 1, name: 'a' },
+            { id: 2, name: 'b' },
+          ],
+          [
+            { id: 1, name: 'a' },
+            { id: 2, name: 'b' },
+          ]
         )
       ).toBe(true);
     });
@@ -133,10 +142,7 @@ describe('normalizeResource', () => {
   });
 
   it('should not override existing values', () => {
-    const result = normalizeResource(
-      { name: 'test', timeout_ms: 5000 },
-      { timeout_ms: 30000 }
-    );
+    const result = normalizeResource({ name: 'test', timeout_ms: 5000 }, { timeout_ms: 30000 });
 
     expect(result.timeout_ms).toBe(5000);
   });

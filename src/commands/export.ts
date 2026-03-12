@@ -11,10 +11,11 @@ export function createExportCommand(
 ): Command {
   const exportCmd = new Command('export')
     .description('Export existing remote resources into a declarative JSON file')
-    .option('-f, --file <path>', 'Path to save the JSON configuration file', 'observeone.json')
+    .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
     .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
+      if (isJson) {
         outputService.enableJsonMode();
       }
 
@@ -82,7 +83,7 @@ export function createExportCommand(
         const targetFile = options.file;
         writeFileSync(targetFile, JSON.stringify(config, null, 2));
 
-        if (process.env.OBS_JSON_OUTPUT === 'true') {
+        if (isJson) {
           outputService.formatJsonOutput({
             success: true,
             file: targetFile,

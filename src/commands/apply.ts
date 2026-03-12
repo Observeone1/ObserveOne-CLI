@@ -405,6 +405,9 @@ export function createApplyCommand(
             summary,
             errors: errors.length > 0 ? errors : undefined,
           });
+          if (errors.length > 0) {
+            process.exit(1);
+          }
         } else {
           outputService.success('Apply completed.');
           console.log('');

@@ -257,7 +257,8 @@ export function createHeartbeatCommand(
     .description('Pause or resume a heartbeat')
     .option('-j, --json', 'Output in JSON format')
     .action(async (id, options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
+      if (isJson) {
         outputService.enableJsonMode();
       }
       try {
@@ -275,7 +276,14 @@ export function createHeartbeatCommand(
 
         outputService.progress(`Toggling heartbeat ${hbId}...`);
         const isActive = await apiClient.toggleHeartbeat(hbId);
-        outputService.success(`Heartbeat ${hbId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`);
+        if (isJson) {
+          outputService.formatJsonOutput({
+            id: hbId,
+            is_active: isActive,
+          });
+        } else {
+          outputService.success(`Heartbeat ${hbId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`);
+        }
       } catch (error: any) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
