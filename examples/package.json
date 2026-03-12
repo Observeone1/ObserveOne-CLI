@@ -1,0 +1,28 @@
+{
+  "name": "obs-cli-examples",
+  "version": "1.0.0",
+  "description": "Examples and integration patterns for ObserveOne CLI",
+  "scripts": {
+    "test": "node examples/basic-usage.js",
+    "ci:github": "echo 'See .github/workflows/obs-tests.yml'",
+    "ci:gitlab": "echo 'See .gitlab-ci.yml'",
+    "ci:jenkins": "echo 'See Jenkinsfile'",
+    "ci:azure": "echo 'See azure-pipelines.yml'",
+    "ci:circle": "echo 'See .circleci/config.yml'",
+    "ci:travis": "echo 'See .travis.yml'",
+    "ci:bitbucket": "echo 'See bitbucket-pipelines.yml'"
+  },
+  "devDependencies": {
+    "@observeone/cli": "file:../"
+  },
+  "keywords": [
+    "obs",
+    "cli",
+    "testing",
+    "automation",
+    "ci-cd",
+    "examples"
+  ],
+  "author": "ObserveOne Team",
+  "license": "MIT"
+}

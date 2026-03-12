@@ -1,0 +1,21 @@
+stages:
+  - test
+
+obs-tests:
+  stage: test
+  image: node:18
+  before_script:
+    - npm install -g obs-cli
+    - obs login --api-key $OBS1_API_KEY
+  script:
+    - obs ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
+  artifacts:
+    reports:
+      junit: test-results.xml
+    paths:
+      - test-results.xml
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - merge_requests

@@ -1,0 +1,37 @@
+trigger:
+- main
+- develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '18.x'
+
+stages:
+- stage: Test
+  displayName: 'ObserveOne Tests'
+  jobs:
+  - job: ObserveOneTests
+    displayName: 'Run ObserveOne Tests'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(nodeVersion)'
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install -g @observeone/cli
+        obs login --api-key $(OBS1_API_KEY)
+        obs ai-check "Critical Tests" --reporter junit --output test-results.xml --wait
+      displayName: 'Run ObserveOne Tests'
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-results.xml'
+        testRunTitle: 'ObserveOne Test Results'
+      condition: always()
+      displayName: 'Publish Test Results'
+
+
+

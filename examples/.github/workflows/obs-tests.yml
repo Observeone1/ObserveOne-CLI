@@ -1,0 +1,51 @@
+name: ObserveOne Tests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  obs-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install OBS1 CLI
+      run: npm install -g obs-cli
+      
+    - name: Authenticate with ObserveOne
+      run: obs login --api-key ${{ secrets.OBS_API_KEY }}
+      
+    - name: Run ObserveOne Tests
+      run: |
+        obs ai-check "Critical Tests" "Login Tests" \
+          --reporter junit \
+          --output test-results.xml \
+          --wait
+          
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: ObserveOne Test Results
+        path: test-results.xml
+        reporter: java-junit
+        
+    - name: Upload Test Artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: obs-test-results
+        path: test-results.xml
+
+
+

@@ -1,0 +1,13 @@
+{
+  "project": {
+    "name": "ObserveOne Project",
+    "description": "AI-powered test automation project"
+  },
+  "defaultOptions": {
+    "timeout": 600000,
+    "retries": 3,
+    "verbose": false,
+    "pollIntervalMs": 2000,
+    "maxAttempts": 300
+  }
+}
