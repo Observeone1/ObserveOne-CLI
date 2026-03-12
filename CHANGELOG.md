@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added verbose mode to `list` command (`-v` flag) - shows additional fields including prompt, status, uptime percentage, and last updated date
+- Added verbose mode to `ai-check list` command (`-v` flag) - shows additional fields including prompt, status, uptime percentage, and last updated date
 
 ## [1.1.1] - 2025-12-01
 
@@ -83,7 +83,7 @@ First public release of the ObserveOne CLI to npm.
   - Automatic session expiration (5 minutes)
   - API key authentication support via `--api-key` flag
 
-- **Test Management**: `obs list` command to view available tests
+- **Test Management**: `obs ai-check list` command to view available tests
   - Table format output (default)
   - JSON format output with `--format json`
 

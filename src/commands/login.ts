@@ -155,7 +155,7 @@ export function createLoginCommand(
 
               console.log('');
               console.log(chalk.bold('Next steps:'));
-              console.log(chalk.gray('1. Run "obs list" to see available tests'));
+              console.log(chalk.gray('1. Run "obs ai-check list" to see available tests'));
               console.log(chalk.gray('2. Run "obs ai-check <test-name>" to execute tests'));
 
               process.exit(0);
