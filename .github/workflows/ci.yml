@@ -2,9 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main, "**"]
-  pull_request:
     branches: [main]
+  pull_request:
 
 jobs:
   test:
@@ -32,6 +31,12 @@ jobs:
 
       - name: Run knip check
         run: pnpm run knip
+
+      - name: Run lint
+        run: pnpm run lint
+
+      - name: Run format check
+        run: pnpm run format:check
 
       - name: Run unit tests
         run: pnpm run test:unit
