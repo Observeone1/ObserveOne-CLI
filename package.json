@@ -5,7 +5,7 @@
   "description": "ObserveOne CLI - AI-powered website monitoring and testing from the command line",
   "main": "dist/index.js",
   "bin": {
-    "obs": "./dist/index.js"
+    "obs": "dist/index.js"
   },
   "scripts": {
     "start": "node server.js",
