@@ -7,7 +7,7 @@ process.env.DOTENV_CONFIG_SILENT = 'true';
 import { Command } from 'commander';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 import chalk from 'chalk';
 import { readFileSync } from 'fs';
 
