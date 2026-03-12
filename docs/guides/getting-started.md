@@ -5,7 +5,7 @@ description: Install and authenticate with the ObserveOne CLI
 
 # Getting Started
 
-The ObserveOne CLI (`obs`) allows developers and AI Agents to manage URL Monitors, API Checks, Heartbeats, and AI Browser tests directly from the terminal.
+The ObserveOne command-line interface (CLI) (`obs`) allows developers and artificial intelligence (AI) agents to manage URL Monitors, API Checks, Heartbeats, and AI Browser tests directly from the terminal.
 
 ## Installation
 

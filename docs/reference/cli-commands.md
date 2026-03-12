@@ -5,7 +5,7 @@ description: Exhaustive list of all manual CRUD and operational commands
 
 # CLI Commands
 
-The `obs` CLI provides comprehensive manual resource management.
+The `obs` command-line interface (CLI) provides comprehensive manual create, read, update, delete (CRUD) resource management.
 
 ## Monitors
 Manage basic HTTP ping monitors.
@@ -19,7 +19,7 @@ obs monitor delete <id> -y
 ```
 
 ## API Checks
-Manage complex API health checks.
+Manage complex Application Programming Interface (API) health checks.
 ```bash
 obs check create --name "Auth API" --url "https://api.example.com/auth" --method "POST"
 obs check list
@@ -61,4 +61,12 @@ obs ai-check run test1 test2 test3
 
 # Run an ad-hoc test without saving it to the database
 obs ai-check run --adhoc --url https://example.com --prompt "Verify the hero section exists"
+
+# JSON output (immediate unless --wait is set)
+obs ai-check run "Login Flow" --json
+obs ai-check run "Login Flow" --json --wait
+
+# Reporters
+obs ai-check run "Login Flow" --reporter json
+obs ai-check run "Login Flow" --reporter junit --output results.xml
 ```

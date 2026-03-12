@@ -5,7 +5,7 @@ description: Configure the CLI via environment variables
 
 # Environment Variables
 
-You can configure the ObserveOne CLI globally using standard environment variables. This is especially useful for CI/CD pipelines, Docker containers, or autonomous AI agents.
+You can configure the ObserveOne command-line interface (CLI) globally using standard environment variables. This is especially useful for continuous integration/continuous deployment (CI/CD) pipelines, Docker containers, or autonomous artificial intelligence (AI) agents.
 
 ### `OBS_API_KEY`
 Bypasses the `obs login` configuration file and directly injects your authentication token.
