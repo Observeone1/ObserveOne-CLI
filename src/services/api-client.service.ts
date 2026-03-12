@@ -1,6 +1,6 @@
-import axios, { AxiosInstance } from "axios";
-import { IConfigService } from "../interfaces/config.interface.js";
-import { IApiClient } from "../interfaces/api-client.interface.js";
+import axios, { AxiosInstance } from 'axios';
+import { IConfigService } from '../interfaces/config.interface.js';
+import { IApiClient } from '../interfaces/api-client.interface.js';
 import {
   Test,
   TestExecution,
@@ -8,7 +8,7 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
-} from "../types/index.js";
+} from '../types/index.js';
 
 /**
  * API Client implementation
@@ -19,7 +19,7 @@ export class ApiClient implements IApiClient {
   private apiKey: string | undefined;
   private configService: IConfigService;
 
-  constructor(configService: IConfigService, version: string = "1.0.1") {
+  constructor(configService: IConfigService, version: string = '1.0.1') {
     this.configService = configService;
     this.apiKey = configService.getApiKey();
 
@@ -29,8 +29,8 @@ export class ApiClient implements IApiClient {
     this.client = axios.create({
       timeout: timeout,
       headers: {
-        "Content-Type": "application/json",
-        "User-Agent": `obs-cli/${version} (${isDev ? "dev" : "prod"})`,
+        'Content-Type': 'application/json',
+        'User-Agent': `obs-cli/${version} (${isDev ? 'dev' : 'prod'})`,
       },
     });
 
@@ -40,7 +40,7 @@ export class ApiClient implements IApiClient {
       if (this.apiKey) {
         // Backend expects CLI API keys in x-obs1-cli header, not Authorization
         // Note: keeping x-obs1-cli header name for backward compatibility
-        config.headers["x-obs1-cli"] = this.apiKey;
+        config.headers['x-obs1-cli'] = this.apiKey;
       }
       return config;
     });
@@ -50,47 +50,41 @@ export class ApiClient implements IApiClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          throw new Error(
-            'Authentication failed. Please run "obs login" to authenticate.',
-          );
+          throw new Error('Authentication failed. Please run "obs login" to authenticate.');
         }
         if (error.response?.status === 403) {
-          throw new Error(
-            "Access denied. You do not have permission to perform this action.",
-          );
+          throw new Error('Access denied. You do not have permission to perform this action.');
         }
         if (error.response?.status === 404) {
           const attemptedUrl = error.config?.baseURL
             ? `${error.config.baseURL}${error.config.url}`
             : error.config?.url;
-          throw new Error(
-            `Resource not found. (Attempted API URL: ${attemptedUrl || "unknown"})`,
-          );
+          throw new Error(`Resource not found. (Attempted API URL: ${attemptedUrl || 'unknown'})`);
         }
         if (error.response?.status >= 500) {
           throw new Error(`Server error: ${error.response.status}`);
         }
         throw error;
-      },
+      }
     );
   }
 
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
-    this.client.defaults.headers["x-obs1-cli"] = apiKey;
+    this.client.defaults.headers['x-obs1-cli'] = apiKey;
   }
 
   async validateApiKey(apiKey: string): Promise<boolean> {
     try {
       // Temporarily set the key to test it
       const currentKey = this.apiKey;
-      this.client.defaults.headers["x-obs1-cli"] = apiKey;
+      this.client.defaults.headers['x-obs1-cli'] = apiKey;
 
-      const response = await this.client.get("/cli/auth/verify");
+      const response = await this.client.get('/cli/auth/verify');
 
       // Restore previous key if validation was just a check
       if (currentKey) {
-        this.client.defaults.headers["x-obs1-cli"] = currentKey;
+        this.client.defaults.headers['x-obs1-cli'] = currentKey;
       }
 
       return response.data.valid === true;
@@ -102,32 +96,25 @@ export class ApiClient implements IApiClient {
   async validateToken(): Promise<boolean> {
     try {
       if (!this.apiKey) return false;
-      const response = await this.client.get("/cli/auth/verify");
+      const response = await this.client.get('/cli/auth/verify');
       return response.data.valid === true;
     } catch (error: any) {
       return false;
     }
   }
 
-  async provisionHeadlessAuth(
-    email?: string,
-    password?: string,
-  ): Promise<{ api_key: string }> {
+  async provisionHeadlessAuth(email?: string, password?: string): Promise<{ api_key: string }> {
     try {
-      const response = await this.client.post("/cli/auth/provision", {
+      const response = await this.client.post('/cli/auth/provision', {
         email,
         password,
       });
       return response.data;
     } catch (error: any) {
-      if (
-        error.code === "ECONNREFUSED" ||
-        error.message?.includes("Network Error")
-      ) {
-        const url =
-          this.configService.getApiUrl() || this.client.defaults.baseURL;
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        const url = this.configService.getApiUrl() || this.client.defaults.baseURL;
         throw new Error(
-          `Failed to connect to ObserveOne API. Ensure the server is running or the API URL is correct. (Attempted: ${url})`,
+          `Failed to connect to ObserveOne API. Ensure the server is running or the API URL is correct. (Attempted: ${url})`
         );
       }
       throw error;
@@ -145,13 +132,9 @@ export class ApiClient implements IApiClient {
   }
 
   async getTests(): Promise<Test[]> {
-    const response = await this.client.get<{ tests: Test[] }>(
-      "/browser-checks",
-    );
+    const response = await this.client.get<{ tests: Test[] }>('/browser-checks');
     // Supporting both {tests: []} and [] formats if backend varies
-    return Array.isArray(response.data)
-      ? response.data
-      : response.data.tests || [];
+    return Array.isArray(response.data) ? response.data : response.data.tests || [];
   }
 
   async getTest(testId: number): Promise<Test> {
@@ -166,17 +149,14 @@ export class ApiClient implements IApiClient {
     description?: string;
   }): Promise<{ id: number; message: string }> {
     const response = await this.client.post<{ id: number; message: string }>(
-      "/browser-checks",
-      testData,
+      '/browser-checks',
+      testData
     );
     return response.data;
   }
 
   async updateTest(testId: number, testData: any): Promise<Test> {
-    const response = await this.client.put<Test>(
-      `/browser-checks/${testId}`,
-      testData,
-    );
+    const response = await this.client.put<Test>(`/browser-checks/${testId}`, testData);
     return response.data;
   }
 
@@ -185,9 +165,7 @@ export class ApiClient implements IApiClient {
   }
 
   async executeTest(testId: number): Promise<TestResult> {
-    const response = await this.client.post<TestResult>(
-      `/browser-checks/${testId}/execute`,
-    );
+    const response = await this.client.post<TestResult>(`/browser-checks/${testId}/execute`);
     return response.data;
   }
 
@@ -197,37 +175,32 @@ export class ApiClient implements IApiClient {
     prompt: string;
     description?: string;
   }): Promise<TestResult> {
-    const response = await this.client.post<TestResult>(
-      "/browser-checks/execute-adhoc",
-      testData,
-    );
+    const response = await this.client.post<TestResult>('/browser-checks/execute-adhoc', testData);
     return response.data;
   }
 
   async getExecutionStatus(executionId: number): Promise<TestExecution> {
     const response = await this.client.get<TestExecution>(
-      `/browser-checks/execution/${executionId}`,
+      `/browser-checks/execution/${executionId}`
     );
     return response.data;
   }
 
   async getExecutionResults(executionId: number): Promise<any[]> {
-    const response = await this.client.get<any[]>(
-      `/browser-checks/executions/${executionId}`,
-    );
+    const response = await this.client.get<any[]>(`/browser-checks/executions/${executionId}`);
     return response.data;
   }
 
   async cancelTask(
     taskId: string,
-    executionId?: number,
+    executionId?: number
   ): Promise<{
     success: boolean;
     taskId: string;
     status?: string;
     message?: string;
   }> {
-    const response = await this.client.post("/browser-checks/cancel", {
+    const response = await this.client.post('/browser-checks/cancel', {
       taskId,
       executionId,
     });
@@ -236,8 +209,10 @@ export class ApiClient implements IApiClient {
 
   // URL Monitors
   async getUrlMonitors(): Promise<UrlMonitor[]> {
-    const response = await this.client.get<any>("/url-monitors");
-    return Array.isArray(response.data) ? response.data : (response.data.monitors || response.data.data || []);
+    const response = await this.client.get<any>('/url-monitors');
+    return Array.isArray(response.data)
+      ? response.data
+      : response.data.monitors || response.data.data || [];
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
@@ -246,14 +221,11 @@ export class ApiClient implements IApiClient {
   }
 
   async createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.post<any>("/url-monitors", data);
+    const response = await this.client.post<any>('/url-monitors', data);
     return response.data.monitor || response.data.data || response.data;
   }
 
-  async updateUrlMonitor(
-    id: number,
-    data: Partial<UrlMonitor>,
-  ): Promise<UrlMonitor> {
+  async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
     const response = await this.client.put<any>(`/url-monitors/${id}`, data);
     return response.data.monitor || response.data.data || response.data;
   }
@@ -269,7 +241,7 @@ export class ApiClient implements IApiClient {
 
   // API Checks
   async getApiChecks(): Promise<ApiCheck[]> {
-    const response = await this.client.get<any>("/api-checks");
+    const response = await this.client.get<any>('/api-checks');
     return response.data.apiChecks || response.data.data || [];
   }
 
@@ -279,7 +251,7 @@ export class ApiClient implements IApiClient {
   }
 
   async createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck> {
-    const response = await this.client.post<any>("/api-checks", data);
+    const response = await this.client.post<any>('/api-checks', data);
     return response.data.apiCheck || response.data.data || response.data;
   }
 
@@ -299,7 +271,7 @@ export class ApiClient implements IApiClient {
 
   // Heartbeats
   async getHeartbeats(): Promise<Heartbeat[]> {
-    const response = await this.client.get<any>("/heartbeats");
+    const response = await this.client.get<any>('/heartbeats');
     return response.data.heartbeats || response.data.data || [];
   }
 
@@ -309,14 +281,11 @@ export class ApiClient implements IApiClient {
   }
 
   async createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat> {
-    const response = await this.client.post<any>("/heartbeats", data);
+    const response = await this.client.post<any>('/heartbeats', data);
     return response.data.heartbeat || response.data.data || response.data;
   }
 
-  async updateHeartbeat(
-    id: number,
-    data: Partial<Heartbeat>,
-  ): Promise<Heartbeat> {
+  async updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat> {
     const response = await this.client.put<any>(`/heartbeats/${id}`, data);
     return response.data.heartbeat || response.data.data || response.data;
   }
@@ -335,7 +304,7 @@ export class ApiClient implements IApiClient {
     timestamp: string;
     environment: string;
   }> {
-    const response = await this.client.get("/health");
+    const response = await this.client.get('/health');
     return response.data;
   }
 
@@ -343,7 +312,7 @@ export class ApiClient implements IApiClient {
   async pollExecutionStatus(
     executionId: number,
     maxAttempts: number = 60,
-    intervalMs: number = 5000,
+    intervalMs: number = 5000
   ): Promise<TestExecution> {
     let attempts = 0;
 
@@ -352,9 +321,9 @@ export class ApiClient implements IApiClient {
         const execution = await this.getExecutionStatus(executionId);
 
         if (
-          execution.status === "SUCCESS" ||
-          execution.status === "FAILED" ||
-          execution.status === "CANCELLED"
+          execution.status === 'SUCCESS' ||
+          execution.status === 'FAILED' ||
+          execution.status === 'CANCELLED'
         ) {
           return execution;
         }
@@ -371,25 +340,23 @@ export class ApiClient implements IApiClient {
       }
     }
 
-    throw new Error(
-      `Test execution ${executionId} did not complete within the timeout period`,
-    );
+    throw new Error(`Test execution ${executionId} did not complete within the timeout period`);
   }
 
   async requestCliAuth(): Promise<{ request_id: string; auth_url: string }> {
     const response = await this.client.post<{
       request_id: string;
       auth_url: string;
-    }>("/cli/auth/request");
+    }>('/cli/auth/request');
     return response.data;
   }
 
   async checkCliAuthStatus(requestId: string): Promise<{
-    status: "pending" | "approved" | "denied";
+    status: 'pending' | 'approved' | 'denied';
     api_key?: string;
   }> {
     const response = await this.client.get<{
-      status: "pending" | "approved" | "denied";
+      status: 'pending' | 'approved' | 'denied';
       api_key?: string;
     }>(`/cli/auth/check/${requestId}`);
     return response.data;

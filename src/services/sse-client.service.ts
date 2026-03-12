@@ -1,5 +1,5 @@
-import { IConfigService } from "../interfaces/config.interface.js";
-import { ISSEClient, SSEMessage } from "../interfaces/sse-client.interface.js";
+import { IConfigService } from '../interfaces/config.interface.js';
+import { ISSEClient, SSEMessage } from '../interfaces/sse-client.interface.js';
 
 /**
  * SSE Client implementation
@@ -23,7 +23,9 @@ export class SSEClient implements ISSEClient {
     const apiKey = this.configService.getApiKey();
 
     if (!apiKey) {
-      throw new Error("Cannot connect to SSE stream: No API key found. Please run 'obs login' first.");
+      throw new Error(
+        "Cannot connect to SSE stream: No API key found. Please run 'obs login' first."
+      );
     }
 
     const url = `${apiUrl}/browser-checks/events/${taskId}`;
@@ -44,8 +46,8 @@ export class SSEClient implements ISSEClient {
     try {
       const response = await fetch(url, {
         headers: {
-          "x-obs1-cli": apiKey,
-          Accept: "text/event-stream",
+          'x-obs1-cli': apiKey,
+          Accept: 'text/event-stream',
         },
         signal: this.abortController!.signal,
       });
@@ -56,11 +58,11 @@ export class SSEClient implements ISSEClient {
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error("Response body is not readable");
+        throw new Error('Response body is not readable');
       }
 
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer = '';
 
       while (this.isConnected) {
         const { done, value } = await reader.read();
@@ -70,25 +72,25 @@ export class SSEClient implements ISSEClient {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith("data:")) {
+          if (line.startsWith('data:')) {
             const data = line.slice(5).trim();
             if (data) {
               try {
                 const parsed = JSON.parse(data);
                 onMessage(parsed);
               } catch (error) {
-                console.error("Failed to parse SSE message:", error);
+                console.error('Failed to parse SSE message:', error);
               }
             }
           }
         }
       }
     } catch (error: any) {
-      if (error.name !== "AbortError") {
+      if (error.name !== 'AbortError') {
         onError(error);
       }
     }

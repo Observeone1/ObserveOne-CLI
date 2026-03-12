@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { ConfigService } from "../services/config.service.js";
+import fs from 'fs';
+import path from 'path';
+import { ConfigService } from '../services/config.service.js';
 
 export class LogWriter {
   private logPath: string;
@@ -11,27 +11,27 @@ export class LogWriter {
     const configService = new ConfigService();
     const configPath = configService.getConfigPath();
     const configDir = path.dirname(configPath);
-    const logsDir = path.join(configDir, "logs");
+    const logsDir = path.join(configDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
 
     // Create log file with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     this.logPath = path.join(logsDir, `execution-${taskId}-${timestamp}.log`);
-    this.stream = fs.createWriteStream(this.logPath, { flags: "w" });
+    this.stream = fs.createWriteStream(this.logPath, { flags: 'w' });
 
     // Write header
-    this.writeLine("=".repeat(70));
+    this.writeLine('='.repeat(70));
     this.writeLine(`ObserveOne CLI - Execution Log`);
     this.writeLine(`Task ID: ${taskId}`);
     this.writeLine(`Started: ${new Date().toISOString()}`);
-    this.writeLine("=".repeat(70));
-    this.writeLine("");
+    this.writeLine('='.repeat(70));
+    this.writeLine('');
   }
 
   writeStep(step: any): void {
     const timestamp = new Date().toISOString();
-    this.writeLine(`[${timestamp}] Step ${step.step_number || "N/A"}`);
-    this.writeLine("-".repeat(70));
+    this.writeLine(`[${timestamp}] Step ${step.step_number || 'N/A'}`);
+    this.writeLine('-'.repeat(70));
 
     if (step.next_goal) {
       this.writeLine(`Goal: ${step.next_goal}`);
@@ -46,21 +46,21 @@ export class LogWriter {
     }
 
     if (step.actions && step.actions.length > 0) {
-      this.writeLine("Actions:");
+      this.writeLine('Actions:');
       step.actions.forEach((action: any, index: number) => {
         const actionType = Object.keys(action)[0];
         if (actionType) {
           const params = action[actionType];
           const paramStr = Object.entries(params)
             .map(([k, v]) => `${k}=${v}`)
-            .join(", ");
+            .join(', ');
           this.writeLine(`  ${index + 1}. ${actionType} (${paramStr})`);
         }
       });
     }
 
     if (step.result && step.result.length > 0) {
-      this.writeLine("Results:");
+      this.writeLine('Results:');
       step.result.forEach((result: any, index: number) => {
         if (result.extracted_content) {
           this.writeLine(`  ${index + 1}. ${result.extracted_content}`);
@@ -72,14 +72,14 @@ export class LogWriter {
       });
     }
 
-    this.writeLine("");
+    this.writeLine('');
   }
 
   writeMessage(type: string, message: any): void {
     const timestamp = new Date().toISOString();
     this.writeLine(`[${timestamp}] ${type.toUpperCase()}`);
     this.writeLine(JSON.stringify(message, null, 2));
-    this.writeLine("");
+    this.writeLine('');
   }
 
   writeScreenshot(count: number): void {
@@ -88,17 +88,17 @@ export class LogWriter {
   }
 
   writeComplete(status: string, message?: string): void {
-    this.writeLine("=".repeat(70));
+    this.writeLine('='.repeat(70));
     this.writeLine(`Execution completed: ${status.toUpperCase()}`);
     if (message) {
       this.writeLine(`Message: ${message}`);
     }
     this.writeLine(`Completed: ${new Date().toISOString()}`);
-    this.writeLine("=".repeat(70));
+    this.writeLine('='.repeat(70));
   }
 
   private writeLine(text: string): void {
-    this.stream.write(text + "\n");
+    this.stream.write(text + '\n');
   }
 
   close(): void {

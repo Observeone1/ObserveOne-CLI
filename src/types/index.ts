@@ -28,7 +28,7 @@ export interface Test {
 export interface TestExecution {
   id: number;
   test_id: number;
-  status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELLED";
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
   started_at: string;
   completed_at?: string;
   error_message?: string;
@@ -36,14 +36,13 @@ export interface TestExecution {
 }
 
 export interface TestResult {
-  status: "SUCCESS" | "FAILED" | "STARTED";
+  status: 'SUCCESS' | 'FAILED' | 'STARTED';
   message: string;
   task_id?: string;
   results?: any[];
   screenshots?: string[];
   duration?: number;
 }
-
 
 export interface UrlMonitor {
   id: number;
@@ -94,13 +93,13 @@ export interface Heartbeat {
   is_active: boolean;
   alert_on_failure: boolean;
   last_ping_at?: string;
-  status: "UP" | "DOWN" | "PENDING";
+  status: 'UP' | 'DOWN' | 'PENDING';
   created_at: string;
   updated_at: string;
 }
 
 export interface JsonEnvelope<T = any> {
-  status: "SUCCESS" | "ERROR";
+  status: 'SUCCESS' | 'ERROR';
   data?: T;
   error?: {
     message: string;

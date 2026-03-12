@@ -4,7 +4,7 @@ import Conf from 'conf';
 
 // Mock the isDevelopment helper internally
 vi.mock('../../services/config.service.js', async (importOriginal) => {
-  const actual = await importOriginal() as typeof import('../../services/config.service.js');
+  const actual = (await importOriginal()) as typeof import('../../services/config.service.js');
   return {
     ...actual,
   };
@@ -17,7 +17,7 @@ describe('ConfigService', () => {
   beforeEach(() => {
     // Save original env
     const originalEnv = process.env;
-    
+
     // Clear relevant env vars
     delete process.env.OBS_API_URL;
     delete process.env.OBS_API_KEY;
@@ -30,7 +30,7 @@ describe('ConfigService', () => {
       set: vi.fn(),
       delete: vi.fn(),
       clear: vi.fn(),
-      path: '/mock/path/config.json'
+      path: '/mock/path/config.json',
     };
 
     configService = new ConfigService(mockConf as unknown as Conf<any>);
@@ -78,13 +78,13 @@ describe('ConfigService', () => {
     it('ensures API URLs end with /api', () => {
       configService.setCommandLineApiUrl('https://example.com');
       expect(configService.getApiUrl()).toBe('https://example.com/api');
-      
+
       configService.setCommandLineApiUrl('https://example.com/');
       expect(configService.getApiUrl()).toBe('https://example.com/api');
-      
+
       configService.setCommandLineApiUrl('https://example.com/api');
       expect(configService.getApiUrl()).toBe('https://example.com/api');
-      
+
       configService.setCommandLineApiUrl('https://example.com/api/');
       expect(configService.getApiUrl()).toBe('https://example.com/api');
     });

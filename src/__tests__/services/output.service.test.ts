@@ -3,7 +3,7 @@ import { OutputService } from '../../services/output.service.js';
 
 describe('OutputService', () => {
   let outputService: OutputService;
-  
+
   beforeEach(() => {
     outputService = new OutputService();
     // Mock console.log to prevent logging during tests
@@ -23,11 +23,11 @@ describe('OutputService', () => {
     it('formats successful JSON envelope properly', () => {
       const data = { token: 'test-token', id: 123 };
       outputService.formatJsonOutput(data);
-      
+
       expect(console.log).toHaveBeenCalledTimes(1);
       const logArg = (console.log as any).mock.calls[0][0];
       const parsed = JSON.parse(logArg);
-      
+
       expect(parsed.status).toBe('SUCCESS');
       expect(parsed.data).toEqual(data);
       expect(parsed.metadata).toBeDefined();
@@ -36,11 +36,11 @@ describe('OutputService', () => {
 
     it('formats error JSON envelope properly on error() call', () => {
       outputService.error('Authentication failed');
-      
+
       expect(console.log).toHaveBeenCalledTimes(1);
       const logArg = (console.log as any).mock.calls[0][0];
       const parsed = JSON.parse(logArg);
-      
+
       expect(parsed.status).toBe('ERROR');
       expect(parsed.error.message).toBe('Authentication failed');
       expect(parsed.metadata.timestamp).toBeDefined();
@@ -52,7 +52,7 @@ describe('OutputService', () => {
       outputService.info('Info message');
       outputService.warning('Warning message');
       outputService.progress('Progress message');
-      
+
       expect(console.log).not.toHaveBeenCalled();
       expect(console.error).not.toHaveBeenCalled();
     });

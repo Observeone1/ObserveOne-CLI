@@ -5,7 +5,7 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
-} from "../types/index.js";
+} from '../types/index.js';
 
 /**
  * Output formatting service interface

@@ -1,20 +1,20 @@
-import { Command } from "commander";
-import { IConfigService } from "../interfaces/config.interface.js";
-import { IApiClient } from "../interfaces/api-client.interface.js";
-import { IOutputService } from "../interfaces/output.interface.js";
-import { writeFileSync } from "fs";
+import { Command } from 'commander';
+import { IConfigService } from '../interfaces/config.interface.js';
+import { IApiClient } from '../interfaces/api-client.interface.js';
+import { IOutputService } from '../interfaces/output.interface.js';
+import { writeFileSync } from 'fs';
 
 export function createExportCommand(
   configService: IConfigService,
   apiClient: IApiClient,
-  outputService: IOutputService,
+  outputService: IOutputService
 ): Command {
-  const exportCmd = new Command("export")
-    .description("Export existing remote resources into a declarative JSON file")
-    .option("-f, --file <path>", "Path to save the JSON configuration file", "observeone.json")
-    .option("-j, --json", "Output in JSON format")
+  const exportCmd = new Command('export')
+    .description('Export existing remote resources into a declarative JSON file')
+    .option('-f, --file <path>', 'Path to save the JSON configuration file', 'observeone.json')
+    .option('-j, --json', 'Output in JSON format')
     .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === "true" || options.json) {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
         outputService.enableJsonMode();
       }
 
@@ -25,7 +25,7 @@ export function createExportCommand(
           process.exit(1);
         }
 
-        outputService.progress("Fetching existing resources from backend...");
+        outputService.progress('Fetching existing resources from backend...');
 
         // Fetch all resources
         const [monitors, apiChecks, heartbeats, aiChecks] = await Promise.all([
@@ -82,7 +82,7 @@ export function createExportCommand(
         const targetFile = options.file;
         writeFileSync(targetFile, JSON.stringify(config, null, 2));
 
-        if (process.env.OBS_JSON_OUTPUT === "true") {
+        if (process.env.OBS_JSON_OUTPUT === 'true') {
           outputService.formatJsonOutput({
             success: true,
             file: targetFile,
@@ -95,7 +95,7 @@ export function createExportCommand(
           });
         } else {
           outputService.success(`Exported existing resources to ${targetFile}`);
-          console.log("");
+          console.log('');
           console.log(`  Monitors:   ${monitors.length}`);
           console.log(`  API Checks: ${apiChecks.length}`);
           console.log(`  Heartbeats: ${heartbeats.length}`);

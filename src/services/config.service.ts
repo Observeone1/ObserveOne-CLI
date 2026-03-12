@@ -1,23 +1,23 @@
-import Conf from "conf";
-import { IConfigService } from "../interfaces/config.interface.js";
-import { ObserveOneConfig } from "../types/index.js";
+import Conf from 'conf';
+import { IConfigService } from '../interfaces/config.interface.js';
+import { ObserveOneConfig } from '../types/index.js';
 
 // Detect environment dynamically
 const isDevelopment = () => {
   const isDev =
-    process.env.NODE_ENV === "development" ||
-    process.env.OBS_ENV === "development" ||
-    process.env.OBS_DEV === "true" ||
-    process.env.OBS_DEV === "1" ||
-    process.env.NODE_ENV === "dev";
+    process.env.NODE_ENV === 'development' ||
+    process.env.OBS_ENV === 'development' ||
+    process.env.OBS_DEV === 'true' ||
+    process.env.OBS_DEV === '1' ||
+    process.env.NODE_ENV === 'dev';
   return isDev;
 };
 
 const getDefaultApiUrl = () => {
   if (isDevelopment()) {
-    return "http://localhost:8080/api";
+    return 'http://localhost:8080/api';
   }
-  return "https://api.observeone.com/api";
+  return 'https://api.observeone.com/api';
 };
 
 /**
@@ -33,7 +33,7 @@ export class ConfigService implements IConfigService {
     this.config =
       config ||
       new Conf<ObserveOneConfig>({
-        projectName: "obs",
+        projectName: 'obs',
         defaults: {
           apiUrl: process.env.OBS_API_URL || getDefaultApiUrl(),
           defaultOptions: {
@@ -49,24 +49,24 @@ export class ConfigService implements IConfigService {
 
   getApiUrl(): string {
     // Priority order: 1) command line option, 2) environment variable, 3) saved config, 4) default
-    
+
     // If explicitly running in dev mode, force the dev URL unless explicitly locally overridden
     if (this.isDevelopment() && !this.commandLineApiUrl && !process.env.OBS_API_URL) {
-      return "http://localhost:8080/api";
+      return 'http://localhost:8080/api';
     }
 
     return (
       this.commandLineApiUrl ||
       process.env.OBS_API_URL ||
-      this.config.get("apiUrl") ||
+      this.config.get('apiUrl') ||
       getDefaultApiUrl()
     );
   }
 
   setCommandLineApiUrl(url: string): void {
     // Ensure URL ends with /api
-    const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
-    const finalUrl = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
+    const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const finalUrl = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
     this.commandLineApiUrl = finalUrl;
   }
 
@@ -75,30 +75,30 @@ export class ConfigService implements IConfigService {
   }
 
   getApiKey(): string | undefined {
-    return process.env.OBS_API_KEY || this.config.get("apiKey");
+    return process.env.OBS_API_KEY || this.config.get('apiKey');
   }
 
   setApiUrl(url: string): void {
     // Ensure URL ends with /api
-    const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
-    const finalUrl = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
-    this.config.set("apiUrl", finalUrl);
+    const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const finalUrl = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+    this.config.set('apiUrl', finalUrl);
   }
 
   setApiKey(key: string): void {
-    this.config.set("apiKey", key);
+    this.config.set('apiKey', key);
   }
 
   clearApiKey(): void {
-    this.config.delete("apiKey");
+    this.config.delete('apiKey');
   }
 
   getProjectConfig(): any {
-    return this.config.get("project", {});
+    return this.config.get('project', {});
   }
 
   setProjectConfig(projectConfig: any): void {
-    this.config.set("project", projectConfig);
+    this.config.set('project', projectConfig);
   }
 
   getDefaultOptions(): {
@@ -108,7 +108,7 @@ export class ConfigService implements IConfigService {
     pollIntervalMs: number;
     maxAttempts: number;
   } {
-    const options = this.config.get("defaultOptions");
+    const options = this.config.get('defaultOptions');
     // Ensure all properties have values
     return {
       timeout: options?.timeout ?? 600000,
@@ -120,7 +120,7 @@ export class ConfigService implements IConfigService {
   }
 
   setDefaultOptions(options: any): void {
-    this.config.set("defaultOptions", options);
+    this.config.set('defaultOptions', options);
   }
 
   reset(): void {
@@ -130,6 +130,4 @@ export class ConfigService implements IConfigService {
   getConfigPath(): string {
     return this.config.path;
   }
-
-
 }
