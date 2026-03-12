@@ -21,7 +21,7 @@ End-to-end tests for the ObserveOne CLI that run actual CLI commands against a r
    - `OBS_API_KEY`: A valid API key from your backend
    - `OBS_BINARY_MODE` (optional): How to run the CLI binary
      - `local` (default): Run local build from `dist/index.js`
-     - `npx`: Run published package via `npx @observe1/cli`
+     - `npx`: Run published package via `npx @observeone/cli`
      - `global`: Run globally installed `obs` command
      - Custom path: Any other value is used as a command path
 
@@ -50,7 +50,7 @@ OBS_BINARY_MODE=npx npm test
 Test a globally installed CLI:
 
 ```bash
-npm install -g @observe1/cli
+npm install -g @observeone/cli
 OBS_BINARY_MODE=global npm test
 ```
 

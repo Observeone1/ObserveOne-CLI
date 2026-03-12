@@ -7,7 +7,7 @@ The `obs` CLI allows developers and AI Agents to manage URL Monitors, API Checks
 ## Installation
 
 ```bash
-npm install -g @observe1/cli
+npm install -g @observeone/cli
 ```
 
 ## Quick Start

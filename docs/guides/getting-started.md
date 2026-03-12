@@ -12,7 +12,7 @@ The ObserveOne CLI (`obs`) allows developers and AI Agents to manage URL Monitor
 Install the CLI globally using npm:
 
 ```bash
-npm install -g @observe1/cli
+npm install -g @observeone/cli
 ```
 
 ## Authentication

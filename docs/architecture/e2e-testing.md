@@ -17,7 +17,7 @@ Instead of relying on heavy frameworks like Jest or Vitest, the E2E suite uses N
 ### Binary Modes
 The test runner is highly flexible. By setting the `OBS_BINARY_MODE` environment variable, you can test different compilation stages:
 - `local` (Default): Tests the locally compiled TypeScript (`dist/index.js`).
-- `npx`: Tests the live npm package (`npx @observe1/cli`).
+- `npx`: Tests the live npm package (`npx @observeone/cli`).
 - `global`: Tests a globally installed version (`obs`).
 
 ## Running Tests

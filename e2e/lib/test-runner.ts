@@ -39,7 +39,7 @@ export async function runCLI(args: string[], timeoutMs: number = 30000): Promise
       case 'npx':
         // Use npx to run the published package
         command = 'npx';
-        commandArgs = ['@observe1/cli', ...args]; // Updated package name
+        commandArgs = ['@observeone/cli', ...args]; // Updated package name
         useShell = isWindows;
         break;
 
