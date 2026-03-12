@@ -88,7 +88,7 @@ export class ApiClient implements IApiClient {
       }
 
       return response.data.valid === true;
-    } catch (_error: unknown) {
+    } catch {
       return false;
     }
   }
@@ -98,7 +98,7 @@ export class ApiClient implements IApiClient {
       if (!this.apiKey) return false;
       const response = await this.client.get('/cli/auth/verify');
       return response.data.valid === true;
-    } catch (_error: unknown) {
+    } catch {
       return false;
     }
   }

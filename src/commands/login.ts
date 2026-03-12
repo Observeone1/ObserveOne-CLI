@@ -128,7 +128,7 @@ export function createLoginCommand(
 
         try {
           await open(auth_url);
-        } catch (error) {
+        } catch {
           // Ignore open errors, user can copy link
         }
 
@@ -165,7 +165,7 @@ export function createLoginCommand(
             // Wait before next poll
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
             attempts++;
-          } catch (error) {
+          } catch {
             // If 404 or other error, might be expired or invalid
             attempts++;
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -174,7 +174,7 @@ export function createLoginCommand(
 
         outputService.error('Authentication timed out.');
         process.exit(1);
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
