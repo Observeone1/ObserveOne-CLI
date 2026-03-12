@@ -7,7 +7,7 @@ process.env.DOTENV_CONFIG_SILENT = "true";
 import { Command } from "commander";
 import dotenv from "dotenv";
 
-dotenv.config({ quiet: true } as any);
+dotenv.config();
 import chalk from "chalk";
 import { readFileSync } from "fs";
 
@@ -34,7 +34,7 @@ const { version } = packageJson;
 // Create services directly
 const configService = new ConfigService();
 const outputService = new OutputService();
-const apiClient = new ApiClient(configService);
+const apiClient = new ApiClient(configService, version);
 
 const program = new Command();
 

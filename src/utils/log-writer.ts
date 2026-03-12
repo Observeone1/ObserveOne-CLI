@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { ConfigManager } from "./config.js";
+import { ConfigService } from "../services/config.service.js";
 
 export class LogWriter {
   private logPath: string;
@@ -8,7 +8,8 @@ export class LogWriter {
 
   constructor(taskId: string) {
     // Create logs directory in the same location as config
-    const configPath = ConfigManager.getConfigPath();
+    const configService = new ConfigService();
+    const configPath = configService.getConfigPath();
     const configDir = path.dirname(configPath);
     const logsDir = path.join(configDir, "logs");
     fs.mkdirSync(logsDir, { recursive: true });
