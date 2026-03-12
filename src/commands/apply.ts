@@ -1,10 +1,9 @@
-import { Command } from 'commander';
+import { Command, OptionValues } from 'commander';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora, { Ora } from 'ora';
-import { OptionValues } from 'commander';
 import { ApiCheck, Heartbeat, Test, UrlMonitor } from '../types/index.js';
 
 type DeclarativeMonitor = Partial<UrlMonitor> & {
@@ -36,6 +35,19 @@ type DeclarativeConfig = {
   api_checks?: DeclarativeApiCheck[];
   heartbeats?: DeclarativeHeartbeat[];
   ai_checks?: DeclarativeAiCheck[];
+};
+
+const getErrorDetail = (err: unknown, fallback: string): string => {
+  if (typeof err === 'object' && err !== null) {
+    const anyErr = err as {
+      message?: string;
+      response?: { data?: { error?: string; message?: string } };
+    };
+    const resp = anyErr.response?.data;
+    return resp?.error || resp?.message || anyErr.message || fallback;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
 };
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
@@ -123,16 +135,15 @@ export function createApplyCommand(
         const delayMs = 1000; // 1 second between chunks to respect 100 req/min rate limit
 
         // 1. Process URL Monitors
-        if (config.monitors && Array.isArray(config.monitors)) {
+        if (Array.isArray(config.monitors) && config.monitors.length > 0) {
           logProgress('Fetching existing monitors...');
           const existingMonitors = await apiClient.getUrlMonitors();
           const existingByName = new Map(existingMonitors.map((m) => [m.name, m]));
 
           const chunks = chunkArray(config.monitors, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
+          for (const [index, chunk] of chunks.entries()) {
             await Promise.all(
-              chunk.map(async (monitorConfig) => {
+              chunk.map(async (monitorConfig: DeclarativeMonitor) => {
                 try {
                   if (!monitorConfig.name || !monitorConfig.url) {
                     throw new Error("Monitor must have 'name' and 'url'");
@@ -141,57 +152,54 @@ export function createApplyCommand(
                   const existing = existingByName.get(monitorConfig.name);
                   if (existing) {
                     logProgress(`Updating monitor: ${monitorConfig.name}`);
-                    await apiClient.updateUrlMonitor(existing.id || existing.data?.id, {
-                      name: monitorConfig.name || existing.name,
-                      url: monitorConfig.url || existing.url,
-                      timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                      cron_expression:
-                        monitorConfig.interval ||
-                        monitorConfig.cron_expression ||
-                        existing.interval ||
-                        existing.cron_expression,
+                    const payload: Partial<UrlMonitor> = {
+                      name: monitorConfig.name ?? existing.name,
+                      url: monitorConfig.url ?? existing.url,
+                      timeout_ms: monitorConfig.timeout_ms ?? existing.timeout_ms ?? 30000,
                       alert_on_failure:
                         monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
-                    });
+                    };
+                    const cronValue =
+                      monitorConfig.interval ??
+                      monitorConfig.cron_expression ??
+                      existing.cron_expression ??
+                      undefined;
+                    if (cronValue !== undefined) payload.cron_expression = cronValue;
+                    await apiClient.updateUrlMonitor(existing.id, payload);
                     summary.monitors.updated++;
                   } else {
                     logProgress(`Creating monitor: ${monitorConfig.name}`);
-                    await apiClient.createUrlMonitor({
+                    const payload: Partial<UrlMonitor> = {
                       ...monitorConfig,
-                      timeout_ms: monitorConfig.timeout_ms || 30000,
-                      cron_expression: monitorConfig.interval || monitorConfig.cron_expression,
-                    });
+                      timeout_ms: monitorConfig.timeout_ms ?? 30000,
+                    };
+                    const cronValue =
+                      monitorConfig.interval ?? monitorConfig.cron_expression ?? undefined;
+                    if (cronValue !== undefined) payload.cron_expression = cronValue;
+                    await apiClient.createUrlMonitor(payload);
                     summary.monitors.created++;
                   }
                 } catch (err: unknown) {
-                  const message =
-                    err instanceof Error ? err.message : 'Unknown error applying monitor';
-                  const details =
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.error ||
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.message ||
-                    message;
+                  const details = getErrorDetail(err, 'Unknown error applying monitor');
                   errors.push(`Monitor '${monitorConfig.name || 'unknown'}': ${details}`);
                   summary.monitors.errors++;
                 }
               })
             );
-            if (i < chunks.length - 1) await delay(delayMs);
+            if (index < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 2. Process API Checks
-        if (config.api_checks && Array.isArray(config.api_checks)) {
+        if (Array.isArray(config.api_checks) && config.api_checks.length > 0) {
           logProgress('Fetching existing API checks...');
           const existingChecks = await apiClient.getApiChecks();
           const existingByName = new Map(existingChecks.map((c) => [c.name, c]));
 
           const chunks = chunkArray(config.api_checks, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
+          for (const [index, chunk] of chunks.entries()) {
             await Promise.all(
-              chunk.map(async (checkConfig) => {
+              chunk.map(async (checkConfig: DeclarativeApiCheck) => {
                 try {
                   if (!checkConfig.name || !checkConfig.url) {
                     throw new Error("API check must have 'name' and 'url'");
@@ -200,53 +208,47 @@ export function createApplyCommand(
                   const existing = existingByName.get(checkConfig.name);
                   if (existing) {
                     logProgress(`Updating API check: ${checkConfig.name}`);
-                    await apiClient.updateApiCheck(existing.id || existing.data?.id, {
-                      name: checkConfig.name || existing.name,
-                      url: checkConfig.url || existing.url,
-                      method: checkConfig.method?.toUpperCase() || existing.method || 'GET',
-                      timeout_ms: checkConfig.timeout_ms || existing.timeout_ms || 30000,
+                    const payload: Partial<ApiCheck> = {
+                      name: checkConfig.name ?? existing.name,
+                      url: checkConfig.url ?? existing.url,
+                      method: checkConfig.method?.toUpperCase() ?? existing.method ?? 'GET',
+                      timeout_ms: checkConfig.timeout_ms ?? existing.timeout_ms ?? 30000,
                       alert_on_failure:
                         checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
-                    });
+                    };
+                    await apiClient.updateApiCheck(existing.id, payload);
                     summary.apiChecks.updated++;
                   } else {
                     logProgress(`Creating API check: ${checkConfig.name}`);
-                    await apiClient.createApiCheck({
+                    const payload: Partial<ApiCheck> = {
                       ...checkConfig,
-                      timeout_ms: checkConfig.timeout_ms || 30000,
-                      method: checkConfig.method?.toUpperCase() || 'GET',
-                    });
+                      timeout_ms: checkConfig.timeout_ms ?? 30000,
+                      method: checkConfig.method?.toUpperCase() ?? 'GET',
+                    };
+                    await apiClient.createApiCheck(payload);
                     summary.apiChecks.created++;
                   }
                 } catch (err: unknown) {
-                  const message =
-                    err instanceof Error ? err.message : 'Unknown error applying API check';
-                  const details =
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.error ||
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.message ||
-                    message;
+                  const details = getErrorDetail(err, 'Unknown error applying API check');
                   errors.push(`API Check '${checkConfig.name || 'unknown'}': ${details}`);
                   summary.apiChecks.errors++;
                 }
               })
             );
-            if (i < chunks.length - 1) await delay(delayMs);
+            if (index < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 3. Process Heartbeats
-        if (config.heartbeats && Array.isArray(config.heartbeats)) {
+        if (Array.isArray(config.heartbeats) && config.heartbeats.length > 0) {
           logProgress('Fetching existing heartbeats...');
           const existingHeartbeats = await apiClient.getHeartbeats();
           const existingByName = new Map(existingHeartbeats.map((h) => [h.name, h]));
 
           const chunks = chunkArray(config.heartbeats, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
+          for (const [index, chunk] of chunks.entries()) {
             await Promise.all(
-              chunk.map(async (hbConfig) => {
+              chunk.map(async (hbConfig: DeclarativeHeartbeat) => {
                 try {
                   if (!hbConfig.name || !hbConfig.period) {
                     throw new Error("Heartbeat must have 'name' and 'period'");
@@ -255,13 +257,14 @@ export function createApplyCommand(
                   const existing = existingByName.get(hbConfig.name);
                   if (existing) {
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
-                    await apiClient.updateHeartbeat(existing.id || existing.data?.id, {
-                      name: hbConfig.name || existing.name,
-                      period: hbConfig.period || existing.period,
+                    const payload: Partial<Heartbeat> = {
+                      name: hbConfig.name ?? existing.name,
+                      period: hbConfig.period ?? existing.period,
                       description: existing.description || 'Updated via CLI',
                       grace_period:
-                        hbConfig.grace || hbConfig.grace_period || existing.grace_period || 60,
-                    });
+                        hbConfig.grace ?? hbConfig.grace_period ?? existing.grace_period ?? 60,
+                    };
+                    await apiClient.updateHeartbeat(existing.id, payload);
                     summary.heartbeats.updated++;
                   } else {
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
@@ -272,34 +275,26 @@ export function createApplyCommand(
                     summary.heartbeats.created++;
                   }
                 } catch (err: unknown) {
-                  const message =
-                    err instanceof Error ? err.message : 'Unknown error applying heartbeat';
-                  const details =
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.error ||
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.message ||
-                    message;
+                  const details = getErrorDetail(err, 'Unknown error applying heartbeat');
                   errors.push(`Heartbeat '${hbConfig.name || 'unknown'}': ${details}`);
                   summary.heartbeats.errors++;
                 }
               })
             );
-            if (i < chunks.length - 1) await delay(delayMs);
+            if (index < chunks.length - 1) await delay(delayMs);
           }
         }
 
         // 4. Process AI Checks
-        if (config.ai_checks && Array.isArray(config.ai_checks)) {
+        if (Array.isArray(config.ai_checks) && config.ai_checks.length > 0) {
           logProgress('Fetching existing AI checks...');
           const existingAiChecks = await apiClient.getTests();
           const existingByName = new Map(existingAiChecks.map((t) => [t.name, t]));
 
           const chunks = chunkArray(config.ai_checks, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
+          for (const [index, chunk] of chunks.entries()) {
             await Promise.all(
-              chunk.map(async (aiConfig) => {
+              chunk.map(async (aiConfig: DeclarativeAiCheck) => {
                 try {
                   if (!aiConfig.name || !aiConfig.url || !aiConfig.prompt) {
                     throw new Error("AI check must have 'name', 'url', and 'prompt'");
@@ -308,12 +303,13 @@ export function createApplyCommand(
                   const existing = existingByName.get(aiConfig.name);
                   if (existing) {
                     logProgress(`Updating AI check: ${aiConfig.name}`);
-                    await apiClient.updateTest(existing.id || existing.data?.id, {
-                      name: aiConfig.name || existing.name,
-                      url: aiConfig.url || existing.url,
-                      prompt: aiConfig.prompt || existing.prompt,
-                      description: aiConfig.description || existing.description || '',
-                    });
+                    const payload: Partial<Test> = {
+                      name: aiConfig.name ?? existing.name,
+                      url: aiConfig.url ?? existing.url,
+                      prompt: aiConfig.prompt ?? existing.prompt,
+                      description: aiConfig.description ?? existing.description ?? '',
+                    };
+                    await apiClient.updateTest(existing.id, payload);
                     summary.aiChecks.updated++;
                   } else {
                     logProgress(`Creating AI check: ${aiConfig.name}`);
@@ -326,20 +322,13 @@ export function createApplyCommand(
                     summary.aiChecks.created++;
                   }
                 } catch (err: unknown) {
-                  const message =
-                    err instanceof Error ? err.message : 'Unknown error applying AI check';
-                  const details =
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.error ||
-                    // @ts-expect-error optional axios shape
-                    (err as any)?.response?.data?.message ||
-                    message;
+                  const details = getErrorDetail(err, 'Unknown error applying AI check');
                   errors.push(`AI Check '${aiConfig.name || 'unknown'}': ${details}`);
                   summary.aiChecks.errors++;
                 }
               })
             );
-            if (i < chunks.length - 1) await delay(delayMs);
+            if (index < chunks.length - 1) await delay(delayMs);
           }
         }
 

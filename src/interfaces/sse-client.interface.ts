@@ -6,7 +6,7 @@
 export interface SSEMessage {
   type: string;
   data?: unknown;
-  step?: unknown;
+  step?: { next_goal?: string } & Record<string, unknown>;
   status?: string;
   message?: string;
   screenshot?: string;

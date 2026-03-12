@@ -94,9 +94,7 @@ export class ConfigService implements IConfigService {
   }
 
   getProjectConfig(): { name?: string; description?: string } | undefined {
-    return this.config.get('project', undefined) as
-      | { name?: string; description?: string }
-      | undefined;
+    return this.config.get('project') as { name?: string; description?: string } | undefined;
   }
 
   setProjectConfig(projectConfig: { name?: string; description?: string }): void {

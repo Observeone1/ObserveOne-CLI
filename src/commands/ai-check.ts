@@ -427,7 +427,8 @@ async function streamTestProgress(
           logger.writeScreenshot(stepCounter);
         }
 
-        renderer.updateStep(stepCounter, step.next_goal || 'Processing...', step);
+        const nextGoal = (step as { next_goal?: string })?.next_goal || 'Processing...';
+        renderer.updateStep(stepCounter, nextGoal, step);
         logger.writeStep(step);
       } else if (message.type === 'screenshot') {
         renderer.addScreenshot();
