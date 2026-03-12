@@ -14,10 +14,10 @@ const path = require('path');
 // Helper function to run CLI commands
 function runCommand(command, options = {}) {
   try {
-    const result = execSync(command, { 
-      encoding: 'utf8', 
+    const result = execSync(command, {
+      encoding: 'utf8',
       stdio: 'pipe',
-      ...options 
+      ...options,
     });
     return result;
   } catch (error) {
@@ -32,7 +32,7 @@ console.log('🔐 Example 1: Authentication and Setup');
 console.log('=====================================');
 
 // Check if user is authenticated
-const authCheck = runCommand('obs list');
+const authCheck = runCommand('obs ai-check list');
 if (authCheck && authCheck.includes('Not authenticated')) {
   console.log('❌ Not authenticated. Please run: obs login');
 } else {
@@ -46,15 +46,15 @@ console.log('===================================');
 // Create a sample config file
 const sampleConfig = {
   project: {
-    name: "Sample Project",
-    description: "A sample project for ObserveOne CLI"
+    name: 'Sample Project',
+    description: 'A sample project for ObserveOne CLI',
   },
-  apiUrl: "https://api.observeone.com",
+  apiUrl: 'https://api.observeone.com',
   defaultOptions: {
     timeout: 300000,
     retries: 3,
-    verbose: false
-  }
+    verbose: false,
+  },
 };
 
 fs.writeFileSync('.obs.config.json', JSON.stringify(sampleConfig, null, 2));
@@ -64,7 +64,7 @@ console.log('✅ Sample configuration created');
 console.log('\n📋 Example 3: Listing Tests');
 console.log('===========================');
 
-const testList = runCommand('obs list');
+const testList = runCommand('obs ai-check list');
 if (testList) {
   console.log('Available tests:');
   console.log(testList);
@@ -88,7 +88,8 @@ if (testResult) {
 console.log('\n⚡ Example 5: Ad-hoc Testing');
 console.log('===========================');
 
-const adhocCommand = 'obs ai-check --url https://example.com --prompt "Navigate to the homepage" --name "Homepage Test" --adhoc';
+const adhocCommand =
+  'obs ai-check --url https://example.com --prompt "Navigate to the homepage" --name "Homepage Test" --adhoc';
 console.log(`Command: ${adhocCommand}`);
 console.log('Note: This would run an ad-hoc test if authenticated');
 
@@ -119,6 +120,3 @@ if (fs.existsSync('.obs.config.json')) {
 
 console.log('\n✨ Examples completed!');
 console.log('For more information, run: obs --help');
-
-
-
