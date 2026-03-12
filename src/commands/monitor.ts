@@ -1,4 +1,5 @@
 import { UrlMonitor } from '../types/index.js';
+import { OptionValues } from 'commander';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
@@ -15,7 +16,7 @@ export function createMonitorCommand(
   outputService: IOutputService
 ) {
   const prompts = {
-    ensureCreatePayload: async (options: Record<string, any>): Promise<ResourcePayload> => {
+    ensureCreatePayload: async (options: OptionValues): Promise<ResourcePayload> => {
       let { name, url, interval, alerts } = options;
 
       if (!name || !url) {
@@ -63,7 +64,7 @@ export function createMonitorCommand(
       };
     },
     ensureUpdatePayload: async (
-      options: Record<string, any>
+      options: OptionValues
     ): Promise<{ id: number; payload: ResourcePayload }> => {
       const monitorId = Number(options.id || options.i);
       if (Number.isNaN(monitorId)) {

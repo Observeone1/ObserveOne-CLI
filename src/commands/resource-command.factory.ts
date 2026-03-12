@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, OptionValues } from 'commander';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
@@ -6,10 +6,8 @@ import { IOutputService } from '../interfaces/output.interface.js';
 export type ResourcePayload = Record<string, unknown>;
 
 export interface ResourcePrompts {
-  ensureCreatePayload: (options: Record<string, any>) => Promise<ResourcePayload>;
-  ensureUpdatePayload: (
-    options: Record<string, any>
-  ) => Promise<{ id: number; payload: ResourcePayload }>;
+  ensureCreatePayload: (options: OptionValues) => Promise<ResourcePayload>;
+  ensureUpdatePayload: (options: OptionValues) => Promise<{ id: number; payload: ResourcePayload }>;
 }
 
 export interface ResourceFormatters<T> {
@@ -80,7 +78,7 @@ export function createResourceCommand<T>(
         } else {
           config.formatters.list(items, process.env.OBS_VERBOSE === 'true');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -107,7 +105,7 @@ export function createResourceCommand<T>(
         } else {
           config.formatters.list([item], true);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -134,7 +132,7 @@ export function createResourceCommand<T>(
           outputService.success(`${config.name} created successfully.`);
           config.onCreateSuccess?.(created);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -162,7 +160,7 @@ export function createResourceCommand<T>(
           outputService.success(`${config.name} ${id} updated successfully.`);
           config.onUpdateSuccess?.(updated);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -204,7 +202,7 @@ export function createResourceCommand<T>(
         } else {
           outputService.success(`${config.name} ${parsedId} deleted successfully.`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -231,7 +229,7 @@ export function createResourceCommand<T>(
               `${config.name} ${parsedId} is now ${result ? 'active' : 'inactive'}.`
             );
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           outputService.error(outputService.formatError(error));
           process.exit(1);
         }

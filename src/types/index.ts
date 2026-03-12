@@ -39,7 +39,7 @@ export interface TestResult {
   status: 'SUCCESS' | 'FAILED' | 'STARTED';
   message: string;
   task_id?: string;
-  results?: any[];
+  results?: unknown[];
   screenshots?: string[];
   duration?: number;
 }
@@ -98,12 +98,12 @@ export interface Heartbeat {
   updated_at: string;
 }
 
-export interface JsonEnvelope<T = any> {
+export interface JsonEnvelope<T = unknown> {
   status: 'SUCCESS' | 'ERROR';
   data?: T;
   error?: {
     message: string;
-    details?: any;
+    details?: unknown;
   };
   metadata: {
     timestamp: string;

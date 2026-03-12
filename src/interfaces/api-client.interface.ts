@@ -16,8 +16,8 @@ export interface IApiClient {
   validateApiKey(apiKey: string): Promise<boolean>;
   validateToken(): Promise<boolean>;
   provisionHeadlessAuth(email?: string, password?: string): Promise<{ api_key: string }>;
-  post(url: string, data?: any): Promise<any>;
-  get(url: string): Promise<any>;
+  post<T = unknown, R = unknown>(url: string, data?: T): Promise<R>;
+  get<R = unknown>(url: string): Promise<R>;
 
   // Browser Tests (AI Checks)
   getTests(): Promise<Test[]>;
@@ -28,7 +28,7 @@ export interface IApiClient {
     prompt: string;
     description?: string;
   }): Promise<{ id: number; message: string }>;
-  updateTest(testId: number, testData: any): Promise<Test>;
+  updateTest(testId: number, testData: Partial<Test>): Promise<Test>;
   deleteTest(testId: number): Promise<void>;
   executeTest(testId: number): Promise<TestResult>;
   executeAdhocTest(testData: {
@@ -38,7 +38,7 @@ export interface IApiClient {
     description?: string;
   }): Promise<TestResult>;
   getExecutionStatus(executionId: number): Promise<TestExecution>;
-  getExecutionResults(executionId: number): Promise<any[]>;
+  getExecutionResults(executionId: number): Promise<unknown[]>;
   cancelTask(
     taskId: string,
     executionId?: number

@@ -93,11 +93,13 @@ export class ConfigService implements IConfigService {
     this.config.delete('apiKey');
   }
 
-  getProjectConfig(): any {
-    return this.config.get('project', {});
+  getProjectConfig(): { name?: string; description?: string } | undefined {
+    return this.config.get('project', undefined) as
+      | { name?: string; description?: string }
+      | undefined;
   }
 
-  setProjectConfig(projectConfig: any): void {
+  setProjectConfig(projectConfig: { name?: string; description?: string }): void {
     this.config.set('project', projectConfig);
   }
 
@@ -119,7 +121,13 @@ export class ConfigService implements IConfigService {
     };
   }
 
-  setDefaultOptions(options: any): void {
+  setDefaultOptions(options: {
+    timeout?: number;
+    retries?: number;
+    verbose?: boolean;
+    pollIntervalMs?: number;
+    maxAttempts?: number;
+  }): void {
     this.config.set('defaultOptions', options);
   }
 

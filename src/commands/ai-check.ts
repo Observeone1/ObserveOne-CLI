@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, OptionValues } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -37,7 +37,7 @@ export function createAiCheckCommand(
     .option('--api-url <url>', 'Override API URL')
     .option('--api-key <key>', 'Override API key')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (testNames, options) => {
+    .action(async (testNames, options: OptionValues) => {
       if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
         outputService.enableJsonMode();
       }
@@ -79,7 +79,7 @@ export function createAiCheckCommand(
     .description('List all AI browser checks')
     .option('-f, --format <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (options) => {
+    .action(async (options: OptionValues) => {
       if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json) {
         outputService.enableJsonMode();
       }
@@ -109,7 +109,7 @@ export function createAiCheckCommand(
     .command('get <id>')
     .description('Get details of an AI browser check')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (id, options) => {
+    .action(async (id, options: OptionValues) => {
       if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
         outputService.enableJsonMode();
       }
@@ -273,7 +273,7 @@ export function createAiCheckCommand(
 async function runAdhocTest(
   apiClient: IApiClient,
   configService: IConfigService,
-  options: any,
+  options: OptionValues,
   timeout: number,
   results: TestResult[]
 ): Promise<void> {
@@ -317,7 +317,7 @@ async function runNamedTests(
   apiClient: IApiClient,
   configService: IConfigService,
   testNames: string[],
-  options: any,
+  options: OptionValues,
   timeout: number,
   results: TestResult[]
 ): Promise<void> {

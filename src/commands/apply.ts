@@ -3,7 +3,40 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
+import { OptionValues } from 'commander';
+import { ApiCheck, Heartbeat, Test, UrlMonitor } from '../types/index.js';
+
+type DeclarativeMonitor = Partial<UrlMonitor> & {
+  name: string;
+  url: string;
+  interval?: string;
+};
+
+type DeclarativeApiCheck = Partial<ApiCheck> & {
+  name: string;
+  url: string;
+  method?: string;
+};
+
+type DeclarativeHeartbeat = Partial<Heartbeat> & {
+  name: string;
+  period: number;
+  grace?: number;
+};
+
+type DeclarativeAiCheck = Partial<Test> & {
+  name: string;
+  url: string;
+  prompt: string;
+};
+
+type DeclarativeConfig = {
+  monitors?: DeclarativeMonitor[];
+  api_checks?: DeclarativeApiCheck[];
+  heartbeats?: DeclarativeHeartbeat[];
+  ai_checks?: DeclarativeAiCheck[];
+};
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const result = [];
@@ -25,7 +58,7 @@ export function createApplyCommand(
     .argument('[file]', 'Path to the JSON configuration file')
     .option('-f, --file <path>', 'Path to the JSON configuration file')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (fileArg, options) => {
+    .action(async (fileArg, options: OptionValues) => {
       const isVerbose = process.env.OBS_VERBOSE === 'true';
       const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
 
@@ -33,7 +66,7 @@ export function createApplyCommand(
         outputService.enableJsonMode();
       }
 
-      let spinner: any = null;
+      let spinner: Ora | null = null;
 
       const logProgress = (msg: string) => {
         if (isVerbose && !isJson) {
@@ -69,12 +102,13 @@ export function createApplyCommand(
 
         logProgress(`Reading configuration from ${targetFile}...`);
         const fileContent = readFileSync(targetFile, 'utf-8');
-        let config: any;
+        let config: DeclarativeConfig;
         try {
-          config = JSON.parse(fileContent);
-        } catch (e: any) {
+          config = JSON.parse(fileContent) as DeclarativeConfig;
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : 'Unknown JSON parse error';
           if (spinner) spinner.fail('Invalid JSON');
-          outputService.error(`Invalid JSON in ${targetFile}: ${e.message}`);
+          outputService.error(`Invalid JSON in ${targetFile}: ${message}`);
           process.exit(1);
         }
 
@@ -92,13 +126,13 @@ export function createApplyCommand(
         if (config.monitors && Array.isArray(config.monitors)) {
           logProgress('Fetching existing monitors...');
           const existingMonitors = await apiClient.getUrlMonitors();
-          const existingByName = new Map(existingMonitors.map((m: any) => [m.name, m]));
+          const existingByName = new Map(existingMonitors.map((m) => [m.name, m]));
 
           const chunks = chunkArray(config.monitors, 5);
           for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i] as any[];
+            const chunk = chunks[i];
             await Promise.all(
-              chunk.map(async (monitorConfig: any) => {
+              chunk.map(async (monitorConfig) => {
                 try {
                   if (!monitorConfig.name || !monitorConfig.url) {
                     throw new Error("Monitor must have 'name' and 'url'");
@@ -129,9 +163,15 @@ export function createApplyCommand(
                     });
                     summary.monitors.created++;
                   }
-                } catch (err: any) {
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Unknown error applying monitor';
                   const details =
-                    err.response?.data?.error || err.response?.data?.message || err.message;
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.error ||
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.message ||
+                    message;
                   errors.push(`Monitor '${monitorConfig.name || 'unknown'}': ${details}`);
                   summary.monitors.errors++;
                 }
@@ -145,13 +185,13 @@ export function createApplyCommand(
         if (config.api_checks && Array.isArray(config.api_checks)) {
           logProgress('Fetching existing API checks...');
           const existingChecks = await apiClient.getApiChecks();
-          const existingByName = new Map(existingChecks.map((c: any) => [c.name, c]));
+          const existingByName = new Map(existingChecks.map((c) => [c.name, c]));
 
           const chunks = chunkArray(config.api_checks, 5);
           for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i] as any[];
+            const chunk = chunks[i];
             await Promise.all(
-              chunk.map(async (checkConfig: any) => {
+              chunk.map(async (checkConfig) => {
                 try {
                   if (!checkConfig.name || !checkConfig.url) {
                     throw new Error("API check must have 'name' and 'url'");
@@ -178,9 +218,15 @@ export function createApplyCommand(
                     });
                     summary.apiChecks.created++;
                   }
-                } catch (err: any) {
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Unknown error applying API check';
                   const details =
-                    err.response?.data?.error || err.response?.data?.message || err.message;
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.error ||
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.message ||
+                    message;
                   errors.push(`API Check '${checkConfig.name || 'unknown'}': ${details}`);
                   summary.apiChecks.errors++;
                 }
@@ -194,13 +240,13 @@ export function createApplyCommand(
         if (config.heartbeats && Array.isArray(config.heartbeats)) {
           logProgress('Fetching existing heartbeats...');
           const existingHeartbeats = await apiClient.getHeartbeats();
-          const existingByName = new Map(existingHeartbeats.map((h: any) => [h.name, h]));
+          const existingByName = new Map(existingHeartbeats.map((h) => [h.name, h]));
 
           const chunks = chunkArray(config.heartbeats, 5);
           for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i] as any[];
+            const chunk = chunks[i];
             await Promise.all(
-              chunk.map(async (hbConfig: any) => {
+              chunk.map(async (hbConfig) => {
                 try {
                   if (!hbConfig.name || !hbConfig.period) {
                     throw new Error("Heartbeat must have 'name' and 'period'");
@@ -225,9 +271,15 @@ export function createApplyCommand(
                     });
                     summary.heartbeats.created++;
                   }
-                } catch (err: any) {
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Unknown error applying heartbeat';
                   const details =
-                    err.response?.data?.error || err.response?.data?.message || err.message;
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.error ||
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.message ||
+                    message;
                   errors.push(`Heartbeat '${hbConfig.name || 'unknown'}': ${details}`);
                   summary.heartbeats.errors++;
                 }
@@ -241,13 +293,13 @@ export function createApplyCommand(
         if (config.ai_checks && Array.isArray(config.ai_checks)) {
           logProgress('Fetching existing AI checks...');
           const existingAiChecks = await apiClient.getTests();
-          const existingByName = new Map(existingAiChecks.map((t: any) => [t.name, t]));
+          const existingByName = new Map(existingAiChecks.map((t) => [t.name, t]));
 
           const chunks = chunkArray(config.ai_checks, 5);
           for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i] as any[];
+            const chunk = chunks[i];
             await Promise.all(
-              chunk.map(async (aiConfig: any) => {
+              chunk.map(async (aiConfig) => {
                 try {
                   if (!aiConfig.name || !aiConfig.url || !aiConfig.prompt) {
                     throw new Error("AI check must have 'name', 'url', and 'prompt'");
@@ -273,9 +325,15 @@ export function createApplyCommand(
                     });
                     summary.aiChecks.created++;
                   }
-                } catch (err: any) {
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Unknown error applying AI check';
                   const details =
-                    err.response?.data?.error || err.response?.data?.message || err.message;
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.error ||
+                    // @ts-expect-error optional axios shape
+                    (err as any)?.response?.data?.message ||
+                    message;
                   errors.push(`AI Check '${aiConfig.name || 'unknown'}': ${details}`);
                   summary.aiChecks.errors++;
                 }
@@ -317,7 +375,7 @@ export function createApplyCommand(
             process.exit(1); // Exit with error if any resource failed
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (spinner) spinner.stop();
         outputService.error(outputService.formatError(error));
         process.exit(1);

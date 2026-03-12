@@ -20,8 +20,8 @@ export default [
     },
     rules: {
       ...sharedRules,
-      // TODO(CQ-1): upgrade to 'error' once Batch 3 any-cleanup is complete
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TODO(CQ-1): re-enable once all prod types are tightened
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

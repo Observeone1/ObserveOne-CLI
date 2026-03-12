@@ -204,7 +204,7 @@ export class OutputService implements IOutputService {
     }
   }
 
-  formatJsonOutput(data: any): void {
+  formatJsonOutput(data: unknown): void {
     const envelope: JsonEnvelope = {
       status: 'SUCCESS',
       data,
@@ -234,13 +234,26 @@ export class OutputService implements IOutputService {
     });
   }
 
-  formatJUnitReport(testSuite: any): string {
+  formatJUnitReport(testSuite: {
+    name: string;
+    tests: number;
+    failures: number;
+    errors: number;
+    time: number | string;
+    testCases: Array<{
+      name: string;
+      classname: string;
+      time: number | string;
+      status?: 'passed' | 'failed' | 'skipped';
+      failure?: { message: string; type: string; stackTrace?: string };
+    }>;
+  }): string {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="${this.escapeXml(testSuite.name)}" tests="${testSuite.tests}" failures="${
       testSuite.failures
     }" errors="${testSuite.errors}" time="${testSuite.time}">
 ${testSuite.testCases
-  .map((testCase: any) => {
+  .map((testCase) => {
     let xml = `  <testcase name="${this.escapeXml(testCase.name)}" classname="${this.escapeXml(testCase.classname)}" time="${testCase.time}">`;
 
     if (testCase.status === 'failed' && testCase.failure) {
@@ -294,18 +307,25 @@ ${testSuite.testCases
     }
   }
 
-  formatError(error: any): string {
-    if (error.response) {
+  formatError(error: unknown): string {
+    const err = error as {
+      response?: { status?: number; data?: { error?: string; message?: string } };
+      request?: unknown;
+      message?: string;
+    };
+    if (err?.response) {
       // API error
-      const status = error.response.status;
-      const message = error.response.data?.error || error.response.data?.message || error.message;
+      const status = err.response.status;
+      const message = err.response.data?.error || err.response.data?.message || err.message;
       return `API Error (${status}): ${message}`;
-    } else if (error.request) {
+    } else if (err?.request) {
       // Network error
       return `Network Error: Unable to connect to API. Please check your internet connection and API URL.`;
     } else {
       // Other error
-      return error.message || 'An unknown error occurred';
+      if (error instanceof Error) return error.message;
+      if (typeof error === 'string') return error;
+      return 'An unknown error occurred';
     }
   }
 }

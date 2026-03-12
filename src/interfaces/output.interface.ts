@@ -25,7 +25,7 @@ export interface IOutputService {
 
   formatTestExecution(execution: TestExecution): void;
   formatTestResult(result: TestResult): void;
-  formatJsonOutput(data: any): void;
-  formatJUnitReport(testSuite: any): string;
-  formatError(error: any): string;
+  formatJsonOutput(data: unknown): void;
+  formatJUnitReport(testSuite: unknown): string;
+  formatError(error: unknown): string;
 }

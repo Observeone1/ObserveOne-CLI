@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { OptionValues } from 'commander';
 import { Heartbeat } from '../types/index.js';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
@@ -16,7 +17,7 @@ export function createHeartbeatCommand(
   outputService: IOutputService
 ) {
   const prompts = {
-    ensureCreatePayload: async (options: Record<string, any>): Promise<ResourcePayload> => {
+    ensureCreatePayload: async (options: OptionValues): Promise<ResourcePayload> => {
       let { name, period, grace } = options;
 
       if (!name) {
@@ -53,7 +54,7 @@ export function createHeartbeatCommand(
       };
     },
     ensureUpdatePayload: async (
-      options: Record<string, any>
+      options: OptionValues
     ): Promise<{ id: number; payload: ResourcePayload }> => {
       const hbId = Number(options.id || options.i);
       if (Number.isNaN(hbId)) {

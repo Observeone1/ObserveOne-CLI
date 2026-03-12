@@ -1,4 +1,5 @@
 import inquirer from 'inquirer';
+import { OptionValues } from 'commander';
 import { ApiCheck } from '../types/index.js';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
@@ -15,7 +16,7 @@ export function createCheckCommand(
   outputService: IOutputService
 ) {
   const prompts = {
-    ensureCreatePayload: async (options: Record<string, any>): Promise<ResourcePayload> => {
+    ensureCreatePayload: async (options: OptionValues): Promise<ResourcePayload> => {
       let { name, url, method } = options;
 
       if (!name || !url) {
@@ -57,7 +58,7 @@ export function createCheckCommand(
       };
     },
     ensureUpdatePayload: async (
-      options: Record<string, any>
+      options: OptionValues
     ): Promise<{ id: number; payload: ResourcePayload }> => {
       const checkId = Number(options.id || options.i);
       if (Number.isNaN(checkId)) {
@@ -88,8 +89,7 @@ export function createCheckCommand(
   };
 
   const formatters = {
-    list: (items: ApiCheck[], verbose: boolean) =>
-      outputService.formatApiCheckList(items, verbose),
+    list: (items: ApiCheck[], verbose: boolean) => outputService.formatApiCheckList(items, verbose),
   };
 
   const actions = {
