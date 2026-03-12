@@ -5,10 +5,7 @@ import { IConfigService } from "../interfaces/config.interface.js";
 import { IApiClient } from "../interfaces/api-client.interface.js";
 import { IOutputService } from "../interfaces/output.interface.js";
 import { existsSync, writeFileSync } from "fs";
-import { exec as execCallback } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(execCallback);
+import open from "open";
 
 /**
  * Factory function to create login command with direct service injection
@@ -150,13 +147,7 @@ export function createLoginCommand(
         console.log(chalk.yellow("⏳ Waiting for authentication..."));
 
         try {
-          const platform = process.platform;
-          let command: string;
-          if (platform === "win32") command = `start "" "${auth_url}"`;
-          else if (platform === "darwin") command = `open "${auth_url}"`;
-          else command = `xdg-open "${auth_url}"`;
-
-          await execAsync(command);
+          await open(auth_url);
         } catch (error) {
           // Ignore open errors, user can copy link
         }

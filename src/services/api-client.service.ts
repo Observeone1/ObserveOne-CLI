@@ -19,7 +19,7 @@ export class ApiClient implements IApiClient {
   private apiKey: string | undefined;
   private configService: IConfigService;
 
-  constructor(configService: IConfigService) {
+  constructor(configService: IConfigService, version: string = "1.0.1") {
     this.configService = configService;
     this.apiKey = configService.getApiKey();
 
@@ -30,7 +30,7 @@ export class ApiClient implements IApiClient {
       timeout: timeout,
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": `obs-cli/1.0.1 (${isDev ? "dev" : "prod"})`,
+        "User-Agent": `obs-cli/${version} (${isDev ? "dev" : "prod"})`,
       },
     });
 

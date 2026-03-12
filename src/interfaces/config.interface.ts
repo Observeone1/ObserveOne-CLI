@@ -21,7 +21,5 @@ export interface IConfigService {
   isDevelopment(): boolean;
   reset(): void;
   getConfigPath(): string;
-  getSupabaseUrl(): string;
-  getSupabaseAnonKey(): string;
   setCommandLineApiUrl(url: string): void;
 }
