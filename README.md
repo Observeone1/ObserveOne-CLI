@@ -19,6 +19,7 @@ npm install -g @observeone/cli
 
 2. **Initialize Workspace**
    ```bash
+   # Creates local .obs.config.json
    obs init
    ```
 
@@ -27,11 +28,23 @@ npm install -g @observeone/cli
    obs export
    ```
 
-3. **Manage a monitor**
+4. **Manage a monitor**
    ```bash
    obs monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
    obs monitor list
    ```
+
+---
+
+## Configuration Priority
+
+The CLI resolves configuration settings in the following order (highest to lowest priority):
+
+1.  **CLI Flags**: `--api-key`, `--api-url` passed directly to a command.
+2.  **Environment Variables**: `OBS_API_KEY`, `OBS_API_URL`.
+3.  **Local Config File**: `.obs.config.json` in the current working directory (created via `obs init`).
+4.  **Global Store**: Global OS configuration (saved after `obs login`).
+5.  **Defaults**: Internal default values.
 
 ---
 
@@ -65,6 +78,7 @@ obs apply -f my-stack.json
   "monitors": [
     {
       "name": "Production Website",
+      "description": "Main landing page monitor",
       "url": "https://example.com",
       "interval": "*/5 * * * *",
       "alert_on_failure": true
@@ -80,7 +94,8 @@ obs apply -f my-stack.json
   "heartbeats": [
     {
       "name": "Database Backup Job",
-      "period": 86400
+      "period": 86400,
+      "grace_period": 3600
     }
   ]
 }
@@ -93,7 +108,6 @@ obs apply -f my-stack.json
 You can manually create, read, update, delete, and toggle individual resources directly from the terminal.
 
 ### URL Monitors
-Manage basic HTTP ping monitors.
 ```bash
 obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
 obs monitor list
@@ -104,7 +118,6 @@ obs monitor delete <id> -y
 ```
 
 ### API Checks
-Manage complex API health checks.
 ```bash
 obs check create --name "Auth API" --url "https://api.example.com/auth" --method "POST"
 obs check list
@@ -114,51 +127,39 @@ obs check delete <id> -y
 ```
 
 ### Heartbeats (Cron Monitoring)
-Manage heartbeat checks (for monitoring background jobs or cron tasks).
 ```bash
-obs heartbeat create --name "Daily Backup" --period 86400
+obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
 obs heartbeat list
 obs heartbeat update <id> --period 43200
 obs heartbeat toggle <id>
 obs heartbeat delete <id> -y
 ```
 
-### AI Browser Checks
+---
+
+## AI Browser Checks
+
 Manage and execute intelligent Playwright-driven browser tests using natural language prompts.
+
 ```bash
-obs ai-check create --name "Login Flow" --url "https://app.com" --prompt "Login with test@example.com"
-obs ai-check list
-obs ai-check get <id>
-obs ai-check delete <id> -y
-```
+# Run an existing test and output JUnit report for CI
+obs ai-check run "Login Flow" --reporter junit
 
-#### Running AI Checks
-You can execute pre-configured checks or run them "ad-hoc" on the fly.
-```bash
-# Run an existing test by name or ID
-obs ai-check run "Login Flow"
-obs ai-check run 123
+# Run multiple tests and output strict JSON for AI Agents
+obs ai-check run test1 test2 --reporter json
 
-# Run multiple tests sequentially
-obs ai-check run test1 test2 test3
-
-# Run an ad-hoc test without saving it to the database
-obs ai-check run --adhoc --url https://example.com --prompt "Verify the hero section exists"
+# Run an ad-hoc test without saving it
+obs ai-check run --adhoc --url https://example.com --prompt "Verify login section exists"
 ```
 
 ---
 
 ## AI Agent Integration (Headless Mode)
 
-The `obs` CLI is explicitly designed to be used by AI coding agents (like Cursor, GitHub Copilot, Claude Code, or custom bots). 
+The `obs` CLI is explicitly designed to be used by AI coding agents.
 
 ### The `--json` Flag
-Append `--json` to **any** command. The CLI will automatically suppress all human-readable output (chalk colors, loading spinners, raw logs) and return a strict, machine-readable `JsonEnvelope`.
-
-```bash
-obs monitor list --json
-obs apply -f my-stack.json --json
-```
+Append `--json` to **any** command. The CLI will automatically suppress all human-readable output and return a strict, machine-readable `JsonEnvelope`.
 
 **Guaranteed Agent Response Schema:**
 ```json
@@ -170,56 +171,34 @@ obs apply -f my-stack.json --json
   }
 }
 ```
-*(If an error occurs, `status` will be `"ERROR"` and the envelope will contain a strict `error` object, preventing the agent's JSON parser from crashing).*
 
-### Headless Authentication & Account Setup
-Agents can create accounts and authenticate securely using environment variables without interactive browser prompts.
-
-#### Account Signup
+### Headless Account Setup
 ```bash
 # Create a secure account for automated bots (Rate-limited)
 obs signup
-```
 
-#### Headless Login
-Agents can authenticate securely using existing credentials:
-```bash
+# Headless Login using environment variables
 export OBS_EMAIL="agent@company.com"
 export OBS_PASSWORD="secure-password"
-
-# Automatically provisions and saves an API key to local config
 obs login --headless
-```
-
-Alternatively, inject an existing API key directly into the environment:
-```bash
-export OBS_API_KEY="your_api_key_here"
 ```
 
 ---
 
-## Global Configuration
+## Update Notifications
 
-Available for all commands:
-```bash
-obs <command> [options]
-```
+The CLI includes a non-blocking background update service that checks for newer versions on npm. If an update is available, a notification will be displayed at the start of your command output. This check is automatically disabled in `--json` mode.
 
-**Options:**
+---
+
+## Global Options
+
 - `-v, --verbose` - Enable verbose output and stack traces
 - `--json` - Output in strict JSON format
 - `--api-url <url>` - Override API URL
 - `--api-key <key>` - Override API key
 - `--version` - Show version number
 - `--help` - Show help
-
-### Environment Variables
-```bash
-export OBS_API_URL=https://api.observeone.com
-export OBS_API_KEY=your-api-key
-export OBS_VERBOSE=true
-export OBS_JSON_OUTPUT=true
-```
 
 ## License
 MIT

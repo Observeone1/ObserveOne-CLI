@@ -5,6 +5,19 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-15
+
+### Added
+- **Background Update Service**: CLI now automatically checks for new versions on npm and notifies the user (non-blocking, skipped in JSON mode).
+- **ResourceCommandFactory**: Reified architecture for all resource commands, ensuring 100% consistent CRUD behavior.
+- **Project-wide Strict Typing**: Removed all `any` types and achieved 100% TypeScript compliance.
+
+### Fixed
+- **Config Priority**: CLI now correctly honors local `.obs.config.json` files over global OS storage.
+- **Resource Gaps**: Added missing `grace_period` and `description` fields to declarative sync (`obs apply`).
+- **Error UX**: Standardized global error handling to ensure `JsonEnvelope` symmetry even on fatal crashes.
+- **Lint Hardening**: Resolved 130+ lint warnings and hardened ESLint configuration.
+
 ## [1.1.0] - 2026-03-15
 
 ### Added
@@ -53,17 +66,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unit Tests**: Vitest setup with tests for ConfigService, ApiClient, and OutputService
 - **E2E Tests**: Comprehensive end-to-end test suite for all CLI commands
 - **CI/CD**: GitHub Actions workflow with lint, type-check, build, unit, and E2E test jobs
-
-### Commands
-- `obs login` / `obs logout` - Authenticate with ObserveOne
-- `obs export` / `obs apply` - Sync configuration (Infrastructure-as-Code workflow)
-- `obs monitor` - URL Monitor management (CRUD)
-- `obs check` - API Check management (CRUD)
-- `obs heartbeat` - Heartbeat Monitor management (CRUD)
-- `obs ai-check` - AI-powered test generation and execution
-- `obs version` / `obs help` - Utility commands
-
-### Technical
-- Built with TypeScript
-- Published via npm as `@observeone/cli`
-- Requires Node.js >= 16.0.0
