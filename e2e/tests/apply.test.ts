@@ -1,9 +1,4 @@
-import {
-  runCLI,
-  assertSuccess,
-  assertContains,
-  assertJSON,
-} from '../lib/test-runner.js';
+import { runCLI, assertSuccess, assertContains, assertJSON } from '../lib/test-runner.js';
 import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 

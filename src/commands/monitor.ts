@@ -85,7 +85,9 @@ export function createMonitorCommand(
       const interval = options.interval as string | undefined;
 
       if (!name && !url && !interval) {
-        outputService.error('Please provide at least one field to update (--name, --url, or --interval).');
+        outputService.error(
+          'Please provide at least one field to update (--name, --url, or --interval).'
+        );
         process.exit(1);
       }
 

@@ -78,7 +78,11 @@ export function createHeartbeatCommand(
 
       return {
         name: name || existing.name,
-        period: period ? (typeof period === 'string' ? parseInt(period) : (period as number)) : existing.period,
+        period: period
+          ? typeof period === 'string'
+            ? parseInt(period)
+            : (period as number)
+          : existing.period,
         description: existing.description || 'Updated via CLI',
         grace_period: existing.grace_period || 60,
       };

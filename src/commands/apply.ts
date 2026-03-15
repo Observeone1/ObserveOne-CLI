@@ -116,7 +116,9 @@ export function createApplyCommand(
         if (config.monitors && Array.isArray(config.monitors)) {
           logProgress('Fetching existing monitors...');
           const existingMonitors = await apiClient.getUrlMonitors();
-          const existingByName = new Map<string, UrlMonitor>(existingMonitors.map((m) => [m.name, m]));
+          const existingByName = new Map<string, UrlMonitor>(
+            existingMonitors.map((m) => [m.name, m])
+          );
 
           const chunks = chunkArray(config.monitors, 5);
           for (let i = 0; i < chunks.length; i++) {
@@ -164,9 +166,7 @@ export function createApplyCommand(
                       name: monitorConfig.name || existing.name,
                       url: monitorConfig.url || existing.url,
                       timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                      cron_expression:
-                        monitorConfig.cron_expression ||
-                        existing.cron_expression,
+                      cron_expression: monitorConfig.cron_expression || existing.cron_expression,
                       alert_on_failure:
                         monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                     });
@@ -180,9 +180,14 @@ export function createApplyCommand(
                     summary.monitors.created++;
                   }
                 } catch (err: unknown) {
-                  const errorObj = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+                  const errorObj = err as {
+                    response?: { data?: { error?: string; message?: string } };
+                    message?: string;
+                  };
                   const details =
-                    errorObj.response?.data?.error || errorObj.response?.data?.message || errorObj.message;
+                    errorObj.response?.data?.error ||
+                    errorObj.response?.data?.message ||
+                    errorObj.message;
                   errors.push(`Monitor '${monitorConfig.name || 'unknown'}': ${details}`);
                   summary.monitors.errors++;
                 }
@@ -259,9 +264,14 @@ export function createApplyCommand(
                     summary.apiChecks.created++;
                   }
                 } catch (err: unknown) {
-                  const errorObj = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+                  const errorObj = err as {
+                    response?: { data?: { error?: string; message?: string } };
+                    message?: string;
+                  };
                   const details =
-                    errorObj.response?.data?.error || errorObj.response?.data?.message || errorObj.message;
+                    errorObj.response?.data?.error ||
+                    errorObj.response?.data?.message ||
+                    errorObj.message;
                   errors.push(`API Check '${checkConfig.name || 'unknown'}': ${details}`);
                   summary.apiChecks.errors++;
                 }
@@ -275,7 +285,9 @@ export function createApplyCommand(
         if (config.heartbeats && Array.isArray(config.heartbeats)) {
           logProgress('Fetching existing heartbeats...');
           const existingHeartbeats = await apiClient.getHeartbeats();
-          const existingByName = new Map<string, Heartbeat>(existingHeartbeats.map((h) => [h.name, h]));
+          const existingByName = new Map<string, Heartbeat>(
+            existingHeartbeats.map((h) => [h.name, h])
+          );
 
           const chunks = chunkArray(config.heartbeats, 5);
           for (let i = 0; i < chunks.length; i++) {
@@ -318,9 +330,9 @@ export function createApplyCommand(
                     await apiClient.updateHeartbeat(existing.id, {
                       name: hbConfig.name || existing.name,
                       period: hbConfig.period || existing.period,
-                      description: hbConfig.description || existing.description || 'Updated via CLI',
-                      grace_period:
-                        hbConfig.grace_period || existing.grace_period || 60,
+                      description:
+                        hbConfig.description || existing.description || 'Updated via CLI',
+                      grace_period: hbConfig.grace_period || existing.grace_period || 60,
                     });
                     summary.heartbeats.updated++;
                   } else {
@@ -332,9 +344,14 @@ export function createApplyCommand(
                     summary.heartbeats.created++;
                   }
                 } catch (err: unknown) {
-                  const errorObj = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+                  const errorObj = err as {
+                    response?: { data?: { error?: string; message?: string } };
+                    message?: string;
+                  };
                   const details =
-                    errorObj.response?.data?.error || errorObj.response?.data?.message || errorObj.message;
+                    errorObj.response?.data?.error ||
+                    errorObj.response?.data?.message ||
+                    errorObj.message;
                   errors.push(`Heartbeat '${hbConfig.name || 'unknown'}': ${details}`);
                   summary.heartbeats.errors++;
                 }
@@ -408,9 +425,14 @@ export function createApplyCommand(
                     summary.aiChecks.created++;
                   }
                 } catch (err: unknown) {
-                  const errorObj = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+                  const errorObj = err as {
+                    response?: { data?: { error?: string; message?: string } };
+                    message?: string;
+                  };
                   const details =
-                    errorObj.response?.data?.error || errorObj.response?.data?.message || errorObj.message;
+                    errorObj.response?.data?.error ||
+                    errorObj.response?.data?.message ||
+                    errorObj.message;
                   errors.push(`AI Check '${aiConfig.name || 'unknown'}': ${details}`);
                   summary.aiChecks.errors++;
                 }

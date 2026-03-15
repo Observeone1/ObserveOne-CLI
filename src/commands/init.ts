@@ -34,7 +34,10 @@ export function createInitCommand(
 
         console.log(chalk.bold('\n🚀 Setting up project configuration...'));
 
-        const projectAnswers = await inquirer.prompt<{ projectName: string; projectDescription: string }>([
+        const projectAnswers = await inquirer.prompt<{
+          projectName: string;
+          projectDescription: string;
+        }>([
           {
             type: 'input',
             name: 'projectName',

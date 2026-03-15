@@ -13,7 +13,7 @@ vi.mock('../../services/config.service.js', async (importOriginal) => {
 
 describe('ConfigService', () => {
   let configService: ConfigService;
-  
+
   interface MockConf {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
@@ -21,7 +21,7 @@ describe('ConfigService', () => {
     clear: ReturnType<typeof vi.fn>;
     path: string;
   }
-  
+
   let mockConf: MockConf;
 
   beforeEach(() => {

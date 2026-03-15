@@ -63,7 +63,7 @@ export class ConfigService implements IConfigService {
   }
 
   getApiUrl(): string {
-    // Priority order: 
+    // Priority order:
     // 1) command line option
     // 2) environment variable
     // 3) local config file (.obs.config.json)
@@ -73,7 +73,7 @@ export class ConfigService implements IConfigService {
     if (this.commandLineApiUrl) return this.commandLineApiUrl;
     if (process.env.OBS_API_URL) return process.env.OBS_API_URL;
     if (this.localConfig.apiUrl) return this.localConfig.apiUrl;
-    
+
     // If explicitly running in dev mode, force the dev URL unless overridden by 1-3
     if (this.isDevelopment() && !process.env.OBS_API_URL && !this.localConfig.apiUrl) {
       return 'http://localhost:8080/api';
@@ -95,11 +95,7 @@ export class ConfigService implements IConfigService {
 
   getApiKey(): string | undefined {
     // Priority: 1) Env Var, 2) Local Config, 3) Global Config
-    return (
-      process.env.OBS_API_KEY || 
-      this.localConfig.apiKey || 
-      this.config.get('apiKey')
-    );
+    return process.env.OBS_API_KEY || this.localConfig.apiKey || this.config.get('apiKey');
   }
 
   setApiUrl(url: string): void {

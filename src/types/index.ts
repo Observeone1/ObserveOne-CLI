@@ -77,12 +77,14 @@ export interface ApiCheck {
   is_active: boolean;
   alert_on_failure: boolean;
   cron_expression?: string | undefined;
-  assertions?: Array<{
-    type: string;
-    path?: string | undefined;
-    operator: string;
-    value: string;
-  }> | undefined;
+  assertions?:
+    | Array<{
+        type: string;
+        path?: string | undefined;
+        operator: string;
+        value: string;
+      }>
+    | undefined;
   created_at: string;
   updated_at: string;
 }
@@ -105,14 +107,14 @@ export interface Heartbeat {
 export interface JsonEnvelope<T = unknown> {
   status: 'SUCCESS' | 'ERROR';
   data?: T | undefined;
-  error?: {
-    message: string;
-    details?: unknown | undefined;
-  } | undefined;
+  error?:
+    | {
+        message: string;
+        details?: unknown | undefined;
+      }
+    | undefined;
   metadata: {
     timestamp: string;
     version?: string | undefined;
   };
 }
-
-export type ResourcePayload = Partial<UrlMonitor> | Partial<ApiCheck> | Partial<Heartbeat>;

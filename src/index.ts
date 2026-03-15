@@ -28,7 +28,9 @@ import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
 
-const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
+const packageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+) as { version: string };
 const { version } = packageJson;
 
 // Create services directly
@@ -103,7 +105,7 @@ function handleFatalError(error: unknown, prefix: string) {
   const err = error as { message?: string; code?: string; stack?: string };
   const msg = err?.message || '';
   const code = err?.code || '';
-  
+
   if (
     msg.includes('(outputHelp)') ||
     code === 'commander.helpDisplayed' ||

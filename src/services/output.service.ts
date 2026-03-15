@@ -312,7 +312,11 @@ ${testSuite.testCases
   }
 
   formatError(error: unknown): string {
-    const err = error as { response?: { status: number; data?: { error?: string; message?: string } }; message?: string; request?: unknown };
+    const err = error as {
+      response?: { status: number; data?: { error?: string; message?: string } };
+      message?: string;
+      request?: unknown;
+    };
     if (err.response) {
       // API error
       const status = err.response.status;

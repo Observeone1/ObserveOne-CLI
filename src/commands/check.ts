@@ -78,7 +78,9 @@ export function createCheckCommand(
       const method = options.method as string | undefined;
 
       if (!name && !url && !method) {
-        outputService.error('Please provide at least one field to update (--name, --url, or --method).');
+        outputService.error(
+          'Please provide at least one field to update (--name, --url, or --method).'
+        );
         process.exit(1);
       }
 

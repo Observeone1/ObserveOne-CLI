@@ -118,7 +118,11 @@ export function createAiCheckCommand(
     .option('-f, --format <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format')
     .action(async (options: Record<string, unknown>) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json === true) {
+      if (
+        process.env.OBS_JSON_OUTPUT === 'true' ||
+        options.format === 'json' ||
+        options.json === true
+      ) {
         outputService.enableJsonMode();
       }
       try {
@@ -131,7 +135,11 @@ export function createAiCheckCommand(
         outputService.progress('Fetching AI checks...');
         const tests = await apiClient.getTests();
 
-        if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json === true) {
+        if (
+          process.env.OBS_JSON_OUTPUT === 'true' ||
+          options.format === 'json' ||
+          options.json === true
+        ) {
           outputService.formatJsonOutput(tests);
         } else {
           outputService.formatTestList(tests, process.env.OBS_VERBOSE === 'true');
@@ -443,12 +451,12 @@ async function streamTestProgress(
 ): Promise<void> {
   const sseClient = new SSEClient(configService);
   const startTime = Date.now();
-  
+
   interface Step {
     next_goal?: string;
     [key: string]: unknown;
   }
-  
+
   interface Renderer {
     start: (name: string) => void;
     addScreenshot: () => void;
@@ -456,7 +464,7 @@ async function streamTestProgress(
     complete: (status: string, msg?: string) => void;
     error: (msg: string) => void;
   }
-  
+
   interface Logger {
     writeScreenshot: (counter: number) => void;
     writeStep: (step: Step) => void;

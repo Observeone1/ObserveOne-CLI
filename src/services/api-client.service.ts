@@ -235,25 +235,33 @@ export class ApiClient implements IApiClient {
 
   // URL Monitors
   async getUrlMonitors(): Promise<UrlMonitor[]> {
-    const response = await this.client.get<{ monitors?: UrlMonitor[]; data?: UrlMonitor[] } | UrlMonitor[]>('/url-monitors');
+    const response = await this.client.get<
+      { monitors?: UrlMonitor[]; data?: UrlMonitor[] } | UrlMonitor[]
+    >('/url-monitors');
     if (Array.isArray(response.data)) return response.data;
     return response.data.monitors || response.data.data || [];
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
-    const response = await this.client.get<{ monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor>(`/url-monitors/${id}`);
+    const response = await this.client.get<
+      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
+    >(`/url-monitors/${id}`);
     const data = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
     return data.monitor || data.data || (response.data as UrlMonitor);
   }
 
   async createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.post<{ monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor>('/url-monitors', data);
+    const response = await this.client.post<
+      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
+    >('/url-monitors', data);
     const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
     return resData.monitor || resData.data || (response.data as UrlMonitor);
   }
 
   async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.put<{ monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor>(`/url-monitors/${id}`, data);
+    const response = await this.client.put<
+      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
+    >(`/url-monitors/${id}`, data);
     const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
     return resData.monitor || resData.data || (response.data as UrlMonitor);
   }
@@ -263,30 +271,43 @@ export class ApiClient implements IApiClient {
   }
 
   async toggleUrlMonitor(id: number): Promise<boolean> {
-    const response = await this.client.patch<{ is_active?: boolean; data?: { is_active?: boolean } }>(`/url-monitors/${id}/toggle`);
+    const response = await this.client.patch<{
+      is_active?: boolean;
+      data?: { is_active?: boolean };
+    }>(`/url-monitors/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
   // API Checks
   async getApiChecks(): Promise<ApiCheck[]> {
-    const response = await this.client.get<{ apiChecks?: ApiCheck[]; data?: ApiCheck[] }>('/api-checks');
+    const response = await this.client.get<{ apiChecks?: ApiCheck[]; data?: ApiCheck[] }>(
+      '/api-checks'
+    );
     return response.data.apiChecks || response.data.data || [];
   }
 
   async getApiCheck(id: number): Promise<ApiCheck> {
-    const response = await this.client.get<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(`/api-checks/${id}`);
+    const response = await this.client.get<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(
+      `/api-checks/${id}`
+    );
     const data = response.data as { apiCheck?: ApiCheck; data?: ApiCheck };
     return data.apiCheck || data.data || (response.data as ApiCheck);
   }
 
   async createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck> {
-    const response = await this.client.post<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>('/api-checks', data);
+    const response = await this.client.post<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(
+      '/api-checks',
+      data
+    );
     const resData = response.data as { apiCheck?: ApiCheck; data?: ApiCheck };
     return resData.apiCheck || resData.data || (response.data as ApiCheck);
   }
 
   async updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck> {
-    const response = await this.client.put<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(`/api-checks/${id}`, data);
+    const response = await this.client.put<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(
+      `/api-checks/${id}`,
+      data
+    );
     const resData = response.data as { apiCheck?: ApiCheck; data?: ApiCheck };
     return resData.apiCheck || resData.data || (response.data as ApiCheck);
   }
@@ -296,30 +317,42 @@ export class ApiClient implements IApiClient {
   }
 
   async toggleApiCheck(id: number): Promise<boolean> {
-    const response = await this.client.patch<{ is_active?: boolean; data?: { is_active?: boolean } }>(`/api-checks/${id}/toggle`);
+    const response = await this.client.patch<{
+      is_active?: boolean;
+      data?: { is_active?: boolean };
+    }>(`/api-checks/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
   // Heartbeats
   async getHeartbeats(): Promise<Heartbeat[]> {
-    const response = await this.client.get<{ heartbeats?: Heartbeat[]; data?: Heartbeat[] }>('/heartbeats');
+    const response = await this.client.get<{ heartbeats?: Heartbeat[]; data?: Heartbeat[] }>(
+      '/heartbeats'
+    );
     return response.data.heartbeats || response.data.data || [];
   }
 
   async getHeartbeat(id: number): Promise<Heartbeat> {
-    const response = await this.client.get<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(`/heartbeats/${id}`);
+    const response = await this.client.get<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(
+      `/heartbeats/${id}`
+    );
     const data = response.data as { heartbeat?: Heartbeat; data?: Heartbeat };
     return data.heartbeat || data.data || (response.data as Heartbeat);
   }
 
   async createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat> {
-    const response = await this.client.post<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>('/heartbeats', data);
+    const response = await this.client.post<
+      { heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat
+    >('/heartbeats', data);
     const resData = response.data as { heartbeat?: Heartbeat; data?: Heartbeat };
     return resData.heartbeat || resData.data || (response.data as Heartbeat);
   }
 
   async updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat> {
-    const response = await this.client.put<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(`/heartbeats/${id}`, data);
+    const response = await this.client.put<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(
+      `/heartbeats/${id}`,
+      data
+    );
     const resData = response.data as { heartbeat?: Heartbeat; data?: Heartbeat };
     return resData.heartbeat || resData.data || (response.data as Heartbeat);
   }
@@ -329,7 +362,10 @@ export class ApiClient implements IApiClient {
   }
 
   async toggleHeartbeat(id: number): Promise<boolean> {
-    const response = await this.client.patch<{ is_active?: boolean; data?: { is_active?: boolean } }>(`/heartbeats/${id}/toggle`);
+    const response = await this.client.patch<{
+      is_active?: boolean;
+      data?: { is_active?: boolean };
+    }>(`/heartbeats/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 

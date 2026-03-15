@@ -59,7 +59,9 @@ export function createLoginCommand(
             process.exit(0);
           } catch (error: unknown) {
             const err = error as { message?: string };
-            outputService.error(`Headless authentication failed: ${err.message || 'Unknown error'}`);
+            outputService.error(
+              `Headless authentication failed: ${err.message || 'Unknown error'}`
+            );
             process.exit(1);
           }
           return;
@@ -71,7 +73,7 @@ export function createLoginCommand(
         }
 
         const apiKey = configService.getApiKey();
-        
+
         // Check for API key in command option first (highest priority)
         let apiKeyToUse = options.apiKey as string | undefined;
 

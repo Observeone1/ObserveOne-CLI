@@ -22,16 +22,29 @@ export class UpdateService {
 
     try {
       // Fetch latest version from npm registry (non-blocking)
-      const response = await axios.get<{ version: string }>(`https://registry.npmjs.org/${this.packageName}/latest`, {
-        timeout: 2000,
-      });
-      
+      const response = await axios.get<{ version: string }>(
+        `https://registry.npmjs.org/${this.packageName}/latest`,
+        {
+          timeout: 2000,
+        }
+      );
+
       const latestVersion = response.data.version;
 
       if (this.isNewerVersion(this.currentVersion, latestVersion)) {
         console.log('\n' + chalk.yellow('┌───────────────────────────────────────────────────┐'));
-        console.log(chalk.yellow(`│  Update available: `) + chalk.green(`${this.currentVersion}`) + chalk.yellow(' → ') + chalk.green(`${latestVersion}`) + chalk.yellow('             │'));
-        console.log(chalk.yellow(`│  Run `) + chalk.cyan(`npm install -g ${this.packageName}`) + chalk.yellow(` to update.  │`));
+        console.log(
+          chalk.yellow(`│  Update available: `) +
+            chalk.green(`${this.currentVersion}`) +
+            chalk.yellow(' → ') +
+            chalk.green(`${latestVersion}`) +
+            chalk.yellow('             │')
+        );
+        console.log(
+          chalk.yellow(`│  Run `) +
+            chalk.cyan(`npm install -g ${this.packageName}`) +
+            chalk.yellow(` to update.  │`)
+        );
         console.log(chalk.yellow('└───────────────────────────────────────────────────┘\n'));
       }
     } catch (_error: unknown) {
@@ -46,7 +59,7 @@ export class UpdateService {
     for (let i = 0; i < 3; i++) {
       const latestPart = l[i];
       const currentPart = c[i];
-      
+
       if (latestPart !== undefined && currentPart !== undefined) {
         if (latestPart > currentPart) return true;
         if (latestPart < currentPart) return false;

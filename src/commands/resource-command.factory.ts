@@ -20,7 +20,11 @@ export interface ResourceFactoryOptions<T> {
     list: (items: T[], verbose: boolean) => void;
   };
   createPrompts?: (options: Record<string, unknown>) => Promise<Partial<T>>;
-  updatePrompts?: (id: number, options: Record<string, unknown>, existing: T) => Promise<Partial<T>>;
+  updatePrompts?: (
+    id: number,
+    options: Record<string, unknown>,
+    existing: T
+  ) => Promise<Partial<T>>;
 }
 
 /**
@@ -38,7 +42,10 @@ export function createResourceCommand<T extends { id: number; name: string }>(
 
   // Helper for consistent auth and JSON mode setup
   const setupContext = (cmdOptions: Record<string, unknown>) => {
-    const isJson = process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true || cmdOptions.format === 'json';
+    const isJson =
+      process.env.OBS_JSON_OUTPUT === 'true' ||
+      cmdOptions.json === true ||
+      cmdOptions.format === 'json';
     if (isJson) {
       outputService.enableJsonMode();
     }
@@ -61,7 +68,11 @@ export function createResourceCommand<T extends { id: number; name: string }>(
       try {
         outputService.progress(`Fetching ${pluralName}...`);
         const items = await apiMethods.list();
-        if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.format === 'json' || cmdOptions.json === true) {
+        if (
+          process.env.OBS_JSON_OUTPUT === 'true' ||
+          cmdOptions.format === 'json' ||
+          cmdOptions.json === true
+        ) {
           outputService.formatJsonOutput(items);
         } else {
           formatters.list(items, process.env.OBS_VERBOSE === 'true');
@@ -111,14 +122,16 @@ export function createResourceCommand<T extends { id: number; name: string }>(
       if (options.createPrompts) {
         payload = await options.createPrompts(cmdOptions);
       }
-      
+
       outputService.progress(`Creating ${resourceName}...`);
       const newItem = await apiMethods.create(payload);
-      
+
       if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
         outputService.formatJsonOutput(newItem);
       } else {
-        outputService.success(`${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} "${newItem.name}" created successfully (ID: ${newItem.id})`);
+        outputService.success(
+          `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} "${newItem.name}" created successfully (ID: ${newItem.id})`
+        );
       }
     } catch (error: unknown) {
       outputService.error(outputService.formatError(error));
@@ -142,7 +155,7 @@ export function createResourceCommand<T extends { id: number; name: string }>(
 
         outputService.progress(`Updating ${resourceName} ${resourceId}...`);
         const existing = await apiMethods.get(resourceId);
-        
+
         let payload: Partial<T> = cmdOptions as unknown as Partial<T>;
         if (options.updatePrompts) {
           payload = await options.updatePrompts(resourceId, cmdOptions, existing);
@@ -152,7 +165,9 @@ export function createResourceCommand<T extends { id: number; name: string }>(
         if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
           outputService.formatJsonOutput(updatedItem);
         } else {
-          outputService.success(`${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} updated successfully.`);
+          outputService.success(
+            `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} updated successfully.`
+          );
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
@@ -192,11 +207,13 @@ export function createResourceCommand<T extends { id: number; name: string }>(
 
         outputService.progress(`Deleting ${resourceName} ${resourceId}...`);
         await apiMethods.delete(resourceId);
-        
+
         if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
           outputService.formatJsonOutput({ success: true, id: resourceId });
         } else {
-          outputService.success(`${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} deleted successfully.`);
+          outputService.success(
+            `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} deleted successfully.`
+          );
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
@@ -220,11 +237,13 @@ export function createResourceCommand<T extends { id: number; name: string }>(
           }
           outputService.progress(`Toggling ${resourceName} ${resourceId}...`);
           const isActive = await apiMethods.toggle!(resourceId);
-          
+
           if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
             outputService.formatJsonOutput({ id: resourceId, is_active: isActive });
           } else {
-            outputService.success(`${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`);
+            outputService.success(
+              `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} is now ${isActive ? 'ACTIVE' : 'PAUSED'}.`
+            );
           }
         } catch (error: unknown) {
           outputService.error(outputService.formatError(error));
