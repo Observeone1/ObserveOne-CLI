@@ -1,10 +1,8 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { existsSync, writeFileSync } from 'fs';
 import open from 'open';
 
 /**
@@ -97,7 +95,6 @@ export function createLoginCommand(
 
             // Project configuration setup is now separated to "obs init"
 
-
             process.exit(0);
             return;
           } else {
@@ -147,7 +144,9 @@ export function createLoginCommand(
               outputService.success('Successfully authenticated!');
 
               // Project configuration setup is now separated to "obs init"
-              console.log(chalk.yellow('\n💡 Run "obs init" to create local project configuration!'));
+              console.log(
+                chalk.yellow('\n💡 Run "obs init" to create local project configuration!')
+              );
 
               console.log('');
               console.log(chalk.bold('Next steps:'));
@@ -178,5 +177,3 @@ export function createLoginCommand(
       }
     });
 }
-
-

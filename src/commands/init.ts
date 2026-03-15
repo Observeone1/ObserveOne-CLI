@@ -16,7 +16,7 @@ export function createInitCommand(
         const configPath = '.obs.config.json';
         if (existsSync(configPath)) {
           outputService.warning('Project configuration already exists in this directory.');
-          
+
           const { overwrite } = await inquirer.prompt([
             {
               type: 'confirm',
