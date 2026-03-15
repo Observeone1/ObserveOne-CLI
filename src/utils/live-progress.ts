@@ -5,6 +5,12 @@ export interface ProgressOptions {
   verbose?: boolean;
 }
 
+interface StepDetails {
+  evaluation?: string;
+  actions?: Array<Record<string, unknown>>;
+  result?: Array<{ error?: string; success?: boolean }>;
+}
+
 export class LiveProgressRenderer {
   private currentStep = 0;
   private totalSteps = 0;
@@ -26,7 +32,7 @@ export class LiveProgressRenderer {
     this.spinner.start(chalk.blue('Connecting to execution stream...'));
   }
 
-  updateStep(stepNumber: number, goal: string, details?: any): void {
+  updateStep(stepNumber: number, goal: string, details?: StepDetails): void {
     this.currentStep = stepNumber;
     const elapsed = this.getElapsedTime();
 
@@ -44,7 +50,7 @@ export class LiveProgressRenderer {
 
       if (details.actions && details.actions.length > 0) {
         console.log(chalk.yellow('  Actions:'));
-        details.actions.forEach((action: any) => {
+        details.actions.forEach((action) => {
           const actionText = this.formatAction(action);
           if (actionText) {
             console.log(chalk.gray(`    ${actionText}`));
@@ -54,7 +60,7 @@ export class LiveProgressRenderer {
 
       if (details.result && details.result.length > 0) {
         console.log(chalk.green('  Results:'));
-        details.result.forEach((result: any) => {
+        details.result.forEach((result) => {
           if (result.error) {
             console.log(chalk.red(`    ✗ ${result.error}`));
           } else {
@@ -109,29 +115,29 @@ export class LiveProgressRenderer {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  private formatAction(action: any): string | null {
+  private formatAction(action: Record<string, unknown>): string | null {
     if (!action) return null;
 
     const actionType = Object.keys(action)[0];
     if (!actionType) return null;
 
-    const params = action[actionType];
+    const params = action[actionType] as Record<string, unknown>;
 
     switch (actionType) {
       case 'go_to_url':
-        return `🔗 Navigate to: ${params.url || params}`;
+        return `🔗 Navigate to: ${params?.url || params}`;
       case 'click_element':
       case 'click_element_by_index':
-        return `🖱️  Click element${params.index !== undefined ? ` #${params.index}` : ''}`;
+        return `🖱️  Click element${params?.index !== undefined ? ` #${params.index}` : ''}`;
       case 'input_text':
       case 'type_text':
-        return `⌨️  Type: "${params.text || params}"${
-          params.index !== undefined ? ` into element #${params.index}` : ''
+        return `⌨️  Type: "${params?.text || params}"${
+          params?.index !== undefined ? ` into element #${params.index}` : ''
         }`;
       case 'scroll':
-        return `📜 Scroll ${params.direction || 'down'}`;
+        return `📜 Scroll ${params?.direction || 'down'}`;
       case 'done':
-        return `✅ ${params.text || 'Task completed'}`;
+        return `✅ ${params?.text || 'Task completed'}`;
       default:
         return `${actionType}: ${JSON.stringify(params)}`;
     }

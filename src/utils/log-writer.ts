@@ -2,6 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { ConfigService } from '../services/config.service.js';
 
+interface StepData {
+  step_number?: number | string;
+  next_goal?: string;
+  evaluation?: string;
+  memory?: string;
+  actions?: Array<Record<string, Record<string, unknown>>>;
+  result?: Array<{ extracted_content?: string; error?: string; success?: boolean }>;
+}
+
 export class LogWriter {
   private logPath: string;
   private stream: fs.WriteStream;
@@ -28,7 +37,7 @@ export class LogWriter {
     this.writeLine('');
   }
 
-  writeStep(step: any): void {
+  writeStep(step: StepData): void {
     const timestamp = new Date().toISOString();
     this.writeLine(`[${timestamp}] Step ${step.step_number || 'N/A'}`);
     this.writeLine('-'.repeat(70));
@@ -47,10 +56,10 @@ export class LogWriter {
 
     if (step.actions && step.actions.length > 0) {
       this.writeLine('Actions:');
-      step.actions.forEach((action: any, index: number) => {
+      step.actions.forEach((action, index) => {
         const actionType = Object.keys(action)[0];
         if (actionType) {
-          const params = action[actionType];
+          const params = action[actionType] || {};
           const paramStr = Object.entries(params)
             .map(([k, v]) => `${k}=${v}`)
             .join(', ');
@@ -61,7 +70,7 @@ export class LogWriter {
 
     if (step.result && step.result.length > 0) {
       this.writeLine('Results:');
-      step.result.forEach((result: any, index: number) => {
+      step.result.forEach((result, index) => {
         if (result.extracted_content) {
           this.writeLine(`  ${index + 1}. ${result.extracted_content}`);
         } else if (result.error) {
@@ -75,7 +84,7 @@ export class LogWriter {
     this.writeLine('');
   }
 
-  writeMessage(type: string, message: any): void {
+  writeMessage(type: string, message: unknown): void {
     const timestamp = new Date().toISOString();
     this.writeLine(`[${timestamp}] ${type.toUpperCase()}`);
     this.writeLine(JSON.stringify(message, null, 2));

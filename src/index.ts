@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { ConfigService } from './services/config.service.js';
 import { ApiClient } from './services/api-client.service.js';
 import { OutputService } from './services/output.service.js';
+import { UpdateService } from './services/update.service.js';
 
 // Import command factories
 import { createLoginCommand } from './commands/login.js';
@@ -27,13 +28,14 @@ import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
 
-const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
 const { version } = packageJson;
 
 // Create services directly
 const configService = new ConfigService();
 const outputService = new OutputService();
 const apiClient = new ApiClient(configService, version);
+const updateService = new UpdateService(version);
 
 const program = new Command();
 
@@ -49,8 +51,7 @@ program
 
 // Global error handler: don't treat help/version as errors
 program.exitOverride((err) => {
-  const anyErr: any = err as any;
-  const code = anyErr?.code || '';
+  const code = (err as { code?: string })?.code || '';
   if (code === 'commander.helpDisplayed' || code === 'commander.version') {
     process.exit(0);
   }
@@ -83,11 +84,11 @@ program.hook('preAction', (thisCommand) => {
   }
 
   if (options.apiUrl) {
-    configService.setCommandLineApiUrl(options.apiUrl);
+    configService.setCommandLineApiUrl(options.apiUrl as string);
   }
 
   if (options.apiKey) {
-    configService.setApiKey(options.apiKey);
+    configService.setApiKey(options.apiKey as string);
   }
 });
 
@@ -98,9 +99,11 @@ program.configureOutput({
 });
 
 // Helper for formatting fatal errors
-function handleFatalError(error: any, prefix: string) {
-  const msg = error?.message || '';
-  const code = error?.code || '';
+function handleFatalError(error: unknown, prefix: string) {
+  const err = error as { message?: string; code?: string; stack?: string };
+  const msg = err?.message || '';
+  const code = err?.code || '';
+  
   if (
     msg.includes('(outputHelp)') ||
     code === 'commander.helpDisplayed' ||
@@ -123,26 +126,31 @@ function handleFatalError(error: any, prefix: string) {
     console.log(JSON.stringify(envelope, null, 2));
   } else {
     console.error(chalk.red(`❌ ${prefix}:`), msg || error);
-    if (process.env.OBS_VERBOSE === 'true' && error?.stack) {
-      console.error(error.stack);
+    if (process.env.OBS_VERBOSE === 'true' && err?.stack) {
+      console.error(err.stack);
     }
   }
   process.exit(1);
 }
 
 // Handle uncaught errors
-process.on('uncaughtException', (error: any) => {
+process.on('uncaughtException', (error: Error) => {
   handleFatalError(error, 'Uncaught Exception');
 });
 
-process.on('unhandledRejection', (reason: any) => {
+process.on('unhandledRejection', (reason: unknown) => {
   handleFatalError(reason, 'Unhandled Rejection');
 });
 
 // Parse arguments with safety net for help/version
 try {
+  // Check for updates in background (don't await to avoid delaying command execution)
+  updateService.checkForUpdates(outputService).catch(() => {
+    // Silently ignore background update check errors
+  });
+
   program.parse();
-} catch (err: any) {
+} catch (err: unknown) {
   handleFatalError(err, 'Parse Error');
 }
 
