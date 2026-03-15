@@ -17,7 +17,12 @@ npm install -g @observeone/cli
    obs login
    ```
 
-2. **Pull your existing configuration**
+2. **Initialize Workspace**
+   ```bash
+   obs init
+   ```
+
+3. **Pull your existing configuration**
    ```bash
    obs export
    ```
@@ -30,7 +35,7 @@ npm install -g @observeone/cli
 
 ---
 
-## 🏗️ Config-as-Code (Declarative Workflow)
+## Config-as-Code (Declarative Workflow)
 
 ObserveOne supports an Infrastructure-as-Code (IaC) workflow using JSON. You can define all your monitors, API checks, and heartbeats in a single `obs.json` file and sync them to your account.
 
@@ -83,7 +88,7 @@ obs apply -f my-stack.json
 
 ---
 
-## 🛠️ Resource Management (CRUD)
+## Resource Management (CRUD)
 
 You can manually create, read, update, delete, and toggle individual resources directly from the terminal.
 
@@ -143,7 +148,7 @@ obs ai-check run --adhoc --url https://example.com --prompt "Verify the hero sec
 
 ---
 
-## 🤖 AI Agent Integration (Headless Mode)
+## AI Agent Integration (Headless Mode)
 
 The `obs` CLI is explicitly designed to be used by AI coding agents (like Cursor, GitHub Copilot, Claude Code, or custom bots). 
 
@@ -167,8 +172,17 @@ obs apply -f my-stack.json --json
 ```
 *(If an error occurs, `status` will be `"ERROR"` and the envelope will contain a strict `error` object, preventing the agent's JSON parser from crashing).*
 
-### Headless Authentication
-Agents can authenticate securely using environment variables without interactive browser prompts:
+### Headless Authentication & Account Setup
+Agents can create accounts and authenticate securely using environment variables without interactive browser prompts.
+
+#### Account Signup
+```bash
+# Create a secure account for automated bots (Rate-limited)
+obs signup
+```
+
+#### Headless Login
+Agents can authenticate securely using existing credentials:
 ```bash
 export OBS_EMAIL="agent@company.com"
 export OBS_PASSWORD="secure-password"
@@ -184,7 +198,7 @@ export OBS_API_KEY="your_api_key_here"
 
 ---
 
-## ⚙️ Global Configuration
+## Global Configuration
 
 Available for all commands:
 ```bash
@@ -211,4 +225,4 @@ export OBS_JSON_OUTPUT=true
 MIT
 
 ---
-**Happy Testing! 🚀**
+**Happy Testing!**
