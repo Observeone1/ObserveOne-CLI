@@ -172,12 +172,9 @@ Append `--json` to **any** command. The CLI will automatically suppress all huma
 }
 ```
 
-### Headless Account Setup
+### Headless Login
+Agents can authenticate securely using existing credentials:
 ```bash
-# Create a secure account for automated bots (Rate-limited)
-obs signup
-
-# Headless Login using environment variables
 export OBS_EMAIL="agent@company.com"
 export OBS_PASSWORD="secure-password"
 obs login --headless

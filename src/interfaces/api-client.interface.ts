@@ -16,7 +16,6 @@ export interface IApiClient {
   validateApiKey(apiKey: string): Promise<boolean>;
   validateToken(): Promise<boolean>;
   provisionHeadlessAuth(email?: string, password?: string): Promise<{ api_key: string }>;
-  agentSignup(email?: string, password?: string): Promise<{ api_key: string }>;
   post(url: string, data?: unknown): Promise<unknown>;
   get(url: string): Promise<unknown>;
 

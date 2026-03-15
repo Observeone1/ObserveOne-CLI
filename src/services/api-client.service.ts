@@ -122,25 +122,6 @@ export class ApiClient implements IApiClient {
     }
   }
 
-  async agentSignup(email?: string, password?: string): Promise<{ api_key: string }> {
-    try {
-      const response = await this.client.post<{ success: boolean; api_key: string }>(
-        '/auth/agent/signup',
-        { email, password }
-      );
-      return response.data;
-    } catch (error: unknown) {
-      const err = error as { code?: string; message?: string };
-      if (err.code === 'ECONNREFUSED' || err.message?.includes('Network Error')) {
-        const url = this.configService.getApiUrl() || this.client.defaults.baseURL;
-        throw new Error(
-          `Failed to connect to ObserveOne API. Ensure the server is running or the API URL is correct. (Attempted: ${url})`
-        );
-      }
-      throw error;
-    }
-  }
-
   async post(url: string, data?: unknown): Promise<unknown> {
     const response = await this.client.post(url, data);
     return response.data;
