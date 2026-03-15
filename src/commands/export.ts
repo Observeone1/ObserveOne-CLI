@@ -3,6 +3,14 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { writeFileSync } from 'fs';
+import { UrlMonitor, ApiCheck, Heartbeat, Test } from '../types/index.js';
+
+interface ExportConfig {
+  monitors?: Partial<UrlMonitor>[];
+  api_checks?: Partial<ApiCheck>[];
+  heartbeats?: Partial<Heartbeat>[];
+  ai_checks?: Partial<Test>[];
+}
 
 export function createExportCommand(
   configService: IConfigService,
@@ -13,8 +21,8 @@ export function createExportCommand(
     .description('Export existing remote resources into a declarative JSON file')
     .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (options) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json;
+    .action(async (options: Record<string, unknown>) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
       if (isJson) {
         outputService.enableJsonMode();
       }
@@ -30,20 +38,20 @@ export function createExportCommand(
 
         // Fetch all resources
         const [monitors, apiChecks, heartbeats, aiChecks] = await Promise.all([
-          apiClient.getUrlMonitors().catch(() => []),
-          apiClient.getApiChecks().catch(() => []),
-          apiClient.getHeartbeats().catch(() => []),
-          apiClient.getTests().catch(() => []),
+          apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
+          apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
+          apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
+          apiClient.getTests().catch(() => [] as Test[]),
         ]);
 
-        const config: any = {};
+        const config: ExportConfig = {};
 
         // 1. Map Monitors
         if (monitors.length > 0) {
-          config.monitors = monitors.map((m: any) => ({
+          config.monitors = monitors.map((m) => ({
             name: m.name,
             url: m.url,
-            interval: m.interval || m.cron_expression,
+            cron_expression: m.cron_expression,
             timeout_ms: m.timeout_ms,
             alert_on_failure: m.alert_on_failure,
           }));
@@ -51,7 +59,7 @@ export function createExportCommand(
 
         // 2. Map API Checks
         if (apiChecks.length > 0) {
-          config.api_checks = apiChecks.map((c: any) => ({
+          config.api_checks = apiChecks.map((c) => ({
             name: c.name,
             url: c.url,
             method: c.method,
@@ -62,17 +70,17 @@ export function createExportCommand(
 
         // 3. Map Heartbeats
         if (heartbeats.length > 0) {
-          config.heartbeats = heartbeats.map((h: any) => ({
+          config.heartbeats = heartbeats.map((h) => ({
             name: h.name,
             period: h.period,
-            grace: h.grace_period,
+            grace_period: h.grace_period,
             description: h.description,
           }));
         }
 
         // 4. Map AI Checks
         if (aiChecks.length > 0) {
-          config.ai_checks = aiChecks.map((t: any) => ({
+          config.ai_checks = aiChecks.map((t) => ({
             name: t.name,
             url: t.url,
             prompt: t.prompt,
@@ -80,7 +88,7 @@ export function createExportCommand(
         }
 
         // Write to file
-        const targetFile = options.file;
+        const targetFile = options.file as string;
         writeFileSync(targetFile, JSON.stringify(config, null, 2));
 
         if (isJson) {
@@ -102,7 +110,7 @@ export function createExportCommand(
           console.log(`  Heartbeats: ${heartbeats.length}`);
           console.log(`  AI Checks:  ${aiChecks.length}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }

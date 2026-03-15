@@ -19,10 +19,10 @@ export function createSignupCommand(
       '--headless',
       'Signup headlessly using OBS_EMAIL and OBS_PASSWORD environment variables'
     )
-    .action(async (options) => {
+    .action(async (options: Record<string, unknown>) => {
       try {
-        let email = options.email;
-        let password = options.password;
+        let email = options.email as string | undefined;
+        let password = options.password as string | undefined;
 
         // Headless Mode
         if (options.headless) {
@@ -57,11 +57,12 @@ export function createSignupCommand(
             outputService.success('Successfully created account and provisioned API key!');
           }
           process.exit(0);
-        } catch (error: any) {
-          outputService.error(`Signup failed: ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          outputService.error(`Signup failed: ${err.message || 'Unknown error'}`);
           process.exit(1);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }

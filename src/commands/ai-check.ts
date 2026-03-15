@@ -5,10 +5,25 @@ import ora from 'ora';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { ISSEClient } from '../interfaces/sse-client.interface.js';
 import { SSEClient } from '../services/sse-client.service.js';
 import { TestResult } from '../types/index.js';
 import { writeFileSync } from 'fs';
+
+interface AiCheckRunOptions {
+  url?: string;
+  prompt?: string;
+  name?: string;
+  description?: string;
+  timeout: string;
+  verbose?: boolean;
+  wait?: boolean;
+  adhoc?: boolean;
+  reporter: string;
+  output?: string;
+  apiUrl?: string;
+  apiKey?: string;
+  json?: boolean;
+}
 
 /**
  * Factory function to create ai-check command with direct service injection
@@ -38,7 +53,7 @@ export function createAiCheckCommand(
     .option('--api-url <url>', 'Override API URL')
     .option('--api-key <key>', 'Override API key')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (testNames, options) => {
+    .action(async (testNames: string[], options: AiCheckRunOptions) => {
       const isJson =
         process.env.OBS_JSON_OUTPUT === 'true' || options.json || options.reporter === 'json';
       if (isJson) {
@@ -90,7 +105,7 @@ export function createAiCheckCommand(
         }
 
         await formatAndOutputResults(results, options, outputService);
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -102,8 +117,8 @@ export function createAiCheckCommand(
     .description('List all AI browser checks')
     .option('-f, --format <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json) {
+    .action(async (options: Record<string, unknown>) => {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json === true) {
         outputService.enableJsonMode();
       }
       try {
@@ -116,12 +131,12 @@ export function createAiCheckCommand(
         outputService.progress('Fetching AI checks...');
         const tests = await apiClient.getTests();
 
-        if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json) {
+        if (process.env.OBS_JSON_OUTPUT === 'true' || options.format === 'json' || options.json === true) {
           outputService.formatJsonOutput(tests);
         } else {
           outputService.formatTestList(tests, process.env.OBS_VERBOSE === 'true');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -132,8 +147,8 @@ export function createAiCheckCommand(
     .command('get <id>')
     .description('Get details of an AI browser check')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (id, options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+    .action(async (id: string, options: Record<string, unknown>) => {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
         outputService.enableJsonMode();
       }
       try {
@@ -157,7 +172,7 @@ export function createAiCheckCommand(
         } else {
           outputService.formatTestList([testData], true);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -171,8 +186,8 @@ export function createAiCheckCommand(
     .option('-u, --url <url>', 'URL to test')
     .option('-p, --prompt <prompt>', 'Test prompt')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+    .action(async (options: Record<string, unknown>) => {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
         outputService.enableJsonMode();
       }
       try {
@@ -182,23 +197,25 @@ export function createAiCheckCommand(
           process.exit(1);
         }
 
-        let { name, url, prompt } = options;
+        let name = options.name as string | undefined;
+        let url = options.url as string | undefined;
+        let prompt = options.prompt as string | undefined;
 
         if (!name || !url || !prompt) {
-          const answers = await inquirer.prompt([
+          const answers = await inquirer.prompt<{ name: string; url: string; prompt: string }>([
             {
               type: 'input',
               name: 'name',
               message: 'Check name:',
               when: !name,
-              validate: (val) => (val.trim() ? true : 'Name is required'),
+              validate: (val: string) => (val.trim() ? true : 'Name is required'),
             },
             {
               type: 'input',
               name: 'url',
               message: 'URL to test:',
               when: !url,
-              validate: (val) => {
+              validate: (val: string) => {
                 try {
                   new URL(val);
                   return true;
@@ -212,7 +229,7 @@ export function createAiCheckCommand(
               name: 'prompt',
               message: 'What should the AI check? (prompt):',
               when: !prompt,
-              validate: (val) => (val.trim() ? true : 'Prompt is required'),
+              validate: (val: string) => (val.trim() ? true : 'Prompt is required'),
             },
           ]);
           name = name || answers.name;
@@ -222,9 +239,9 @@ export function createAiCheckCommand(
 
         outputService.progress('Creating AI browser check...');
         const newTest = await apiClient.createTest({
-          name,
-          url,
-          prompt,
+          name: name!,
+          url: url!,
+          prompt: prompt!,
           description: 'Created via CLI',
         });
 
@@ -233,7 +250,7 @@ export function createAiCheckCommand(
         } else {
           outputService.success(`AI browser check "${name}" created! (ID: ${newTest.id})`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -245,8 +262,8 @@ export function createAiCheckCommand(
     .description('Delete an AI browser check')
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('-j, --json', 'Output in JSON format')
-    .action(async (id, options) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+    .action(async (id: string, options: Record<string, unknown>) => {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
         outputService.enableJsonMode();
       }
       try {
@@ -263,7 +280,7 @@ export function createAiCheckCommand(
         }
 
         if (!options.yes) {
-          const { confirm } = await inquirer.prompt([
+          const { confirm } = await inquirer.prompt<{ confirm: boolean }>([
             {
               type: 'confirm',
               name: 'confirm',
@@ -281,7 +298,7 @@ export function createAiCheckCommand(
         } else {
           outputService.success(`AI check ${testId} deleted successfully.`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }
@@ -297,21 +314,21 @@ async function runAdhocTest(
   apiClient: IApiClient,
   outputService: IOutputService,
   configService: IConfigService,
-  options: any,
+  options: AiCheckRunOptions,
   timeout: number,
   results: TestResult[],
   shouldWait: boolean,
   isJson: boolean
 ): Promise<void> {
   const spinner = isJson
-    ? { start: () => {}, succeed: () => {}, fail: () => {} }
+    ? { start: () => {}, succeed: (_msg: string) => {}, fail: (_msg: string) => {} }
     : ora('Running ad-hoc test...').start();
 
   try {
     const result = await apiClient.executeAdhocTest({
       name: options.name || 'Ad-hoc Test',
-      url: options.url,
-      prompt: options.prompt,
+      url: options.url!,
+      prompt: options.prompt!,
       description: options.description,
     });
 
@@ -342,17 +359,17 @@ async function runAdhocTest(
  */
 async function runNamedTests(
   apiClient: IApiClient,
-  outputService: IOutputService,
+  _outputService: IOutputService,
   configService: IConfigService,
   testNames: string[],
-  options: any,
+  options: AiCheckRunOptions,
   timeout: number,
   results: TestResult[],
   shouldWait: boolean,
   isJson: boolean
 ): Promise<void> {
   const spinner = isJson
-    ? { start: () => {}, succeed: () => {}, fail: () => {} }
+    ? { start: () => {}, succeed: (_msg: string) => {}, fail: (_msg: string) => {} }
     : ora('Fetching test details...').start();
 
   try {
@@ -379,7 +396,7 @@ async function runNamedTests(
     // Execute each test
     for (const test of testsToRun) {
       const testSpinner = isJson
-        ? { start: () => {}, succeed: () => {}, fail: () => {} }
+        ? { start: () => {}, succeed: (_msg: string) => {}, fail: (_msg: string) => {} }
         : ora(`Running test: ${test.name}`).start();
 
       try {
@@ -418,7 +435,7 @@ async function streamTestProgress(
   configService: IConfigService,
   result: TestResult,
   testName: string,
-  options: any,
+  options: AiCheckRunOptions,
   timeout: number,
   results: TestResult[],
   testNames?: string[],
@@ -426,8 +443,30 @@ async function streamTestProgress(
 ): Promise<void> {
   const sseClient = new SSEClient(configService);
   const startTime = Date.now();
-  let renderer: any = null;
-  let logger: any = null;
+  
+  interface Step {
+    next_goal?: string;
+    [key: string]: unknown;
+  }
+  
+  interface Renderer {
+    start: (name: string) => void;
+    addScreenshot: () => void;
+    updateStep: (counter: number, msg: string, step: Step) => void;
+    complete: (status: string, msg?: string) => void;
+    error: (msg: string) => void;
+  }
+  
+  interface Logger {
+    writeScreenshot: (counter: number) => void;
+    writeStep: (step: Step) => void;
+    writeComplete: (status: string, msg?: string) => void;
+    close: () => void;
+    getPath: () => string;
+  }
+
+  let renderer: Renderer | null = null;
+  let logger: Logger | null = null;
 
   // Check if verbose flag was passed
   const isVerbose =
@@ -440,8 +479,8 @@ async function streamTestProgress(
     const { LogWriter } = await import('../utils/log-writer.js');
     renderer = new LiveProgressRenderer({
       verbose: isVerbose,
-    });
-    logger = new LogWriter(result.task_id!);
+    }) as unknown as Renderer;
+    logger = new LogWriter(result.task_id!) as unknown as Logger;
     renderer.start(testName);
   }
 
@@ -455,9 +494,9 @@ async function streamTestProgress(
     (message) => {
       if (message.type === 'step_update' && message.step) {
         stepCounter++;
-        const step = message.step;
+        const step = message.step as Step;
 
-        if (!silent) {
+        if (!silent && renderer && logger) {
           if (message.screenshot) {
             renderer.addScreenshot();
             logger.writeScreenshot(stepCounter);
@@ -467,13 +506,13 @@ async function streamTestProgress(
           logger.writeStep(step);
         }
       } else if (message.type === 'screenshot') {
-        if (!silent) {
+        if (!silent && renderer && logger) {
           renderer.addScreenshot();
           logger.writeScreenshot(stepCounter);
         }
       } else if (message.type === 'complete' || message.type === 'task_completed') {
         const status = message.status === 'failed' ? 'failed' : 'success';
-        if (!silent) {
+        if (!silent && renderer && logger) {
           renderer.complete(status, message.message);
           logger.writeComplete(status, message.message);
         }
@@ -490,12 +529,12 @@ async function streamTestProgress(
 
         completed = true;
         sseClient.close();
-        if (!silent) {
+        if (!silent && logger) {
           logger.close();
           console.log(chalk.gray(`\nDetailed logs: ${logger.getPath()}`));
         }
       } else if (message.type === 'error') {
-        if (!silent) {
+        if (!silent && renderer && logger) {
           renderer.error(message.message || 'Test failed');
           logger.writeComplete('failed', message.message);
         }
@@ -508,24 +547,25 @@ async function streamTestProgress(
 
         completed = true;
         sseClient.close();
-        if (!silent) {
+        if (!silent && logger) {
           logger.close();
         }
       }
     },
-    (error) => {
+    (error: unknown) => {
       if (!completed) {
-        if (!silent) {
-          renderer.error(`Connection error: ${error.message}`);
-          logger.writeComplete('failed', `Connection error: ${error.message}`);
+        const err = error as { message?: string };
+        if (!silent && renderer && logger) {
+          renderer.error(`Connection error: ${err.message}`);
+          logger.writeComplete('failed', `Connection error: ${err.message}`);
         }
         results[results.length - 1] = {
           ...result,
           status: 'FAILED' as const,
-          message: `Connection error: ${error.message}`,
+          message: `Connection error: ${err.message}`,
         };
         sseClient.close();
-        if (!silent) {
+        if (!silent && logger) {
           logger.close();
         }
         completed = true;
@@ -545,7 +585,7 @@ async function streamTestProgress(
     setTimeout(() => {
       if (!completed) {
         clearInterval(checkInterval);
-        if (!silent) {
+        if (!silent && renderer) {
           renderer.error('Test execution timed out');
         }
         results[results.length - 1] = {
@@ -554,7 +594,7 @@ async function streamTestProgress(
           message: 'Test execution timed out',
         };
         sseClient.close();
-        if (!silent) {
+        if (!silent && logger) {
           logger.close();
         }
         resolve();
@@ -568,7 +608,7 @@ async function streamTestProgress(
  */
 async function formatAndOutputResults(
   results: TestResult[],
-  options: any,
+  options: AiCheckRunOptions,
   outputService: IOutputService
 ): Promise<void> {
   if (options.reporter === 'json' || process.env.OBS_JSON_OUTPUT === 'true') {
@@ -621,11 +661,11 @@ function generateJUnitReport(results: TestResult[], outputService: IOutputServic
     tests: results.length,
     failures: results.filter((r) => r.status === 'FAILED').length,
     errors: 0,
-    time: results.reduce((total, r) => total + (r.duration || 0), 0) / 1000,
+    time: (results.reduce((total, r) => total + (r.duration || 0), 0) / 1000).toString(),
     testCases: results.map((result, index) => ({
       name: `Test ${index + 1}`,
       classname: 'observeone.test',
-      time: (result.duration || 0) / 1000,
+      time: ((result.duration || 0) / 1000).toString(),
       status: result.status === 'SUCCESS' ? 'passed' : 'failed',
       failure:
         result.status === 'FAILED'
