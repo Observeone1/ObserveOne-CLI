@@ -1,10 +1,8 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { existsSync, writeFileSync } from 'fs';
 import open from 'open';
 
 /**
@@ -95,10 +93,7 @@ export function createLoginCommand(
           if (isValid) {
             outputService.success('Successfully authenticated with provided API key');
 
-            // Setup project config if needed (skip in test mode)
-            if (!options.skipSetup) {
-              await setupProjectConfig(configService, outputService);
-            }
+            // Project configuration setup is now separated to "obs init"
 
             process.exit(0);
             return;
@@ -148,8 +143,10 @@ export function createLoginCommand(
 
               outputService.success('Successfully authenticated!');
 
-              // Setup project config if needed
-              await setupProjectConfig(configService, outputService);
+              // Project configuration setup is now separated to "obs init"
+              console.log(
+                chalk.yellow('\n💡 Run "obs init" to create local project configuration!')
+              );
 
               console.log('');
               console.log(chalk.bold('Next steps:'));
@@ -179,52 +176,4 @@ export function createLoginCommand(
         process.exit(1);
       }
     });
-}
-
-/**
- * Helper function for project configuration setup
- */
-async function setupProjectConfig(
-  configService: IConfigService,
-  outputService: IOutputService
-): Promise<void> {
-  const configPath = '.obs.config.json';
-  if (!existsSync(configPath)) {
-    console.log(chalk.bold('\n🚀 Setting up project configuration...'));
-
-    const projectAnswers = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'projectName',
-        message: 'Project name:',
-        default: process.cwd().split(/[/\\]/).pop() || 'My Project',
-        validate: (input: string) => (input.trim() ? true : 'Project name is required'),
-      },
-      {
-        type: 'input',
-        name: 'projectDescription',
-        message: 'Project description:',
-        default: 'AI-powered test automation project',
-      },
-    ]);
-
-    const projectConfig = {
-      project: {
-        name: projectAnswers.projectName,
-        description: projectAnswers.projectDescription,
-      },
-      defaultOptions: {
-        timeout: 600000,
-        retries: 3,
-        verbose: false,
-        pollIntervalMs: 2000,
-        maxAttempts: 300,
-      },
-    };
-
-    writeFileSync(configPath, JSON.stringify(projectConfig, null, 2));
-    configService.setProjectConfig(projectConfig.project);
-    configService.setDefaultOptions(projectConfig.defaultOptions);
-    outputService.success('Project configuration created!');
-  }
 }

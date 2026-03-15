@@ -1,4 +1,4 @@
-import { runCLI, assertFailure, assertContains } from '../lib/test-runner.js';
+import { runCLI } from '../lib/test-runner.js';
 
 export async function testListWithoutAuthentication() {
   // Test list command without authentication
