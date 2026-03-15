@@ -1,7 +1,7 @@
 import { runCLI, assertSuccess, assertContains } from '../lib/test-runner.js';
 
 export async function testListCommand() {
-  const result = await runCLI(['list']);
+  const result = await runCLI(['ai-check', 'list']);
 
   // List command may succeed or fail depending on auth, both are valid
   if (result.exitCode === 0) {

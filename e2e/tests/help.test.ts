@@ -5,7 +5,7 @@ export async function testHelpCommand() {
   assertSuccess(result, 'Help command should succeed');
   assertContains(result.stdout, 'obs', 'Should show program name');
   assertContains(result.stdout, 'login', 'Should list login command');
-  assertContains(result.stdout, 'list', 'Should list list command');
+  assertContains(result.stdout, 'signup', 'Should list signup command');
   assertContains(result.stdout, 'ai-check', 'Should list ai-check command');
 }
 

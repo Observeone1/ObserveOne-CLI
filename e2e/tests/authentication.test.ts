@@ -2,7 +2,7 @@ import { runCLI, assertFailure, assertContains } from '../lib/test-runner.js';
 
 export async function testListWithoutAuthentication() {
   // Test list command without authentication
-  const result = await runCLI(['list']);
+  const result = await runCLI(['ai-check', 'list']);
 
   // If not authenticated, it should fail with an appropriate message
   // Could be "authentication", "Resource not found", or similar
