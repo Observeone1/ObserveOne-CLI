@@ -19,6 +19,7 @@ import { UpdateService } from './services/update.service.js';
 
 // Import command factories
 import { createLoginCommand } from './commands/login.js';
+import { createLogoutCommand } from './commands/logout.js';
 import { createInitCommand } from './commands/init.js';
 import { createAiCheckCommand } from './commands/ai-check.js';
 import { createMonitorCommand } from './commands/monitor.js';
@@ -61,6 +62,7 @@ program.exitOverride((err) => {
 
 // Add commands with services
 program.addCommand(createLoginCommand(configService, apiClient, outputService));
+program.addCommand(createLogoutCommand(configService, outputService));
 program.addCommand(createInitCommand(configService, outputService));
 program.addCommand(createAiCheckCommand(configService, apiClient, outputService));
 program.addCommand(createMonitorCommand(configService, apiClient, outputService));

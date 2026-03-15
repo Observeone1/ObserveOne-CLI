@@ -17,13 +17,21 @@ npm install -g @observeone/cli
    obs login
    ```
 
+   *To switch accounts or refresh a session, use:* `obs login --force`
+
 2. **Initialize Workspace**
    ```bash
    # Creates local .obs.config.json
    obs init
    ```
 
-3. **Pull your existing configuration**
+3. **Logout**
+   ```bash
+   # Clear local credentials
+   obs logout
+   ```
+
+4. **Pull your existing configuration**
    ```bash
    obs export
    ```

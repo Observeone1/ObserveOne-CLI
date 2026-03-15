@@ -16,6 +16,7 @@ export function createLoginCommand(
   return new Command('login')
     .description('Authenticate with ObserveOne platform')
     .option('-k, --api-key <key>', 'API key to use for authentication')
+    .option('-f, --force', 'Force a new login session even if already authenticated')
     .option('--api-url <url>', 'Override API URL')
     .option('--skip-setup', 'Skip project configuration setup')
     .option(
@@ -28,6 +29,11 @@ export function createLoginCommand(
         // Handle API URL override first, before other operations
         if (options.apiUrl) {
           configService.setCommandLineApiUrl(options.apiUrl as string);
+        }
+
+        // Force logic: clear existing stored key if requested
+        if (options.force) {
+          configService.clearApiKey();
         }
 
         // Headless Auth Flow (Agent / CI)
@@ -83,7 +89,7 @@ export function createLoginCommand(
         }
 
         // If an API key is available (from either source), try to authenticate
-        if (apiKeyToUse) {
+        if (apiKeyToUse && !options.force) {
           // Use the API key that was provided
           configService.setApiKey(apiKeyToUse);
           apiClient.setApiKey(apiKeyToUse);

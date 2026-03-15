@@ -114,5 +114,10 @@ describe('ConfigService', () => {
       });
       expect(configService.getApiKey()).toBe('env_api_key');
     });
+
+    it('clears the API key from storage', () => {
+      configService.clearApiKey();
+      expect(mockConf.delete).toHaveBeenCalledWith('apiKey');
+    });
   });
 });
