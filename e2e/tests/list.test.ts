@@ -1,4 +1,4 @@
-import { runCLI, assertSuccess, assertContains } from '../lib/test-runner.js';
+import { runCLI, assertContains } from '../lib/test-runner.js';
 
 export async function testListCommand() {
   const result = await runCLI(['ai-check', 'list']);
