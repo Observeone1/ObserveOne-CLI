@@ -3,7 +3,6 @@ import {
   assertSuccess,
   assertContains,
   assertJSON,
-  assertFailure,
 } from '../lib/test-runner.js';
 import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach, Mock } from 'vitest';
 import { OutputService } from '../../services/output.service.js';
 
 describe('OutputService', () => {
@@ -25,7 +25,7 @@ describe('OutputService', () => {
       outputService.formatJsonOutput(data);
 
       expect(console.log).toHaveBeenCalledTimes(1);
-      const logArg = (console.log as any).mock.calls[0][0];
+      const logArg = (console.log as Mock).mock.calls[0][0] as string;
       const parsed = JSON.parse(logArg);
 
       expect(parsed.status).toBe('SUCCESS');
@@ -38,7 +38,7 @@ describe('OutputService', () => {
       outputService.error('Authentication failed');
 
       expect(console.log).toHaveBeenCalledTimes(1);
-      const logArg = (console.log as any).mock.calls[0][0];
+      const logArg = (console.log as Mock).mock.calls[0][0] as string;
       const parsed = JSON.parse(logArg);
 
       expect(parsed.status).toBe('ERROR');

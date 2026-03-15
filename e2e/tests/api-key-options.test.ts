@@ -1,4 +1,4 @@
-import { runCLI, assertSuccess, assertFailure, assertContains } from '../lib/test-runner.js';
+import { runCLI, assertContains } from '../lib/test-runner.js';
 
 // Read API key from environment variable
 function getApiKeyFromEnv(): string {

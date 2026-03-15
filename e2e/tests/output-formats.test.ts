@@ -1,4 +1,4 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../lib/test-runner.js';
+import { runCLI } from '../lib/test-runner.js';
 
 export async function testJsonOutputFormat() {
   const result = await runCLI(['list', '--format', 'json']);
@@ -17,7 +17,7 @@ export async function testJsonOutputFormat() {
       const jsonPart = output.substring(jsonStartIndex);
       try {
         JSON.parse(jsonPart);
-      } catch (e) {
+      } catch (_e) {
         throw new Error(
           `JSON format: Output should contain valid JSON after progress indicators: ${jsonPart}`
         );
@@ -63,7 +63,7 @@ export async function testGlobalJsonOutput() {
       const jsonPart = output.substring(jsonStartIndex);
       try {
         JSON.parse(jsonPart);
-      } catch (e) {
+      } catch (_e) {
         throw new Error(
           `Global JSON: Output should contain valid JSON after progress indicators: ${jsonPart}`
         );
@@ -78,7 +78,7 @@ export async function testGlobalJsonOutput() {
       }
     }
   } else {
-    // If it fails due to auth or other expected errors, that's OK
+    // If it fails due to auth or other expected errors, that's OK - it means the --format option was parsed correctly
     const output = (result.stderr || result.stdout).toLowerCase();
     if (
       !output.includes('authentication') &&

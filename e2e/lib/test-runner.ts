@@ -6,7 +6,7 @@ import { join } from 'path';
 try {
   const dotenv = await import('dotenv');
   dotenv.config({ path: join(process.cwd(), '.env') });
-} catch (e) {
+} catch (_e) {
   // dotenv might not be available in all contexts, that's ok
 }
 
@@ -153,7 +153,7 @@ export function assertJSON(output: string, message?: string): void {
 
     const jsonStr = output.substring(start, end + 1);
     JSON.parse(jsonStr);
-  } catch (error) {
+  } catch (_error) {
     throw new Error(`${message || 'Output should be valid JSON'}\\nGot: ${output}`);
   }
 }
