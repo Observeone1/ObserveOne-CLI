@@ -22,11 +22,12 @@ export function createLoginCommand(
       '--headless',
       'Authenticate headlessly using OBS_EMAIL and OBS_PASSWORD environment variables'
     )
-    .action(async (options) => {
+    .option('--json', 'Output in JSON format')
+    .action(async (options: Record<string, unknown>) => {
       try {
         // Handle API URL override first, before other operations
         if (options.apiUrl) {
-          configService.setCommandLineApiUrl(options.apiUrl);
+          configService.setCommandLineApiUrl(options.apiUrl as string);
         }
 
         // Headless Auth Flow (Agent / CI)
@@ -47,7 +48,7 @@ export function createLoginCommand(
             configService.setApiKey(api_key);
             configService.setApiUrl(configService.getApiUrl());
             apiClient.setApiKey(api_key);
-            if (process.env.OBS_JSON_OUTPUT === 'true' || options.json) {
+            if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
               outputService.formatJsonOutput({ authenticated: true });
             } else {
               outputService.success('Successfully authenticated headlessly!');
@@ -56,8 +57,11 @@ export function createLoginCommand(
               }
             }
             process.exit(0);
-          } catch (error: any) {
-            outputService.error(`Headless authentication failed: ${error.message}`);
+          } catch (error: unknown) {
+            const err = error as { message?: string };
+            outputService.error(
+              `Headless authentication failed: ${err.message || 'Unknown error'}`
+            );
             process.exit(1);
           }
           return;
@@ -65,21 +69,17 @@ export function createLoginCommand(
 
         // Handle API key override
         if (options.apiKey) {
-          configService.setApiKey(options.apiKey);
+          configService.setApiKey(options.apiKey as string);
         }
 
         const apiKey = configService.getApiKey();
-        if (!apiKey) {
-          outputService.error('Not authenticated. Please run "obs login" first.');
-          process.exit(1);
-        }
 
         // Check for API key in command option first (highest priority)
-        let apiKeyToUse = options.apiKey;
+        let apiKeyToUse = options.apiKey as string | undefined;
 
         // If no explicit command option but global option was set, use that
         if (!apiKeyToUse) {
-          apiKeyToUse = configService.getApiKey();
+          apiKeyToUse = apiKey;
         }
 
         // If an API key is available (from either source), try to authenticate
@@ -123,7 +123,7 @@ export function createLoginCommand(
 
         try {
           await open(auth_url);
-        } catch (error) {
+        } catch (_error: unknown) {
           // Ignore open errors, user can copy link
         }
 
@@ -162,7 +162,7 @@ export function createLoginCommand(
             // Wait before next poll
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
             attempts++;
-          } catch (error) {
+          } catch (_error: unknown) {
             // If 404 or other error, might be expired or invalid
             attempts++;
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -171,7 +171,7 @@ export function createLoginCommand(
 
         outputService.error('Authentication timed out.');
         process.exit(1);
-      } catch (error: any) {
+      } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
       }

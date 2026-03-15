@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ConfigService } from '../../services/config.service.js';
 import Conf from 'conf';
+import { ObserveOneConfig } from '../../types/index.js';
 
 // Mock the isDevelopment helper internally
 vi.mock('../../services/config.service.js', async (importOriginal) => {
@@ -12,12 +13,18 @@ vi.mock('../../services/config.service.js', async (importOriginal) => {
 
 describe('ConfigService', () => {
   let configService: ConfigService;
-  let mockConf: any;
+
+  interface MockConf {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+    path: string;
+  }
+
+  let mockConf: MockConf;
 
   beforeEach(() => {
-    // Save original env
-    const originalEnv = process.env;
-
     // Clear relevant env vars
     delete process.env.OBS_API_URL;
     delete process.env.OBS_API_KEY;
@@ -33,7 +40,7 @@ describe('ConfigService', () => {
       path: '/mock/path/config.json',
     };
 
-    configService = new ConfigService(mockConf as unknown as Conf<any>);
+    configService = new ConfigService(mockConf as unknown as Conf<ObserveOneConfig>);
   });
 
   afterEach(() => {

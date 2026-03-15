@@ -17,7 +17,7 @@ export function createInitCommand(
         if (existsSync(configPath)) {
           outputService.warning('Project configuration already exists in this directory.');
 
-          const { overwrite } = await inquirer.prompt([
+          const { overwrite } = await inquirer.prompt<{ overwrite: boolean }>([
             {
               type: 'confirm',
               name: 'overwrite',
@@ -34,7 +34,10 @@ export function createInitCommand(
 
         console.log(chalk.bold('\n🚀 Setting up project configuration...'));
 
-        const projectAnswers = await inquirer.prompt([
+        const projectAnswers = await inquirer.prompt<{
+          projectName: string;
+          projectDescription: string;
+        }>([
           {
             type: 'input',
             name: 'projectName',
@@ -69,8 +72,9 @@ export function createInitCommand(
         configService.setDefaultOptions(projectConfig.defaultOptions);
         outputService.success('Project configuration created!');
         process.exit(0);
-      } catch (error: any) {
-        outputService.error(`Failed to initialize project: ${error.message}`);
+      } catch (error: unknown) {
+        const err = error as Error;
+        outputService.error(`Failed to initialize project: ${err.message}`);
         process.exit(1);
       }
     });

@@ -1,6 +1,8 @@
 import Conf from 'conf';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { IConfigService } from '../interfaces/config.interface.js';
-import { ObserveOneConfig } from '../types/index.js';
+import { ObserveOneConfig, ProjectConfig, DefaultOptions } from '../types/index.js';
 
 // Detect environment dynamically
 const isDevelopment = () => {
@@ -22,14 +24,15 @@ const getDefaultApiUrl = () => {
 
 /**
  * Configuration service implementation
- * Manages CLI configuration using Conf library
+ * Manages CLI configuration using Conf library and local .obs.config.json
  */
 export class ConfigService implements IConfigService {
   private config: Conf<ObserveOneConfig>;
   private commandLineApiUrl?: string;
+  private localConfig: Partial<ObserveOneConfig> = {};
 
   constructor(config?: Conf<ObserveOneConfig>) {
-    // Allow injecting config for testing
+    // 1. Load Global Config (Lowest priority before Defaults)
     this.config =
       config ||
       new Conf<ObserveOneConfig>({
@@ -45,22 +48,38 @@ export class ConfigService implements IConfigService {
           },
         },
       });
+
+    // 2. Load Local Config (.obs.config.json in process.cwd())
+    // This takes precedence over global config
+    const localConfigPath = join(process.cwd(), '.obs.config.json');
+    if (existsSync(localConfigPath)) {
+      try {
+        const rawData = readFileSync(localConfigPath, 'utf8');
+        this.localConfig = JSON.parse(rawData);
+      } catch (_error) {
+        // Silently fail or log if invalid JSON
+      }
+    }
   }
 
   getApiUrl(): string {
-    // Priority order: 1) command line option, 2) environment variable, 3) saved config, 4) default
+    // Priority order:
+    // 1) command line option
+    // 2) environment variable
+    // 3) local config file (.obs.config.json)
+    // 4) saved global config (conf)
+    // 5) default
 
-    // If explicitly running in dev mode, force the dev URL unless explicitly locally overridden
-    if (this.isDevelopment() && !this.commandLineApiUrl && !process.env.OBS_API_URL) {
+    if (this.commandLineApiUrl) return this.commandLineApiUrl;
+    if (process.env.OBS_API_URL) return process.env.OBS_API_URL;
+    if (this.localConfig.apiUrl) return this.localConfig.apiUrl;
+
+    // If explicitly running in dev mode, force the dev URL unless overridden by 1-3
+    if (this.isDevelopment() && !process.env.OBS_API_URL && !this.localConfig.apiUrl) {
       return 'http://localhost:8080/api';
     }
 
-    return (
-      this.commandLineApiUrl ||
-      process.env.OBS_API_URL ||
-      this.config.get('apiUrl') ||
-      getDefaultApiUrl()
-    );
+    return this.config.get('apiUrl') || getDefaultApiUrl();
   }
 
   setCommandLineApiUrl(url: string): void {
@@ -75,7 +94,8 @@ export class ConfigService implements IConfigService {
   }
 
   getApiKey(): string | undefined {
-    return process.env.OBS_API_KEY || this.config.get('apiKey');
+    // Priority: 1) Env Var, 2) Local Config, 3) Global Config
+    return process.env.OBS_API_KEY || this.localConfig.apiKey || this.config.get('apiKey');
   }
 
   setApiUrl(url: string): void {
@@ -93,33 +113,33 @@ export class ConfigService implements IConfigService {
     this.config.delete('apiKey');
   }
 
-  getProjectConfig(): any {
-    return this.config.get('project', {});
-  }
-
-  setProjectConfig(projectConfig: any): void {
-    this.config.set('project', projectConfig);
-  }
-
-  getDefaultOptions(): {
-    timeout: number;
-    retries: number;
-    verbose: boolean;
-    pollIntervalMs: number;
-    maxAttempts: number;
-  } {
-    const options = this.config.get('defaultOptions');
-    // Ensure all properties have values
+  getProjectConfig(): ProjectConfig {
+    // Merge local project config with global
     return {
-      timeout: options?.timeout ?? 600000,
-      retries: options?.retries ?? 3,
-      verbose: options?.verbose ?? false,
-      pollIntervalMs: options?.pollIntervalMs ?? 2000,
-      maxAttempts: options?.maxAttempts ?? 300,
+      ...(this.config.get('project') || {}),
+      ...(this.localConfig.project || {}),
     };
   }
 
-  setDefaultOptions(options: any): void {
+  setProjectConfig(projectConfig: ProjectConfig): void {
+    this.config.set('project', projectConfig);
+  }
+
+  getDefaultOptions(): Required<DefaultOptions> {
+    const globalOptions = this.config.get('defaultOptions') || {};
+    const localOptions = this.localConfig.defaultOptions || {};
+
+    // Priority: Local > Global > Hardcoded Defaults
+    return {
+      timeout: localOptions.timeout ?? globalOptions.timeout ?? 600000,
+      retries: localOptions.retries ?? globalOptions.retries ?? 3,
+      verbose: localOptions.verbose ?? globalOptions.verbose ?? false,
+      pollIntervalMs: localOptions.pollIntervalMs ?? globalOptions.pollIntervalMs ?? 2000,
+      maxAttempts: localOptions.maxAttempts ?? globalOptions.maxAttempts ?? 300,
+    };
+  }
+
+  setDefaultOptions(options: DefaultOptions): void {
     this.config.set('defaultOptions', options);
   }
 

@@ -5,8 +5,8 @@
 
 export interface SSEMessage {
   type: string;
-  data?: any;
-  step?: any;
+  data?: unknown;
+  step?: unknown;
   status?: string;
   message?: string;
   screenshot?: string;
@@ -17,7 +17,7 @@ export interface ISSEClient {
   connect(
     taskId: string,
     onMessage: (message: SSEMessage) => void,
-    onError: (error: any) => void
+    onError: (error: unknown) => void
   ): void;
   close(): void;
 }

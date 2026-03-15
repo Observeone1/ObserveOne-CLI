@@ -4,7 +4,14 @@ import tsParser from '@typescript-eslint/parser';
 const sharedRules = {
   ...tsPlugin.configs['recommended'].rules,
   '@typescript-eslint/explicit-function-return-type': 'off',
-  '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+  '@typescript-eslint/no-unused-vars': [
+    'warn',
+    {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+    },
+  ],
 };
 
 export default [

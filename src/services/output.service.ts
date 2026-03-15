@@ -204,7 +204,7 @@ export class OutputService implements IOutputService {
     }
   }
 
-  formatJsonOutput(data: any): void {
+  formatJsonOutput(data: unknown): void {
     const envelope: JsonEnvelope = {
       status: 'SUCCESS',
       data,
@@ -234,25 +234,42 @@ export class OutputService implements IOutputService {
     });
   }
 
-  formatJUnitReport(testSuite: any): string {
+  formatJUnitReport(testSuite: {
+    name: string;
+    tests: number;
+    failures: number;
+    errors: number;
+    time: string;
+    testCases: Array<{
+      name: string;
+      classname: string;
+      time: string;
+      status: string;
+      failure?: {
+        message: string;
+        type: string;
+        stackTrace?: string;
+      };
+    }>;
+  }): string {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="${this.escapeXml(testSuite.name)}" tests="${testSuite.tests}" failures="${
       testSuite.failures
     }" errors="${testSuite.errors}" time="${testSuite.time}">
 ${testSuite.testCases
-  .map((testCase: any) => {
-    let xml = `  <testcase name="${this.escapeXml(testCase.name)}" classname="${this.escapeXml(testCase.classname)}" time="${testCase.time}">`;
+  .map((testCase) => {
+    let xmlCase = `  <testcase name="${this.escapeXml(testCase.name)}" classname="${this.escapeXml(testCase.classname)}" time="${testCase.time}">`;
 
     if (testCase.status === 'failed' && testCase.failure) {
-      xml += `\r\n    <failure message="${this.escapeXml(testCase.failure.message)}" type="${this.escapeXml(
+      xmlCase += `\r\n    <failure message="${this.escapeXml(testCase.failure.message)}" type="${this.escapeXml(
         testCase.failure.type
       )}">\r\n${this.escapeXml(testCase.failure.stackTrace || '')}\r\n    </failure>`;
     } else if (testCase.status === 'skipped') {
-      xml += `\r\n    <skipped/>`;
+      xmlCase += `\r\n    <skipped/>`;
     }
 
-    xml += `\r\n  </testcase>`;
-    return xml;
+    xmlCase += `\r\n  </testcase>`;
+    return xmlCase;
   })
   .join('\n')}
 </testsuite>`;
@@ -294,18 +311,23 @@ ${testSuite.testCases
     }
   }
 
-  formatError(error: any): string {
-    if (error.response) {
+  formatError(error: unknown): string {
+    const err = error as {
+      response?: { status: number; data?: { error?: string; message?: string } };
+      message?: string;
+      request?: unknown;
+    };
+    if (err.response) {
       // API error
-      const status = error.response.status;
-      const message = error.response.data?.error || error.response.data?.message || error.message;
+      const status = err.response.status;
+      const message = err.response.data?.error || err.response.data?.message || err.message;
       return `API Error (${status}): ${message}`;
-    } else if (error.request) {
+    } else if (err.request) {
       // Network error
       return `Network Error: Unable to connect to API. Please check your internet connection and API URL.`;
     } else {
       // Other error
-      return error.message || 'An unknown error occurred';
+      return err.message || 'An unknown error occurred';
     }
   }
 }
