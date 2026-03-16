@@ -51,10 +51,10 @@ export function createExportCommand(
           config.monitors = monitors.map((m) => ({
             name: m.name,
             url: m.url,
-            cron_expression: m.cron_expression,
+            interval: m.cron_expression, // Map for json schema consistency
             timeout_ms: m.timeout_ms,
             alert_on_failure: m.alert_on_failure,
-          }));
+          })) as any;
         }
 
         // 2. Map API Checks

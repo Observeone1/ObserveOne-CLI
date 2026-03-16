@@ -138,7 +138,7 @@ export function createApplyCommand(
                         name: monitorConfig.name,
                         url: monitorConfig.url,
                         timeout_ms: monitorConfig.timeout_ms || 30000,
-                        cron_expression: monitorConfig.cron_expression,
+                        cron_expression: (monitorConfig as any).interval || monitorConfig.cron_expression,
                         alert_on_failure: monitorConfig.alert_on_failure ?? true,
                       },
                       { timeout_ms: 30000, alert_on_failure: true }
@@ -148,7 +148,7 @@ export function createApplyCommand(
                         name: existing.name,
                         url: existing.url,
                         timeout_ms: existing.timeout_ms || 30000,
-                        cron_expression: existing.cron_expression,
+                        cron_expression: (existing as any).interval || existing.cron_expression,
                         alert_on_failure: existing.alert_on_failure ?? true,
                       },
                       { timeout_ms: 30000, alert_on_failure: true }
@@ -166,7 +166,10 @@ export function createApplyCommand(
                       name: monitorConfig.name || existing.name,
                       url: monitorConfig.url || existing.url,
                       timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                      cron_expression: monitorConfig.cron_expression || existing.cron_expression,
+                      cron_expression:
+                        (monitorConfig as any).interval ||
+                        monitorConfig.cron_expression ||
+                        existing.cron_expression,
                       alert_on_failure:
                         monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                     });
@@ -175,6 +178,7 @@ export function createApplyCommand(
                     logProgress(`Creating monitor: ${monitorConfig.name}`);
                     await apiClient.createUrlMonitor({
                       ...monitorConfig,
+                      cron_expression: (monitorConfig as any).interval || monitorConfig.cron_expression,
                       timeout_ms: monitorConfig.timeout_ms || 30000,
                     });
                     summary.monitors.created++;

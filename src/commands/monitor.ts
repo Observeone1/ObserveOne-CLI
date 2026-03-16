@@ -29,6 +29,19 @@ export function createMonitorCommand(
     formatters: {
       list: (items, verbose) => outputService.formatMonitorList(items, verbose),
     },
+    createCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Monitor name')
+        .option('-u, --url <url>', 'URL to monitor')
+        .option('-i, --interval <interval>', 'Cron expression interval')
+        .option('--no-alerts', 'Disable alerts');
+    },
+    updateCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Monitor name')
+        .option('-u, --url <url>', 'URL to monitor')
+        .option('-i, --interval <interval>', 'Cron expression interval');
+    },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
       let url = options.url as string | undefined;

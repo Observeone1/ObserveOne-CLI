@@ -19,6 +19,8 @@ export interface ResourceFactoryOptions<T> {
   formatters: {
     list: (items: T[], verbose: boolean) => void;
   };
+  createCommandSetup?: (cmd: Command) => void;
+  updateCommandSetup?: (cmd: Command) => void;
   createPrompts?: (options: Record<string, unknown>) => Promise<Partial<T>>;
   updatePrompts?: (
     id: number,
@@ -115,6 +117,10 @@ export function createResourceCommand<T extends { id: number; name: string }>(
     .description(`Create a new ${resourceName}`)
     .option('-j, --json', 'Output in JSON format');
 
+  if (options.createCommandSetup) {
+    options.createCommandSetup(createCmd);
+  }
+
   createCmd.action(async (cmdOptions: Record<string, unknown>) => {
     setupContext(cmdOptions);
     try {
@@ -140,11 +146,16 @@ export function createResourceCommand<T extends { id: number; name: string }>(
   });
 
   // UPDATE
-  cmd
+  const updateCmd = cmd
     .command('update <id>')
     .description(`Update a ${resourceName}`)
-    .option('-j, --json', 'Output in JSON format')
-    .action(async (id: string, cmdOptions: Record<string, unknown>) => {
+    .option('-j, --json', 'Output in JSON format');
+
+  if (options.updateCommandSetup) {
+    options.updateCommandSetup(updateCmd);
+  }
+
+  updateCmd.action(async (id: string, cmdOptions: Record<string, unknown>) => {
       setupContext(cmdOptions);
       try {
         const resourceId = parseInt(id);

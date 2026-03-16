@@ -9,6 +9,7 @@ import { readdirSync } from 'fs';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 import chalk from 'chalk';
+import { runCLI } from './lib/test-runner.js';
 
 interface TestResult {
   name: string;
@@ -26,6 +27,23 @@ async function runTests(): Promise<void> {
     console.log(chalk.cyan.bold('\n🧪 Running E2E Tests\n'));
   }
 
+  // Handle Authentication Bootstrapping
+  let apiKey = process.env.OBS_API_KEY || process.env.API_KEY;
+  let didBootstrapAuth = false;
+
+  if (!apiKey && process.env.OBS_EMAIL && process.env.OBS_PASSWORD) {
+    console.log(chalk.yellow('No API Key found. Attempting headless login with provided credentials...'));
+    const loginResult = await runCLI(['login', '--headless', '--json']);
+    if (loginResult.exitCode === 0) {
+      console.log(chalk.green('✓ Successfully authenticated and provisioned API key.'));
+      didBootstrapAuth = true;
+      // We don't need to set the API key in process.env because it's now stored in the CLI's local config
+    } else {
+      console.log(chalk.red(`✗ Headless login failed: ${loginResult.stderr || loginResult.stdout}`));
+      process.exit(1);
+    }
+  }
+
   // Display binary mode being used
   const binaryMode = process.env.OBS_BINARY_MODE || 'local';
   const modeDescriptions: Record<string, string> = {
@@ -38,8 +56,10 @@ async function runTests(): Promise<void> {
 
   // Display test configuration
   const apiUrl = process.env.API_URL || process.env.OBS_API_URL || '(not set)';
-  const apiKey = process.env.OBS_API_KEY || process.env.API_KEY;
-  const maskedApiKey = apiKey ? `${apiKey.slice(0, 8)}***${apiKey.slice(-4)}` : '(not set)';
+  const displayApiKey = apiKey || (didBootstrapAuth ? '(Bootstrapped securely)' : '(not set)');
+  const maskedApiKey = displayApiKey.startsWith('obs_') 
+    ? `${displayApiKey.slice(0, 8)}***${displayApiKey.slice(-4)}` 
+    : displayApiKey;
 
   console.log(chalk.gray(`API URL: ${chalk.white(apiUrl)}`));
   console.log(chalk.gray(`API Key: ${chalk.white(maskedApiKey)}\n`));
@@ -110,6 +130,12 @@ async function runTests(): Promise<void> {
   console.log(chalk.green(`  Passed: ${passedTests}`));
   console.log(chalk.red(`  Failed: ${totalTests - passedTests}`));
   console.log(chalk.blue(`  Time: ${totalTime}ms`));
+
+  // Cleanup Bootstrapped Auth
+  if (didBootstrapAuth) {
+    console.log(chalk.yellow('\n🧹 Cleaning up bootstrapped authentication...'));
+    await runCLI(['logout']);
+  }
 
   if (passedTests === totalTests) {
     console.log(chalk.green.bold('\n  ✅ All tests passed!\n'));

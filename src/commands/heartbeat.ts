@@ -29,6 +29,17 @@ export function createHeartbeatCommand(
     formatters: {
       list: (items, verbose) => outputService.formatHeartbeatList(items, verbose),
     },
+    createCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Heartbeat name')
+        .option('-p, --period <seconds>', 'Expected period in seconds')
+        .option('-g, --grace <seconds>', 'Grace period in seconds');
+    },
+    updateCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Heartbeat name')
+        .option('-p, --period <seconds>', 'Expected period in seconds');
+    },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
       let period = options.period as string | number | undefined;

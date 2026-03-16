@@ -19,7 +19,11 @@ export interface CLIResult {
 /**
  * Run the CLI with the given arguments and return the result
  */
-export async function runCLI(args: string[], timeoutMs: number = 30000): Promise<CLIResult> {
+export async function runCLI(
+  args: string[],
+  timeoutMs: number = 30000,
+  envOverrides?: Record<string, string | undefined>
+): Promise<CLIResult> {
   return new Promise((resolve) => {
     const binaryMode = process.env.OBS_BINARY_MODE || 'local';
     const isWindows = process.platform === 'win32';
@@ -58,15 +62,27 @@ export async function runCLI(args: string[], timeoutMs: number = 30000): Promise
         break;
     }
 
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      // Use test API URL and key from environment
+      OBS_API_URL: process.env.API_URL || process.env.OBS_API_URL,
+      OBS_API_KEY: process.env.OBS_API_KEY || process.env.API_KEY,
+      DOTENV_QUIET: 'true',
+      DOTENV_CONFIG_SILENT: 'true',
+    };
+
+    if (envOverrides) {
+      Object.keys(envOverrides).forEach((key) => {
+        if (envOverrides[key] === undefined) {
+          delete env[key];
+        } else {
+          env[key] = envOverrides[key];
+        }
+      });
+    }
+
     const options: SpawnOptions = {
-      env: {
-        ...process.env,
-        // Use test API URL and key from environment
-        OBS_API_URL: process.env.API_URL || process.env.OBS_API_URL,
-        OBS_API_KEY: process.env.OBS_API_KEY || process.env.API_KEY,
-        DOTENV_QUIET: 'true',
-        DOTENV_CONFIG_SILENT: 'true',
-      },
+      env: env as NodeJS.ProcessEnv,
       shell: useShell,
     };
 

@@ -29,6 +29,18 @@ export function createCheckCommand(
     formatters: {
       list: (items, verbose) => outputService.formatApiCheckList(items, verbose),
     },
+    createCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Check name')
+        .option('-u, --url <url>', 'API URL')
+        .option('-m, --method <method>', 'HTTP Method');
+    },
+    updateCommandSetup: (cmd) => {
+      cmd
+        .option('-n, --name <name>', 'Check name')
+        .option('-u, --url <url>', 'API URL')
+        .option('-m, --method <method>', 'HTTP Method');
+    },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
       let url = options.url as string | undefined;
