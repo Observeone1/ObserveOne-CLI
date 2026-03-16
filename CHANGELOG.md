@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Update notice now suggests the correct package manager command (npm, pnpm, yarn, or bun).
 
+## [1.4.3] - 2026-03-16
+
+### Fixed
+- `obs --version` now waits for the update check so the notice can render.
+
 ## [1.4.0] - 2026-03-16
 
 ### Added
