@@ -13,7 +13,7 @@ export function createLoginCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return new Command('login')
+  const cmd = new Command('login')
     .description('Authenticate with ObserveOne platform')
     .option('-k, --api-key <key>', 'API key to use for authentication')
     .option('-f, --force', 'Force a new login session even if already authenticated')
@@ -194,4 +194,13 @@ export function createLoginCommand(
         process.exit(1);
       }
     });
+
+  cmd
+    .command('help')
+    .description('Show help for login')
+    .action(() => {
+      cmd.help();
+    });
+
+  return cmd;
 }
