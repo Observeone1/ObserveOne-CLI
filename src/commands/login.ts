@@ -29,9 +29,7 @@ export function createLoginCommand(
         // Warning if environment variable is already set (will override new login)
         if (process.env.OBS_API_KEY && !process.env.OBS_JSON_OUTPUT) {
           console.warn(
-            chalk.yellow(
-              '\n⚠️  Warning: OBS_API_KEY is already set in your environment variables.'
-            )
+            chalk.yellow('\n⚠️  Warning: OBS_API_KEY is already set in your environment variables.')
           );
           console.warn(
             chalk.yellow(
