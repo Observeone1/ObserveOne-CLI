@@ -8,6 +8,9 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  AlertChannel,
+  StatusPage,
+  Incident,
 } from '../types/index.js';
 
 /**
@@ -153,6 +156,81 @@ export class OutputService implements IOutputService {
             `   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : 'Never'}`
           )
         );
+      }
+      console.log('');
+    });
+  }
+
+  formatAlertChannelList(channels: AlertChannel[], verbose: boolean = false): void {
+    if (channels.length === 0) {
+      this.info('No alert channels found.');
+      return;
+    }
+
+    console.log(chalk.bold('\n🔔 Alert Channels:'));
+    console.log(chalk.gray('─'.repeat(80)));
+
+    channels.forEach((channel, index) => {
+      const defaultFlag = channel.is_default ? chalk.green('DEFAULT') : chalk.gray('CUSTOM');
+      console.log(chalk.bold(`${index + 1}. ${channel.name} [${channel.type}] (${defaultFlag})`));
+      console.log(chalk.gray(`   ID: ${channel.id}`));
+
+      if (verbose) {
+        const configKeys = Object.keys(channel.config || {});
+        console.log(
+          chalk.gray(`   Config keys: ${configKeys.length ? configKeys.join(', ') : 'None'}`)
+        );
+      }
+      console.log('');
+    });
+  }
+
+  formatStatusPageList(statusPages: StatusPage[], verbose: boolean = false): void {
+    if (statusPages.length === 0) {
+      this.info('No status pages found.');
+      return;
+    }
+
+    console.log(chalk.bold('\n📣 Status Pages:'));
+    console.log(chalk.gray('─'.repeat(80)));
+
+    statusPages.forEach((page, index) => {
+      const visibility = page.is_public ? chalk.green('PUBLIC') : chalk.yellow('PRIVATE');
+      console.log(chalk.bold(`${index + 1}. ${page.name} [${visibility}]`));
+      console.log(chalk.gray(`   Slug: ${page.slug}`));
+      console.log(chalk.gray(`   ID: ${page.id}`));
+
+      if (verbose) {
+        if (page.description) console.log(chalk.gray(`   Desc: ${page.description}`));
+        if (page.theme_primary_color)
+          console.log(chalk.gray(`   Theme Primary: ${page.theme_primary_color}`));
+        if (page.theme_background_color)
+          console.log(chalk.gray(`   Theme Background: ${page.theme_background_color}`));
+      }
+      console.log('');
+    });
+  }
+
+  formatIncidentList(incidents: Incident[], verbose: boolean = false): void {
+    if (incidents.length === 0) {
+      this.info('No incidents found.');
+      return;
+    }
+
+    console.log(chalk.bold('\n🚨 Incidents:'));
+    console.log(chalk.gray('─'.repeat(80)));
+
+    incidents.forEach((incident, index) => {
+      console.log(
+        chalk.bold(`${index + 1}. ${incident.title} [${incident.priority}] (${incident.status})`)
+      );
+      console.log(chalk.gray(`   ID: ${incident.id}`));
+      if (incident.assigned_to) {
+        console.log(chalk.gray(`   Assigned: ${incident.assigned_to}`));
+      }
+
+      if (verbose && incident.description) {
+        console.log(chalk.gray(`   Desc: ${incident.description}`));
       }
       console.log('');
     });

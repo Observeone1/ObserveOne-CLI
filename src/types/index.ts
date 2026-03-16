@@ -104,6 +104,78 @@ export interface Heartbeat {
   updated_at: string;
 }
 
+export interface AlertChannelConfig {
+  email?: string | undefined;
+  webhook_url?: string | undefined;
+  bot_token?: string | undefined;
+  chat_id?: string | undefined;
+  account_sid?: string | undefined;
+  auth_token?: string | undefined;
+  from_number?: string | undefined;
+  phone_number?: string | undefined;
+  [key: string]: unknown;
+}
+
+export type AlertChannelType =
+  | 'email'
+  | 'slack'
+  | 'discord'
+  | 'teams'
+  | 'telegram'
+  | 'sms'
+  | 'webhook';
+
+export interface AlertChannel {
+  id: number;
+  name: string;
+  type: AlertChannelType;
+  config: AlertChannelConfig;
+  is_default: boolean;
+  created_at?: string | undefined;
+  updated_at?: string | undefined;
+}
+
+export interface StatusPage {
+  id: number;
+  slug: string;
+  name: string;
+  description?: string | undefined;
+  logo_url?: string | undefined;
+  custom_domain?: string | undefined;
+  is_public: boolean;
+  show_incident_history: boolean;
+  show_uptime_percentage: boolean;
+  theme_primary_color?: string | undefined;
+  theme_background_color?: string | undefined;
+  created_at?: string | undefined;
+  updated_at?: string | undefined;
+}
+
+export type IncidentPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type IncidentStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
+
+export interface Incident {
+  id: number;
+  title: string;
+  description?: string | undefined;
+  status: IncidentStatus;
+  priority: IncidentPriority;
+  assigned_to?: string | null | undefined;
+  team_id?: number | undefined;
+  created_at?: string | undefined;
+  updated_at?: string | undefined;
+}
+
+export interface IncidentListResponse {
+  incidents: Incident[];
+  stats: {
+    total: number;
+    open: number;
+    resolved: number;
+    closed: number;
+  };
+}
+
 export interface JsonEnvelope<T = unknown> {
   status: 'SUCCESS' | 'ERROR';
   data?: T | undefined;
