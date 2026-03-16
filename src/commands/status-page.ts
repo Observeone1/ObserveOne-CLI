@@ -103,20 +103,39 @@ export function createStatusPageCommand(
         process.exit(1);
       }
 
-      return {
+      const payload: Partial<StatusPage> = {
         slug: (options.slug as string | undefined) || existing.slug,
         name: (options.name as string | undefined) || existing.name,
-        description: (options.description as string | undefined) || existing.description,
-        logo_url: (options.logoUrl as string | undefined) || existing.logo_url,
-        theme_primary_color:
-          (options.themePrimaryColor as string | undefined) || existing.theme_primary_color,
-        theme_background_color:
-          (options.themeBackgroundColor as string | undefined) ||
-          existing.theme_background_color,
         is_public: options.private ? false : existing.is_public,
         show_incident_history: options.hideIncidentHistory ? false : existing.show_incident_history,
         show_uptime_percentage: options.hideUptime ? false : existing.show_uptime_percentage,
       };
+
+      const description =
+        (options.description as string | undefined) ??
+        (typeof existing.description === 'string' ? existing.description : undefined);
+      if (description !== undefined) payload.description = description;
+
+      const logoUrl =
+        (options.logoUrl as string | undefined) ??
+        (typeof existing.logo_url === 'string' ? existing.logo_url : undefined);
+      if (logoUrl !== undefined) payload.logo_url = logoUrl;
+
+      const themePrimary =
+        (options.themePrimaryColor as string | undefined) ??
+        (typeof existing.theme_primary_color === 'string'
+          ? existing.theme_primary_color
+          : undefined);
+      if (themePrimary !== undefined) payload.theme_primary_color = themePrimary;
+
+      const themeBackground =
+        (options.themeBackgroundColor as string | undefined) ??
+        (typeof existing.theme_background_color === 'string'
+          ? existing.theme_background_color
+          : undefined);
+      if (themeBackground !== undefined) payload.theme_background_color = themeBackground;
+
+      return payload;
     },
   });
 }

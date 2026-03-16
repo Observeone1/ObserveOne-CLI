@@ -47,7 +47,6 @@ export function createIncidentCommand(
         .option('-p, --priority <priority>', 'Priority (CRITICAL, HIGH, MEDIUM, LOW)')
         .option('-d, --description <description>', 'Incident description')
         .option('--assigned-to <userId>', 'Assign to user ID')
-        .option('--unassign', 'Clear assigned user')
         .option('--team-id <teamId>', 'Team ID');
     },
     createPrompts: async (options) => {
@@ -93,7 +92,6 @@ export function createIncidentCommand(
         options.priority ||
         options.description ||
         options.assignedTo ||
-        options.unassign ||
         options.teamId;
 
       if (!hasChanges) {
@@ -108,13 +106,25 @@ export function createIncidentCommand(
         throw new Error('Priority is required.');
       }
 
-      return {
+      const payload: Partial<Incident> = {
         title: (options.title as string | undefined) || existing.title,
         priority,
-        description: (options.description as string | undefined) || existing.description,
-        assigned_to: options.unassign ? null : ((options.assignedTo as string | undefined) || existing.assigned_to),
-        team_id: options.teamId ? parseInt(options.teamId as string, 10) : existing.team_id,
       };
+
+      const description =
+        (options.description as string | undefined) ??
+        (typeof existing.description === 'string' ? existing.description : undefined);
+      if (description !== undefined) payload.description = description;
+
+      if (options.assignedTo) {
+        payload.assigned_to = options.assignedTo as string;
+      }
+
+      if (options.teamId) {
+        payload.team_id = parseInt(options.teamId as string, 10);
+      }
+
+      return payload;
     },
   });
 }
