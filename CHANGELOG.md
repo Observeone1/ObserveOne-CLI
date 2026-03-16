@@ -5,6 +5,12 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-03-16
+
+### Fixed
+- **Update Notice Box**: Dynamic sizing to prevent misaligned borders with longer version strings.
+- **Command Option Parsing**: Normalize option resolution to ensure update/create/delete/toggle flags are read consistently.
+
 ## [1.3.1] - 2026-03-15
 
 ### Added
