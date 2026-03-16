@@ -33,7 +33,7 @@ export interface ResourceFactoryOptions<T> {
  * Factory to generate standardized CRUD subcommands for any resource.
  * This ensures consistent JSON mode detection, error handling, and auth checks.
  */
-export function createResourceCommand<T extends { id: number; name: string }>(
+export function createResourceCommand<T extends { id: number; name?: string }>(
   configService: IConfigService,
   apiClient: IApiClient,
   outputService: IOutputService,
@@ -147,8 +147,10 @@ export function createResourceCommand<T extends { id: number; name: string }>(
       if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
         outputService.formatJsonOutput(newItem);
       } else {
+        const nameLabel = newItem.name ? `"${newItem.name}"` : `ID ${newItem.id}`;
+        const idSuffix = newItem.name ? ` (ID: ${newItem.id})` : '';
         outputService.success(
-          `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} "${newItem.name}" created successfully (ID: ${newItem.id})`
+          `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${nameLabel} created successfully${idSuffix}.`
         );
       }
     } catch (error: unknown) {

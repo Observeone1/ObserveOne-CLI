@@ -5,6 +5,10 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  AlertChannel,
+  StatusPage,
+  Incident,
+  IncidentListResponse,
 } from '../types/index.js';
 
 /**
@@ -72,6 +76,27 @@ export interface IApiClient {
   updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
   deleteHeartbeat(id: number): Promise<void>;
   toggleHeartbeat(id: number): Promise<boolean>;
+
+  // Alert Channels
+  getAlertChannels(): Promise<AlertChannel[]>;
+  getAlertChannel(id: number): Promise<AlertChannel>;
+  createAlertChannel(data: Partial<AlertChannel>): Promise<AlertChannel>;
+  updateAlertChannel(id: number, data: Partial<AlertChannel>): Promise<AlertChannel>;
+  deleteAlertChannel(id: number): Promise<void>;
+
+  // Status Pages
+  getStatusPages(): Promise<StatusPage[]>;
+  getStatusPage(id: number): Promise<StatusPage>;
+  createStatusPage(data: Partial<StatusPage>): Promise<StatusPage>;
+  updateStatusPage(id: number, data: Partial<StatusPage>): Promise<StatusPage>;
+  deleteStatusPage(id: number): Promise<void>;
+
+  // Incidents
+  getIncidents(): Promise<Incident[]>;
+  getIncident(id: number): Promise<Incident>;
+  createIncident(data: Partial<Incident>): Promise<Incident>;
+  updateIncident(id: number, data: Partial<Incident>): Promise<Incident>;
+  deleteIncident(id: number): Promise<void>;
 
   healthCheck(): Promise<{
     status: string;

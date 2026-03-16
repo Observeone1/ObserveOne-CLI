@@ -264,3 +264,208 @@ export async function testAiCheckLifecycle() {
     }
   }
 }
+
+/**
+ * E2E tests for Alert Channel Lifecycle
+ */
+export async function testAlertChannelLifecycle() {
+  const timestamp = Date.now();
+  const channelName = `E2E-Alert-${timestamp}`;
+  const channelEmail = `alerts+${timestamp}@example.com`;
+  let channelId: number | undefined;
+
+  try {
+    console.log('      - Creating alert channel...');
+    const createResult = await runCLI([
+      'alert-channel',
+      'create',
+      '--name',
+      channelName,
+      '--type',
+      'email',
+      '--email',
+      channelEmail,
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Alert channel creation failed');
+    const createdChannel = JSON.parse(createResult.stdout);
+    channelId = createdChannel.id || createdChannel.data?.id;
+
+    console.log('      - Listing alert channels...');
+    const listResult = await runCLI(['alert-channel', 'list', '--json']);
+    assertSuccess(listResult, 'Alert channel list failed');
+    assertContains(listResult.stdout, channelName);
+
+    console.log(`      - Getting alert channel ${channelId}...`);
+    const getResult = await runCLI(['alert-channel', 'get', channelId!.toString(), '--json']);
+    assertSuccess(getResult, 'Alert channel get failed');
+
+    console.log(`      - Updating alert channel ${channelId}...`);
+    const updatedName = `${channelName}-Updated`;
+    const updateResult = await runCLI([
+      'alert-channel',
+      'update',
+      channelId!.toString(),
+      '--name',
+      updatedName,
+      '--type',
+      'email',
+      '--email',
+      channelEmail,
+      '--json',
+    ]);
+    assertSuccess(updateResult, 'Alert channel update failed');
+
+    console.log(`      - Deleting alert channel ${channelId}...`);
+    const deleteResult = await runCLI([
+      'alert-channel',
+      'delete',
+      channelId!.toString(),
+      '-y',
+      '--json',
+    ]);
+    assertSuccess(deleteResult, 'Alert channel delete failed');
+
+    channelId = undefined;
+  } finally {
+    if (channelId) {
+      console.log(`      - [Cleanup] Deleting dangling alert channel ${channelId}...`);
+      await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+/**
+ * E2E tests for Status Page Lifecycle
+ */
+export async function testStatusPageLifecycle() {
+  const timestamp = Date.now();
+  const pageName = `E2E Status ${timestamp}`;
+  const slug = `e2e-status-${timestamp}`;
+  let pageId: number | undefined;
+
+  try {
+    console.log('      - Creating status page...');
+    const createResult = await runCLI([
+      'status-page',
+      'create',
+      '--name',
+      pageName,
+      '--slug',
+      slug,
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Status page creation failed');
+    const createdPage = JSON.parse(createResult.stdout);
+    pageId = createdPage.id || createdPage.data?.id;
+
+    console.log('      - Listing status pages...');
+    const listResult = await runCLI(['status-page', 'list', '--json']);
+    assertSuccess(listResult, 'Status page list failed');
+    assertContains(listResult.stdout, slug);
+
+    console.log(`      - Getting status page ${pageId}...`);
+    const getResult = await runCLI(['status-page', 'get', pageId!.toString(), '--json']);
+    assertSuccess(getResult, 'Status page get failed');
+
+    console.log(`      - Updating status page ${pageId}...`);
+    const updateResult = await runCLI([
+      'status-page',
+      'update',
+      pageId!.toString(),
+      '--name',
+      pageName,
+      '--slug',
+      slug,
+      '--description',
+      'Updated via E2E',
+      '--json',
+    ]);
+    assertSuccess(updateResult, 'Status page update failed');
+
+    console.log(`      - Deleting status page ${pageId}...`);
+    const deleteResult = await runCLI([
+      'status-page',
+      'delete',
+      pageId!.toString(),
+      '-y',
+      '--json',
+    ]);
+    assertSuccess(deleteResult, 'Status page delete failed');
+
+    pageId = undefined;
+  } finally {
+    if (pageId) {
+      console.log(`      - [Cleanup] Deleting dangling status page ${pageId}...`);
+      await runCLI(['status-page', 'delete', pageId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+/**
+ * E2E tests for Incident Lifecycle
+ */
+export async function testIncidentLifecycle() {
+  const timestamp = Date.now();
+  const title = `E2E Incident ${timestamp}`;
+  let incidentId: number | undefined;
+
+  try {
+    console.log('      - Creating incident...');
+    const createResult = await runCLI([
+      'incident',
+      'create',
+      '--title',
+      title,
+      '--priority',
+      'HIGH',
+      '--description',
+      'E2E incident creation',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Incident creation failed');
+    const createdIncident = JSON.parse(createResult.stdout);
+    incidentId = createdIncident.id || createdIncident.data?.id;
+
+    console.log('      - Listing incidents...');
+    const listResult = await runCLI(['incident', 'list', '--json']);
+    assertSuccess(listResult, 'Incident list failed');
+    assertContains(listResult.stdout, title);
+
+    console.log(`      - Getting incident ${incidentId}...`);
+    const getResult = await runCLI(['incident', 'get', incidentId!.toString(), '--json']);
+    assertSuccess(getResult, 'Incident get failed');
+
+    console.log(`      - Updating incident ${incidentId}...`);
+    const updateResult = await runCLI([
+      'incident',
+      'update',
+      incidentId!.toString(),
+      '--title',
+      title,
+      '--priority',
+      'HIGH',
+      '--description',
+      'Updated via E2E',
+      '--json',
+    ]);
+    assertSuccess(updateResult, 'Incident update failed');
+
+    console.log(`      - Deleting incident ${incidentId}...`);
+    const deleteResult = await runCLI([
+      'incident',
+      'delete',
+      incidentId!.toString(),
+      '-y',
+      '--json',
+    ]);
+    assertSuccess(deleteResult, 'Incident delete failed');
+
+    incidentId = undefined;
+  } finally {
+    if (incidentId) {
+      console.log(`      - [Cleanup] Deleting dangling incident ${incidentId}...`);
+      await runCLI(['incident', 'delete', incidentId.toString(), '-y', '--json']);
+    }
+  }
+}

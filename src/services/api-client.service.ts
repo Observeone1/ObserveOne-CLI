@@ -8,6 +8,10 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  AlertChannel,
+  StatusPage,
+  Incident,
+  IncidentListResponse,
 } from '../types/index.js';
 
 /**
@@ -348,6 +352,87 @@ export class ApiClient implements IApiClient {
       data?: { is_active?: boolean };
     }>(`/heartbeats/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
+  }
+
+  // Alert Channels
+  async getAlertChannels(): Promise<AlertChannel[]> {
+    const response = await this.client.get<AlertChannel[] | { data?: AlertChannel[] }>(
+      '/alert-channels'
+    );
+    return Array.isArray(response.data) ? response.data : response.data.data || [];
+  }
+
+  async getAlertChannel(id: number): Promise<AlertChannel> {
+    const response = await this.client.get<AlertChannel>(`/alert-channels/${id}`);
+    return response.data;
+  }
+
+  async createAlertChannel(data: Partial<AlertChannel>): Promise<AlertChannel> {
+    const response = await this.client.post<AlertChannel>('/alert-channels', data);
+    return response.data;
+  }
+
+  async updateAlertChannel(id: number, data: Partial<AlertChannel>): Promise<AlertChannel> {
+    const response = await this.client.put<AlertChannel>(`/alert-channels/${id}`, data);
+    return response.data;
+  }
+
+  async deleteAlertChannel(id: number): Promise<void> {
+    await this.client.delete(`/alert-channels/${id}`);
+  }
+
+  // Status Pages
+  async getStatusPages(): Promise<StatusPage[]> {
+    const response = await this.client.get<StatusPage[] | { data?: StatusPage[] }>('/status-pages');
+    return Array.isArray(response.data) ? response.data : response.data.data || [];
+  }
+
+  async getStatusPage(id: number): Promise<StatusPage> {
+    const response = await this.client.get<StatusPage>(`/status-pages/${id}`);
+    return response.data;
+  }
+
+  async createStatusPage(data: Partial<StatusPage>): Promise<StatusPage> {
+    const response = await this.client.post<StatusPage>('/status-pages', data);
+    return response.data;
+  }
+
+  async updateStatusPage(id: number, data: Partial<StatusPage>): Promise<StatusPage> {
+    const response = await this.client.put<StatusPage>(`/status-pages/${id}`, data);
+    return response.data;
+  }
+
+  async deleteStatusPage(id: number): Promise<void> {
+    await this.client.delete(`/status-pages/${id}`);
+  }
+
+  // Incidents
+  async getIncidents(): Promise<Incident[]> {
+    const response = await this.client.get<
+      IncidentListResponse | Incident[] | { data?: Incident[] }
+    >('/incidents');
+    if (Array.isArray(response.data)) return response.data;
+    if ('incidents' in response.data) return response.data.incidents || [];
+    return response.data.data || [];
+  }
+
+  async getIncident(id: number): Promise<Incident> {
+    const response = await this.client.get<Incident>(`/incidents/${id}`);
+    return response.data;
+  }
+
+  async createIncident(data: Partial<Incident>): Promise<Incident> {
+    const response = await this.client.post<Incident>('/incidents', data);
+    return response.data;
+  }
+
+  async updateIncident(id: number, data: Partial<Incident>): Promise<Incident> {
+    const response = await this.client.put<Incident>(`/incidents/${id}`, data);
+    return response.data;
+  }
+
+  async deleteIncident(id: number): Promise<void> {
+    await this.client.delete(`/incidents/${id}`);
   }
 
   async healthCheck(): Promise<{

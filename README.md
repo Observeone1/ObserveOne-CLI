@@ -143,6 +143,33 @@ obs heartbeat toggle <id>
 obs heartbeat delete <id> -y
 ```
 
+### Alert Channels
+```bash
+obs alert-channel create --name "Ops Email" --type email --email "ops@example.com"
+obs alert-channel list
+obs alert-channel get <id>
+obs alert-channel update <id> --name "Ops Email Primary" --type email --email "ops@example.com"
+obs alert-channel delete <id> -y
+```
+
+### Status Pages
+```bash
+obs status-page create --name "Public Status" --slug "public-status"
+obs status-page list
+obs status-page get <id>
+obs status-page update <id> --description "Updated"
+obs status-page delete <id> -y
+```
+
+### Incidents
+```bash
+obs incident create --title "API Outage" --priority HIGH --description "Initial investigation"
+obs incident list
+obs incident get <id>
+obs incident update <id> --description "Resolved"
+obs incident delete <id> -y
+```
+
 ---
 
 ## AI Browser Checks

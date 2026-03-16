@@ -5,6 +5,18 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-16
+
+### Added
+- **Alert Channels**: New `obs alert-channel` CRUD commands.
+- **Status Pages**: New `obs status-page` CRUD commands.
+- **Incidents**: New `obs incident` CRUD commands.
+- **E2E Coverage**: Lifecycle tests for alert channels, status pages, and incidents.
+
+### Fixed
+- **Resource Factory**: Allow resources without a `name` field.
+- **Update Payloads**: Avoid sending null optional fields for status pages and incidents.
+
 ## [1.3.2] - 2026-03-16
 
 ### Fixed

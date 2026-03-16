@@ -27,6 +27,9 @@ import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
+import { createAlertChannelCommand } from './commands/alert-channel.js';
+import { createStatusPageCommand } from './commands/status-page.js';
+import { createIncidentCommand } from './commands/incident.js';
 
 const packageJson = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8')
@@ -70,6 +73,9 @@ program.addCommand(createCheckCommand(configService, apiClient, outputService));
 program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
 program.addCommand(createApplyCommand(configService, apiClient, outputService));
 program.addCommand(createExportCommand(configService, apiClient, outputService));
+program.addCommand(createAlertChannelCommand(configService, apiClient, outputService));
+program.addCommand(createStatusPageCommand(configService, apiClient, outputService));
+program.addCommand(createIncidentCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook('preAction', (thisCommand) => {

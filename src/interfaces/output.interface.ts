@@ -5,6 +5,9 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  AlertChannel,
+  StatusPage,
+  Incident,
 } from '../types/index.js';
 
 /**
@@ -22,6 +25,9 @@ export interface IOutputService {
   formatMonitorList(monitors: UrlMonitor[], verbose?: boolean): void;
   formatApiCheckList(checks: ApiCheck[], verbose?: boolean): void;
   formatHeartbeatList(heartbeats: Heartbeat[], verbose?: boolean): void;
+  formatAlertChannelList(channels: AlertChannel[], verbose?: boolean): void;
+  formatStatusPageList(statusPages: StatusPage[], verbose?: boolean): void;
+  formatIncidentList(incidents: Incident[], verbose?: boolean): void;
 
   formatTestExecution(execution: TestExecution): void;
   formatTestResult(result: TestResult): void;
