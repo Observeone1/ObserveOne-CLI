@@ -28,24 +28,37 @@ export class UpdateService {
           timeout: 2000,
         }
       );
-
       const latestVersion = response.data.version;
 
       if (this.isNewerVersion(this.currentVersion, latestVersion)) {
-        console.log('\n' + chalk.yellow('┌───────────────────────────────────────────────────┐'));
-        console.log(
-          chalk.yellow(`│  Update available: `) +
-            chalk.green(`${this.currentVersion}`) +
-            chalk.yellow(' → ') +
-            chalk.green(`${latestVersion}`) +
-            chalk.yellow('             │')
-        );
-        console.log(
-          chalk.yellow(`│  Run `) +
-            chalk.cyan(`npm install -g ${this.packageName}`) +
-            chalk.yellow(` to update.  │`)
-        );
-        console.log(chalk.yellow('└───────────────────────────────────────────────────┘\n'));
+        const line1 = [
+          { text: 'Update available: ', color: chalk.yellow },
+          { text: this.currentVersion, color: chalk.green },
+          { text: ' → ', color: chalk.yellow },
+          { text: latestVersion, color: chalk.green },
+        ];
+        const line2 = [
+          { text: 'Run ', color: chalk.yellow },
+          { text: `npm install -g ${this.packageName}`, color: chalk.cyan },
+          { text: ' to update.', color: chalk.yellow },
+        ];
+        const rawLen = (parts: Array<{ text: string }>): number =>
+          parts.reduce((sum, part) => sum + part.text.length, 0);
+        const contentWidth = Math.max(rawLen(line1), rawLen(line2));
+        const border = chalk.yellow;
+        const renderLine = (
+          parts: Array<{ text: string; color: (s: string) => string }>
+        ): string => {
+          const rawLength = rawLen(parts);
+          const pad = ' '.repeat(Math.max(0, contentWidth - rawLength));
+          const colored = parts.map((part) => part.color(part.text)).join('');
+          return border('│  ') + colored + border(pad + '  │');
+        };
+
+        console.log('\n' + border(`┌${'─'.repeat(contentWidth + 4)}┐`));
+        console.log(renderLine(line1));
+        console.log(renderLine(line2));
+        console.log(border(`└${'─'.repeat(contentWidth + 4)}┘\n`));
       }
     } catch (_error: unknown) {
       // Silently fail to avoid disrupting the user's workflow
