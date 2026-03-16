@@ -31,6 +31,8 @@ export class UpdateService {
       const latestVersion = response.data.version;
 
       if (this.isNewerVersion(this.currentVersion, latestVersion)) {
+        const packageManager = this.detectPackageManager();
+        const updateCommand = this.getUpdateCommand(packageManager);
         const line1 = [
           { text: 'Update available: ', color: chalk.yellow },
           { text: this.currentVersion, color: chalk.green },
@@ -39,7 +41,7 @@ export class UpdateService {
         ];
         const line2 = [
           { text: 'Run ', color: chalk.yellow },
-          { text: `npm install -g ${this.packageName}`, color: chalk.cyan },
+          { text: updateCommand, color: chalk.cyan },
           { text: ' to update.', color: chalk.yellow },
         ];
         const rawLen = (parts: Array<{ text: string }>): number =>
@@ -79,5 +81,40 @@ export class UpdateService {
       }
     }
     return false;
+  }
+
+  private getUpdateCommand(packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun'): string {
+    switch (packageManager) {
+      case 'pnpm':
+        return `pnpm add -g ${this.packageName}`;
+      case 'yarn':
+        return `yarn global add ${this.packageName}`;
+      case 'bun':
+        return `bun add -g ${this.packageName}`;
+      default:
+        return `npm install -g ${this.packageName}`;
+    }
+  }
+
+  private detectPackageManager(): 'npm' | 'pnpm' | 'yarn' | 'bun' {
+    const userAgent = process.env.npm_config_user_agent?.toLowerCase() ?? '';
+    if (userAgent.includes('pnpm')) return 'pnpm';
+    if (userAgent.includes('yarn')) return 'yarn';
+    if (userAgent.includes('bun')) return 'bun';
+    if (userAgent.includes('npm')) return 'npm';
+
+    const execPath = process.env.npm_execpath?.toLowerCase() ?? '';
+    if (execPath.includes('pnpm')) return 'pnpm';
+    if (execPath.includes('yarn')) return 'yarn';
+    if (execPath.includes('bun')) return 'bun';
+
+    const argv0 = process.argv[0]?.toLowerCase() ?? '';
+    const argv1 = process.argv[1]?.toLowerCase() ?? '';
+    const combined = `${argv0} ${argv1}`;
+    if (combined.includes('.pnpm') || combined.includes('pnpm')) return 'pnpm';
+    if (combined.includes('.yarn') || combined.includes('yarn')) return 'yarn';
+    if (combined.includes('.bun') || combined.includes('bun')) return 'bun';
+
+    return 'npm';
   }
 }
