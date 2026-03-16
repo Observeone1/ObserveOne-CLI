@@ -26,6 +26,20 @@ export function createLoginCommand(
     .option('--json', 'Output in JSON format')
     .action(async (options: Record<string, unknown>) => {
       try {
+        // Warning if environment variable is already set (will override new login)
+        if (process.env.OBS_API_KEY && !process.env.OBS_JSON_OUTPUT) {
+          console.warn(
+            chalk.yellow(
+              '\n⚠️  Warning: OBS_API_KEY is already set in your environment variables.'
+            )
+          );
+          console.warn(
+            chalk.yellow(
+              '   This will take precedence over any keys saved during this login session.\n'
+            )
+          );
+        }
+
         // Handle API URL override first, before other operations
         if (options.apiUrl) {
           configService.setCommandLineApiUrl(options.apiUrl as string);

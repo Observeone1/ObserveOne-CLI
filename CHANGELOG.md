@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-03-15
+
+### Added
+- **Config Transparency**: Added verbose logging (`-v`) to show exactly which source (Environment, Local Config, or Global Store) provided the API key.
+- **Login Safety Check**: `obs login` now warns if an existing `OBS_API_KEY` in the environment will shadow the newly provisioned session.
+
+### Fixed
+- **Apply Delta Sync**: Corrected property mapping for URL monitors to ensure delta-optimization works as expected.
+- **E2E Test Hardening**: Enhanced test runner with dynamic auth bootstrapping and environment isolation.
+
 ## [1.3.0] - 2026-03-15
 
 ### Added

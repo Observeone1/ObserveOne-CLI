@@ -95,7 +95,17 @@ export class ConfigService implements IConfigService {
 
   getApiKey(): string | undefined {
     // Priority: 1) Env Var, 2) Local Config, 3) Global Config
-    return process.env.OBS_API_KEY || this.localConfig.apiKey || this.config.get('apiKey');
+    const envKey = process.env.OBS_API_KEY;
+    const localKey = this.localConfig.apiKey;
+    const globalKey = this.config.get('apiKey');
+
+    if (process.env.OBS_VERBOSE === 'true') {
+      if (envKey) console.error('  [Config] Using API key from Environment Variable (OBS_API_KEY)');
+      else if (localKey) console.error('  [Config] Using API key from Local Config (.obs.config.json)');
+      else if (globalKey) console.error('  [Config] Using API key from Global OS Store');
+    }
+
+    return envKey || localKey || globalKey;
   }
 
   setApiUrl(url: string): void {
