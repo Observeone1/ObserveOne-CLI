@@ -42,6 +42,15 @@ export function createResourceCommand<T extends { id: number; name: string }>(
   const { resourceName, pluralName, description, apiMethods, formatters } = options;
   const cmd = new Command(resourceName).description(description);
 
+  const resolveOptions = (
+    cmdOptions: Record<string, unknown> | Command
+  ): Record<string, unknown> => {
+    if (typeof (cmdOptions as Command).opts === 'function') {
+      return (cmdOptions as Command).opts();
+    }
+    return cmdOptions as Record<string, unknown>;
+  };
+
   // Helper for consistent auth and JSON mode setup
   const setupContext = (cmdOptions: Record<string, unknown>) => {
     const isJson =
@@ -66,14 +75,15 @@ export function createResourceCommand<T extends { id: number; name: string }>(
     .option('-f, --format <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format')
     .action(async (cmdOptions: Record<string, unknown>) => {
-      setupContext(cmdOptions);
+      const resolvedOptions = resolveOptions(cmdOptions);
+      setupContext(resolvedOptions);
       try {
         outputService.progress(`Fetching ${pluralName}...`);
         const items = await apiMethods.list();
         if (
           process.env.OBS_JSON_OUTPUT === 'true' ||
-          cmdOptions.format === 'json' ||
-          cmdOptions.json === true
+          resolvedOptions.format === 'json' ||
+          resolvedOptions.json === true
         ) {
           outputService.formatJsonOutput(items);
         } else {
@@ -91,7 +101,8 @@ export function createResourceCommand<T extends { id: number; name: string }>(
     .description(`Get details of a ${resourceName}`)
     .option('-j, --json', 'Output in JSON format')
     .action(async (id: string, cmdOptions: Record<string, unknown>) => {
-      setupContext(cmdOptions);
+      const resolvedOptions = resolveOptions(cmdOptions);
+      setupContext(resolvedOptions);
       try {
         const resourceId = parseInt(id);
         if (isNaN(resourceId)) {
@@ -100,7 +111,7 @@ export function createResourceCommand<T extends { id: number; name: string }>(
         }
         outputService.progress(`Fetching ${resourceName} ${resourceId}...`);
         const item = await apiMethods.get(resourceId);
-        if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
+        if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
           outputService.formatJsonOutput(item);
         } else {
           formatters.list([item], true);
@@ -122,17 +133,18 @@ export function createResourceCommand<T extends { id: number; name: string }>(
   }
 
   createCmd.action(async (cmdOptions: Record<string, unknown>) => {
-    setupContext(cmdOptions);
+    const resolvedOptions = resolveOptions(cmdOptions);
+    setupContext(resolvedOptions);
     try {
-      let payload: Partial<T> = cmdOptions as unknown as Partial<T>;
+      let payload: Partial<T> = resolvedOptions as unknown as Partial<T>;
       if (options.createPrompts) {
-        payload = await options.createPrompts(cmdOptions);
+        payload = await options.createPrompts(resolvedOptions);
       }
 
       outputService.progress(`Creating ${resourceName}...`);
       const newItem = await apiMethods.create(payload);
 
-      if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
         outputService.formatJsonOutput(newItem);
       } else {
         outputService.success(
@@ -156,35 +168,36 @@ export function createResourceCommand<T extends { id: number; name: string }>(
   }
 
   updateCmd.action(async (id: string, cmdOptions: Record<string, unknown>) => {
-      setupContext(cmdOptions);
-      try {
-        const resourceId = parseInt(id);
-        if (isNaN(resourceId)) {
-          outputService.error(`Invalid ${resourceName} ID.`);
-          process.exit(1);
-        }
-
-        outputService.progress(`Updating ${resourceName} ${resourceId}...`);
-        const existing = await apiMethods.get(resourceId);
-
-        let payload: Partial<T> = cmdOptions as unknown as Partial<T>;
-        if (options.updatePrompts) {
-          payload = await options.updatePrompts(resourceId, cmdOptions, existing);
-        }
-
-        const updatedItem = await apiMethods.update(resourceId, payload);
-        if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
-          outputService.formatJsonOutput(updatedItem);
-        } else {
-          outputService.success(
-            `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} updated successfully.`
-          );
-        }
-      } catch (error: unknown) {
-        outputService.error(outputService.formatError(error));
+    const resolvedOptions = resolveOptions(cmdOptions);
+    setupContext(resolvedOptions);
+    try {
+      const resourceId = parseInt(id);
+      if (isNaN(resourceId)) {
+        outputService.error(`Invalid ${resourceName} ID.`);
         process.exit(1);
       }
-    });
+
+      outputService.progress(`Updating ${resourceName} ${resourceId}...`);
+      const existing = await apiMethods.get(resourceId);
+
+      let payload: Partial<T> = resolvedOptions as unknown as Partial<T>;
+      if (options.updatePrompts) {
+        payload = await options.updatePrompts(resourceId, resolvedOptions, existing);
+      }
+
+      const updatedItem = await apiMethods.update(resourceId, payload);
+      if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
+        outputService.formatJsonOutput(updatedItem);
+      } else {
+        outputService.success(
+          `${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)} ${resourceId} updated successfully.`
+        );
+      }
+    } catch (error: unknown) {
+      outputService.error(outputService.formatError(error));
+      process.exit(1);
+    }
+  });
 
   // DELETE
   cmd
@@ -193,7 +206,8 @@ export function createResourceCommand<T extends { id: number; name: string }>(
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('-j, --json', 'Output in JSON format')
     .action(async (id: string, cmdOptions: Record<string, unknown>) => {
-      setupContext(cmdOptions);
+      const resolvedOptions = resolveOptions(cmdOptions);
+      setupContext(resolvedOptions);
       try {
         const resourceId = parseInt(id);
         if (isNaN(resourceId)) {
@@ -201,7 +215,7 @@ export function createResourceCommand<T extends { id: number; name: string }>(
           process.exit(1);
         }
 
-        if (!cmdOptions.yes) {
+        if (!resolvedOptions.yes) {
           const { confirm } = await inquirer.prompt([
             {
               type: 'confirm',
@@ -219,7 +233,7 @@ export function createResourceCommand<T extends { id: number; name: string }>(
         outputService.progress(`Deleting ${resourceName} ${resourceId}...`);
         await apiMethods.delete(resourceId);
 
-        if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
+        if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
           outputService.formatJsonOutput({ success: true, id: resourceId });
         } else {
           outputService.success(
@@ -239,7 +253,8 @@ export function createResourceCommand<T extends { id: number; name: string }>(
       .description(`Pause or resume a ${resourceName}`)
       .option('-j, --json', 'Output in JSON format')
       .action(async (id: string, cmdOptions: Record<string, unknown>) => {
-        setupContext(cmdOptions);
+        const resolvedOptions = resolveOptions(cmdOptions);
+        setupContext(resolvedOptions);
         try {
           const resourceId = parseInt(id);
           if (isNaN(resourceId)) {
@@ -249,7 +264,7 @@ export function createResourceCommand<T extends { id: number; name: string }>(
           outputService.progress(`Toggling ${resourceName} ${resourceId}...`);
           const isActive = await apiMethods.toggle!(resourceId);
 
-          if (process.env.OBS_JSON_OUTPUT === 'true' || cmdOptions.json === true) {
+          if (process.env.OBS_JSON_OUTPUT === 'true' || resolvedOptions.json === true) {
             outputService.formatJsonOutput({ id: resourceId, is_active: isActive });
           } else {
             outputService.success(

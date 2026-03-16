@@ -101,7 +101,8 @@ export class ConfigService implements IConfigService {
 
     if (process.env.OBS_VERBOSE === 'true') {
       if (envKey) console.error('  [Config] Using API key from Environment Variable (OBS_API_KEY)');
-      else if (localKey) console.error('  [Config] Using API key from Local Config (.obs.config.json)');
+      else if (localKey)
+        console.error('  [Config] Using API key from Local Config (.obs.config.json)');
       else if (globalKey) console.error('  [Config] Using API key from Global OS Store');
     }
 

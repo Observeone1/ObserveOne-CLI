@@ -41,7 +41,7 @@ export async function testAiCheckWithoutAuthentication() {
 
 export async function testLogoutCommand() {
   const result = await runCLI(['logout', '--json']);
-  
+
   if (result.exitCode === 0) {
     const output = JSON.parse(result.stdout);
     if (!output.data?.loggedOut) {
@@ -53,11 +53,11 @@ export async function testLogoutCommand() {
 }
 
 export async function testLoginForceFlag() {
-  // Try to force login headlessly with bad credentials to ensure it attempts the flow 
+  // Try to force login headlessly with bad credentials to ensure it attempts the flow
   // rather than succeeding instantly with an existing key.
   const result = await runCLI(['login', '--headless', '--force', '--json'], 10000, {
     OBS_EMAIL: 'fake@example.com',
-    OBS_PASSWORD: 'wrong-password'
+    OBS_PASSWORD: 'wrong-password',
   });
 
   // Because credentials are fake, it should fail with an auth error (401/403 or not found),
@@ -68,6 +68,6 @@ export async function testLoginForceFlag() {
 
   const output = (result.stderr || result.stdout).toLowerCase();
   if (!output.includes('fail') && !output.includes('error') && !output.includes('network')) {
-     throw new Error(`Expected authentication failure on forced login, got: ${output}`);
+    throw new Error(`Expected authentication failure on forced login, got: ${output}`);
   }
 }

@@ -32,14 +32,18 @@ async function runTests(): Promise<void> {
   let didBootstrapAuth = false;
 
   if (!apiKey && process.env.OBS_EMAIL && process.env.OBS_PASSWORD) {
-    console.log(chalk.yellow('No API Key found. Attempting headless login with provided credentials...'));
+    console.log(
+      chalk.yellow('No API Key found. Attempting headless login with provided credentials...')
+    );
     const loginResult = await runCLI(['login', '--headless', '--json']);
     if (loginResult.exitCode === 0) {
       console.log(chalk.green('✓ Successfully authenticated and provisioned API key.'));
       didBootstrapAuth = true;
       // We don't need to set the API key in process.env because it's now stored in the CLI's local config
     } else {
-      console.log(chalk.red(`✗ Headless login failed: ${loginResult.stderr || loginResult.stdout}`));
+      console.log(
+        chalk.red(`✗ Headless login failed: ${loginResult.stderr || loginResult.stdout}`)
+      );
       process.exit(1);
     }
   }
@@ -57,8 +61,8 @@ async function runTests(): Promise<void> {
   // Display test configuration
   const apiUrl = process.env.API_URL || process.env.OBS_API_URL || '(not set)';
   const displayApiKey = apiKey || (didBootstrapAuth ? '(Bootstrapped securely)' : '(not set)');
-  const maskedApiKey = displayApiKey.startsWith('obs_') 
-    ? `${displayApiKey.slice(0, 8)}***${displayApiKey.slice(-4)}` 
+  const maskedApiKey = displayApiKey.startsWith('obs_')
+    ? `${displayApiKey.slice(0, 8)}***${displayApiKey.slice(-4)}`
     : displayApiKey;
 
   console.log(chalk.gray(`API URL: ${chalk.white(apiUrl)}`));
