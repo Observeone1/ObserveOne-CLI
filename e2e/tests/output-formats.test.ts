@@ -1,7 +1,7 @@
 import { runCLI } from '../lib/test-runner.js';
 
 export async function testJsonOutputFormat() {
-  const result = await runCLI(['list', '--format', 'json']);
+  const result = await runCLI(['monitor', 'list', '--json']);
 
   if (result.exitCode === 0) {
     // The output may contain progress indicators followed by JSON
@@ -48,7 +48,7 @@ export async function testJsonOutputFormat() {
 }
 
 export async function testGlobalJsonOutput() {
-  const result = await runCLI(['--json', 'list']);
+  const result = await runCLI(['monitor', 'list', '--json']);
 
   if (result.exitCode === 0) {
     // The output may contain progress indicators followed by JSON

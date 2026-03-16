@@ -31,6 +31,12 @@ Overrides the default production API endpoint. Highly useful for local developme
 export OBS_API_URL="http://localhost:8080/api"
 ```
 
+### `OBS_SKIP_UPDATE_CHECK`
+Disables npm update notifications (useful in CI/CD or deterministic runs).
+```bash
+export OBS_SKIP_UPDATE_CHECK="true"
+```
+
 ### Headless Provisioning Variables
 If you are running `obs login --headless`, the CLI expects these variables to securely mint a new API key without interactive browser prompts:
 ```bash
