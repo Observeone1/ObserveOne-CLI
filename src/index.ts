@@ -150,16 +150,26 @@ process.on('unhandledRejection', (reason: unknown) => {
   handleFatalError(reason, 'Unhandled Rejection');
 });
 
-// Parse arguments with safety net for help/version
-try {
-  // Check for updates in background (don't await to avoid delaying command execution)
-  updateService.checkForUpdates(outputService).catch(() => {
-    // Silently ignore background update check errors
-  });
+const isVersionRequest = process.argv.includes('--version') || process.argv.includes('-V');
 
-  program.parse();
-} catch (err: unknown) {
-  handleFatalError(err, 'Parse Error');
-}
+// Parse arguments with safety net for help/version
+const run = async () => {
+  try {
+    if (isVersionRequest) {
+      await updateService.checkForUpdates(outputService);
+    } else {
+      // Check for updates in background (don't await to avoid delaying command execution)
+      updateService.checkForUpdates(outputService).catch(() => {
+        // Silently ignore background update check errors
+      });
+    }
+
+    program.parse();
+  } catch (err: unknown) {
+    handleFatalError(err, 'Parse Error');
+  }
+};
+
+void run();
 
 export { program };
