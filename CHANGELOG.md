@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `obs login help` now shows command help instead of running login.
 
+## [1.4.2] - 2026-03-16
+
+### Fixed
+- Update notice now suggests the correct package manager command (npm, pnpm, yarn, or bun).
+
 ## [1.4.0] - 2026-03-16
 
 ### Added
