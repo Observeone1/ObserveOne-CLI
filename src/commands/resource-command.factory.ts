@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { readFileSync, existsSync } from 'fs';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
@@ -128,6 +129,8 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
     .description(`Create a new ${resourceName}`)
     .option('-j, --json', 'Output in JSON format');
 
+  createCmd.option('--file <path>', 'Path to JSON file with resource data');
+
   if (options.createCommandSetup) {
     options.createCommandSetup(createCmd);
   }
@@ -136,9 +139,25 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
     const resolvedOptions = resolveOptions(cmdOptions);
     setupContext(resolvedOptions);
     try {
-      let payload: Partial<T> = resolvedOptions as unknown as Partial<T>;
-      if (options.createPrompts) {
-        payload = await options.createPrompts(resolvedOptions);
+      let payload: Partial<T>;
+
+      if (resolvedOptions.file) {
+        const filePath = resolvedOptions.file as string;
+        if (!existsSync(filePath)) {
+          outputService.error(`File not found: ${filePath}`);
+          process.exit(1);
+        }
+        try {
+          payload = JSON.parse(readFileSync(filePath, 'utf-8')) as Partial<T>;
+        } catch {
+          outputService.error(`Failed to parse ${filePath} as JSON.`);
+          process.exit(1);
+        }
+      } else {
+        payload = resolvedOptions as unknown as Partial<T>;
+        if (options.createPrompts) {
+          payload = await options.createPrompts(resolvedOptions);
+        }
       }
 
       outputService.progress(`Creating ${resourceName}...`);
