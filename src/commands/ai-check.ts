@@ -25,6 +25,12 @@ interface AiCheckRunOptions {
   json?: boolean;
 }
 
+function isJsonOutputMode(options: AiCheckRunOptions): boolean {
+  return (
+    process.env.OBS_JSON_OUTPUT === 'true' || options.json === true || options.reporter === 'json'
+  );
+}
+
 /**
  * Factory function to create ai-check command with direct service injection
  */
@@ -54,8 +60,7 @@ export function createAiCheckCommand(
     .option('--api-key <key>', 'Override API key')
     .option('-j, --json', 'Output in JSON format')
     .action(async (testNames: string[], options: AiCheckRunOptions) => {
-      const isJson =
-        process.env.OBS_JSON_OUTPUT === 'true' || options.json || options.reporter === 'json';
+      const isJson = isJsonOutputMode(options);
       if (isJson) {
         outputService.enableJsonMode();
       }
@@ -104,7 +109,7 @@ export function createAiCheckCommand(
           );
         }
 
-        await formatAndOutputResults(results, options, outputService);
+        await formatAndOutputResults(results, options, outputService, isJson);
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
@@ -617,9 +622,10 @@ async function streamTestProgress(
 async function formatAndOutputResults(
   results: TestResult[],
   options: AiCheckRunOptions,
-  outputService: IOutputService
+  outputService: IOutputService,
+  isJson: boolean
 ): Promise<void> {
-  if (options.reporter === 'json' || process.env.OBS_JSON_OUTPUT === 'true') {
+  if (isJson) {
     outputService.enableJsonMode();
     outputService.formatJsonOutput(results);
   } else if (options.reporter === 'junit') {

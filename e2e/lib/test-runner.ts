@@ -173,3 +173,14 @@ export function assertJSON(output: string, message?: string): void {
     throw new Error(`${message || 'Output should be valid JSON'}\\nGot: ${output}`);
   }
 }
+
+/**
+ * Assert that output is a single JSON document with no surrounding noise
+ */
+export function assertStrictJSON(output: string, message?: string): void {
+  try {
+    JSON.parse(output.trim());
+  } catch (_error) {
+    throw new Error(`${message || 'Output should be strict JSON only'}\nGot: ${output}`);
+  }
+}

@@ -1,4 +1,10 @@
-import { runCLI, assertSuccess, assertFailure, assertContains } from '../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertFailure,
+  assertContains,
+  assertStrictJSON,
+} from '../lib/test-runner.js';
 
 export async function testAiCheckWithInvalidTestName() {
   const result = await runCLI(['ai-check', 'run', 'nonexistent-test-name']);
@@ -63,4 +69,35 @@ export async function testAiCheckWithAdHocTest() {
     }
   }
   // If it succeeds, that's also fine
+}
+
+export async function testAiCheckJsonAdhocOutputIsStrictEnvelope() {
+  const result = await runCLI([
+    'ai-check',
+    'run',
+    '--url',
+    'https://example.com',
+    '--prompt',
+    'Check if page loads',
+    '--timeout',
+    '5000',
+    '--json',
+  ]);
+
+  if (result.stdout.trim().length === 0) {
+    throw new Error(`Expected JSON output on stdout. Stderr: ${result.stderr}`);
+  }
+
+  assertStrictJSON(result.stdout, 'AI check JSON run should emit a single JSON envelope');
+
+  if (result.stderr.trim().length > 0) {
+    throw new Error(`Expected no stderr noise in JSON mode. Got: ${result.stderr}`);
+  }
+
+  if (result.exitCode !== 0) {
+    const parsed = JSON.parse(result.stdout);
+    if (parsed.status !== 'ERROR') {
+      throw new Error(`Expected JSON error envelope on failure. Got: ${result.stdout}`);
+    }
+  }
 }
