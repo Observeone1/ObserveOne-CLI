@@ -42,9 +42,7 @@ export function createValidateCommand(outputService: IOutputService): Command {
         if (isJson) {
           outputService.formatJsonOutput({ valid: false, missing_fields: missing });
         } else {
-          outputService.error(
-            `Validation failed — missing required fields: ${missing.join(', ')}`
-          );
+          outputService.error(`Validation failed — missing required fields: ${missing.join(', ')}`);
         }
         process.exit(1);
       }
@@ -52,9 +50,7 @@ export function createValidateCommand(outputService: IOutputService): Command {
       if (isJson) {
         outputService.formatJsonOutput({ valid: true, resource: options.resource });
       } else {
-        outputService.success(
-          `${options.file} is valid for resource type "${options.resource}".`
-        );
+        outputService.success(`${options.file} is valid for resource type "${options.resource}".`);
       }
     });
 }

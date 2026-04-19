@@ -1,7 +1,13 @@
 import { mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { runCLI, assertSuccess, assertFailure, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertFailure,
+  assertContains,
+  assertJSON,
+} from '../../lib/test-runner.js';
 
 export async function testFileWorkflow() {
   const tmpDir = join(tmpdir(), `obs-e2e-${Date.now()}`);
