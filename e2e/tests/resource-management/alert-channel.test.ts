@@ -9,10 +9,14 @@ export async function testAlertChannelLifecycle() {
   try {
     console.log('      - Creating alert channel...');
     const createResult = await runCLI([
-      'alert-channel', 'create',
-      '--name', channelName,
-      '--type', 'email',
-      '--email', channelEmail,
+      'alert-channel',
+      'create',
+      '--name',
+      channelName,
+      '--type',
+      'email',
+      '--email',
+      channelEmail,
       '--json',
     ]);
     assertSuccess(createResult, 'Alert channel creation failed');
@@ -31,16 +35,27 @@ export async function testAlertChannelLifecycle() {
 
     console.log(`      - Updating alert channel ${channelId}...`);
     const updateResult = await runCLI([
-      'alert-channel', 'update', channelId!.toString(),
-      '--name', `${channelName}-Updated`,
-      '--type', 'email',
-      '--email', channelEmail,
+      'alert-channel',
+      'update',
+      channelId!.toString(),
+      '--name',
+      `${channelName}-Updated`,
+      '--type',
+      'email',
+      '--email',
+      channelEmail,
       '--json',
     ]);
     assertSuccess(updateResult, 'Alert channel update failed');
 
     console.log(`      - Deleting alert channel ${channelId}...`);
-    const deleteResult = await runCLI(['alert-channel', 'delete', channelId!.toString(), '-y', '--json']);
+    const deleteResult = await runCLI([
+      'alert-channel',
+      'delete',
+      channelId!.toString(),
+      '-y',
+      '--json',
+    ]);
     assertSuccess(deleteResult, 'Alert channel delete failed');
     channelId = undefined;
   } finally {

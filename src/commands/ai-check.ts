@@ -355,8 +355,7 @@ export function createAiCheckCommand(
     .option('-j, --json', 'Output in JSON format')
     .option('-t, --timeout <ms>', 'Max time to wait in milliseconds', '300000')
     .action(async (executionId: string, options: Record<string, unknown>) => {
-      const isJson =
-        process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
       if (isJson) {
         outputService.enableJsonMode();
       }

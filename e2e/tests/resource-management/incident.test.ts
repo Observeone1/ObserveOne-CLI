@@ -8,10 +8,14 @@ export async function testIncidentLifecycle() {
   try {
     console.log('      - Creating incident...');
     const createResult = await runCLI([
-      'incident', 'create',
-      '--title', title,
-      '--priority', 'HIGH',
-      '--description', 'E2E incident creation',
+      'incident',
+      'create',
+      '--title',
+      title,
+      '--priority',
+      'HIGH',
+      '--description',
+      'E2E incident creation',
       '--json',
     ]);
     assertSuccess(createResult, 'Incident creation failed');
@@ -30,16 +34,27 @@ export async function testIncidentLifecycle() {
 
     console.log(`      - Updating incident ${incidentId}...`);
     const updateResult = await runCLI([
-      'incident', 'update', incidentId!.toString(),
-      '--title', title,
-      '--priority', 'HIGH',
-      '--description', 'Updated via E2E',
+      'incident',
+      'update',
+      incidentId!.toString(),
+      '--title',
+      title,
+      '--priority',
+      'HIGH',
+      '--description',
+      'Updated via E2E',
       '--json',
     ]);
     assertSuccess(updateResult, 'Incident update failed');
 
     console.log(`      - Deleting incident ${incidentId}...`);
-    const deleteResult = await runCLI(['incident', 'delete', incidentId!.toString(), '-y', '--json']);
+    const deleteResult = await runCLI([
+      'incident',
+      'delete',
+      incidentId!.toString(),
+      '-y',
+      '--json',
+    ]);
     assertSuccess(deleteResult, 'Incident delete failed');
     incidentId = undefined;
   } finally {

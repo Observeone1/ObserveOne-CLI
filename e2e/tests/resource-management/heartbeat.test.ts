@@ -8,9 +8,12 @@ export async function testHeartbeatLifecycle() {
   try {
     console.log('      - Creating heartbeat...');
     const createResult = await runCLI([
-      'heartbeat', 'create',
-      '--name', hbName,
-      '--period', '600',
+      'heartbeat',
+      'create',
+      '--name',
+      hbName,
+      '--period',
+      '600',
       '--json',
     ]);
     assertSuccess(createResult, 'Heartbeat creation failed');
@@ -29,8 +32,11 @@ export async function testHeartbeatLifecycle() {
 
     console.log(`      - Updating heartbeat ${hbId}...`);
     const updateResult = await runCLI([
-      'heartbeat', 'update', hbId!.toString(),
-      '--period', '1200',
+      'heartbeat',
+      'update',
+      hbId!.toString(),
+      '--period',
+      '1200',
       '--json',
     ]);
     assertSuccess(updateResult, 'Heartbeat update failed');

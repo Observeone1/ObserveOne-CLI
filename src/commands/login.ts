@@ -163,9 +163,7 @@ export function createLoginCommand(
               outputService.success('Successfully authenticated!');
 
               // Project configuration setup is now separated to "obs init"
-              console.log(
-                brand.warning('\nRun "obs init" to create local project configuration.')
-              );
+              console.log(brand.warning('\nRun "obs init" to create local project configuration.'));
 
               console.log('');
               console.log(chalk.bold('Next steps:'));

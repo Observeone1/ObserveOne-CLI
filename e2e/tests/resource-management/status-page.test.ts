@@ -9,9 +9,12 @@ export async function testStatusPageLifecycle() {
   try {
     console.log('      - Creating status page...');
     const createResult = await runCLI([
-      'status-page', 'create',
-      '--name', pageName,
-      '--slug', slug,
+      'status-page',
+      'create',
+      '--name',
+      pageName,
+      '--slug',
+      slug,
       '--json',
     ]);
     assertSuccess(createResult, 'Status page creation failed');
@@ -30,16 +33,27 @@ export async function testStatusPageLifecycle() {
 
     console.log(`      - Updating status page ${pageId}...`);
     const updateResult = await runCLI([
-      'status-page', 'update', pageId!.toString(),
-      '--name', pageName,
-      '--slug', slug,
-      '--description', 'Updated via E2E',
+      'status-page',
+      'update',
+      pageId!.toString(),
+      '--name',
+      pageName,
+      '--slug',
+      slug,
+      '--description',
+      'Updated via E2E',
       '--json',
     ]);
     assertSuccess(updateResult, 'Status page update failed');
 
     console.log(`      - Deleting status page ${pageId}...`);
-    const deleteResult = await runCLI(['status-page', 'delete', pageId!.toString(), '-y', '--json']);
+    const deleteResult = await runCLI([
+      'status-page',
+      'delete',
+      pageId!.toString(),
+      '-y',
+      '--json',
+    ]);
     assertSuccess(deleteResult, 'Status page delete failed');
     pageId = undefined;
   } finally {

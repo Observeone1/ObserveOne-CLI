@@ -97,7 +97,9 @@ export async function testAiCheckJsonAdhocOutputIsStrictEnvelope() {
     const result = await runCLI([...baseArgs, ...trigger.args], 30000, trigger.env);
 
     if (result.stdout.trim().length === 0) {
-      throw new Error(`[${trigger.label}] Expected JSON output on stdout. Stderr: ${result.stderr}`);
+      throw new Error(
+        `[${trigger.label}] Expected JSON output on stdout. Stderr: ${result.stderr}`
+      );
     }
 
     assertStrictJSON(

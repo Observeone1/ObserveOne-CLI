@@ -132,7 +132,7 @@ export class LiveProgressRenderer {
       case 'scroll':
         return `Scroll ${params?.direction || 'down'}`;
       case 'done':
-        return params?.text as string || 'Task completed';
+        return (params?.text as string) || 'Task completed';
       default:
         return `${actionType}: ${JSON.stringify(params)}`;
     }

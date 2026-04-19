@@ -9,10 +9,14 @@ export async function testApiCheckLifecycle() {
   try {
     console.log('      - Creating API check...');
     const createResult = await runCLI([
-      'check', 'create',
-      '--name', checkName,
-      '--url', checkUrl,
-      '--method', 'GET',
+      'check',
+      'create',
+      '--name',
+      checkName,
+      '--url',
+      checkUrl,
+      '--method',
+      'GET',
       '--json',
     ]);
     assertSuccess(createResult, 'API check creation failed');
@@ -31,8 +35,11 @@ export async function testApiCheckLifecycle() {
 
     console.log(`      - Updating API check ${checkId}...`);
     const updateResult = await runCLI([
-      'check', 'update', checkId!.toString(),
-      '--method', 'POST',
+      'check',
+      'update',
+      checkId!.toString(),
+      '--method',
+      'POST',
       '--json',
     ]);
     assertSuccess(updateResult, 'API check update failed');

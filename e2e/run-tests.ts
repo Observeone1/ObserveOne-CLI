@@ -153,9 +153,7 @@ async function runTests(): Promise<void> {
 
   const allFiles = collectTestFiles(testsDir);
   const testFiles =
-    filters.length > 0
-      ? allFiles.filter((f) => filters.some((p) => f.includes(p)))
-      : allFiles;
+    filters.length > 0 ? allFiles.filter((f) => filters.some((p) => f.includes(p))) : allFiles;
 
   if (isList) {
     for (const file of testFiles) {

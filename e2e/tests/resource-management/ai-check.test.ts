@@ -10,10 +10,14 @@ export async function testAiCheckLifecycle() {
   try {
     console.log('      - Creating AI check...');
     const createResult = await runCLI([
-      'ai-check', 'create',
-      '--name', aiName,
-      '--url', aiUrl,
-      '--prompt', aiPrompt,
+      'ai-check',
+      'create',
+      '--name',
+      aiName,
+      '--url',
+      aiUrl,
+      '--prompt',
+      aiPrompt,
       '--json',
     ]);
     assertSuccess(createResult, 'AI check creation failed');

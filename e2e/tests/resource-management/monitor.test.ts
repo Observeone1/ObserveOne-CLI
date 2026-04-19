@@ -1,4 +1,10 @@
-import { runCLI, assertSuccess, assertContains, assertJSON, assertFailure } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  assertFailure,
+} from '../../lib/test-runner.js';
 
 export async function testMonitorLifecycle() {
   const timestamp = Date.now();
@@ -9,10 +15,14 @@ export async function testMonitorLifecycle() {
   try {
     console.log('      - Creating monitor...');
     const createResult = await runCLI([
-      'monitor', 'create',
-      '--name', monitorName,
-      '--url', monitorUrl,
-      '--interval', '*/10 * * * *',
+      'monitor',
+      'create',
+      '--name',
+      monitorName,
+      '--url',
+      monitorUrl,
+      '--interval',
+      '*/10 * * * *',
       '--json',
     ]);
     assertSuccess(createResult, 'Monitor creation failed');
@@ -37,8 +47,11 @@ export async function testMonitorLifecycle() {
     console.log(`      - Updating monitor ${monitorId}...`);
     const updatedName = `${monitorName}-Updated`;
     const updateResult = await runCLI([
-      'monitor', 'update', monitorId.toString(),
-      '--name', updatedName,
+      'monitor',
+      'update',
+      monitorId.toString(),
+      '--name',
+      updatedName,
       '--json',
     ]);
     assertSuccess(updateResult, 'Monitor update failed');
