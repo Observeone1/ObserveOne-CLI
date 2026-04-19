@@ -5,8 +5,8 @@ if (process.argv.includes('--ci')) {
   process.env.FORCE_COLOR = '0';
 }
 
-import { readdirSync } from 'fs';
-import { join } from 'path';
+import { readdirSync, statSync } from 'fs';
+import { join, relative } from 'path';
 import { pathToFileURL } from 'url';
 import chalk from 'chalk';
 import { runCLI } from './lib/test-runner.js';
@@ -136,7 +136,22 @@ async function runTests(): Promise<void> {
   console.log(chalk.gray(`API Key: ${chalk.white(maskedApiKey)}\n`));
 
   const testsDir = join(process.cwd(), 'e2e', 'tests');
-  const allFiles = readdirSync(testsDir).filter((f) => f.endsWith('.test.ts'));
+
+  function collectTestFiles(dir: string): string[] {
+    const entries = readdirSync(dir);
+    const files: string[] = [];
+    for (const entry of entries) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        files.push(...collectTestFiles(full));
+      } else if (entry.endsWith('.test.ts')) {
+        files.push(relative(testsDir, full));
+      }
+    }
+    return files;
+  }
+
+  const allFiles = collectTestFiles(testsDir);
   const testFiles =
     filters.length > 0
       ? allFiles.filter((f) => filters.some((p) => f.includes(p)))
