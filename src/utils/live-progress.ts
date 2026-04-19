@@ -1,5 +1,6 @@
 import ora, { Ora } from 'ora';
 import chalk from 'chalk';
+import { brand as c } from './theme.js';
 
 export interface ProgressOptions {
   verbose?: boolean;
@@ -27,9 +28,9 @@ export class LiveProgressRenderer {
 
   start(testName: string): void {
     this.testName = testName;
-    console.log(chalk.bold(`\n🎯 Test: ${testName}`));
-    console.log(chalk.gray('━'.repeat(50)));
-    this.spinner.start(chalk.blue('Connecting to execution stream...'));
+    console.log(c.success.bold(`\n${testName}`));
+    console.log(c.muted('━'.repeat(50)));
+    this.spinner.start(c.accent('Connecting to execution stream...'));
   }
 
   updateStep(stepNumber: number, goal: string, details?: StepDetails): void {
@@ -37,43 +38,41 @@ export class LiveProgressRenderer {
     const elapsed = this.getElapsedTime();
 
     if (this.verbose && details) {
-      // Verbose mode: show detailed step information
       this.spinner.stop();
       console.log(
         chalk.bold(`\nStep ${stepNumber}${this.totalSteps > 0 ? `/${this.totalSteps}` : ''}:`)
       );
-      console.log(chalk.cyan(`  Goal: ${goal}`));
+      console.log(c.accent(`  Goal: ${goal}`));
 
       if (details.evaluation) {
-        console.log(chalk.magenta(`  Evaluation: ${details.evaluation}`));
+        console.log(c.muted(`  Evaluation: ${details.evaluation}`));
       }
 
       if (details.actions && details.actions.length > 0) {
-        console.log(chalk.yellow('  Actions:'));
+        console.log(c.warning('  Actions:'));
         details.actions.forEach((action) => {
           const actionText = this.formatAction(action);
           if (actionText) {
-            console.log(chalk.gray(`    ${actionText}`));
+            console.log(c.muted(`    ${actionText}`));
           }
         });
       }
 
       if (details.result && details.result.length > 0) {
-        console.log(chalk.green('  Results:'));
+        console.log(c.success('  Results:'));
         details.result.forEach((result) => {
           if (result.error) {
-            console.log(chalk.red(`    ✗ ${result.error}`));
+            console.log(c.error(`    ✗ ${result.error}`));
           } else {
-            console.log(chalk.green(`    ✓ Success`));
+            console.log(c.success(`    ✓ Success`));
           }
         });
       }
 
-      this.spinner.start(chalk.blue(`⏱️  ${elapsed} | Running...`));
+      this.spinner.start(c.accent(`${elapsed} · Running...`));
     } else {
-      // Compact mode: single line with essential info
-      this.spinner.text = chalk.blue(
-        `⏱️  ${elapsed} | Step ${stepNumber}${
+      this.spinner.text = c.accent(
+        `${elapsed} · Step ${stepNumber}${
           this.totalSteps > 0 ? `/${this.totalSteps}` : ''
         }: ${goal}`
       );
@@ -82,30 +81,26 @@ export class LiveProgressRenderer {
 
   addScreenshot(): void {
     this.screenshotCount++;
-    if (!this.verbose) {
-      // Only show in compact mode footer
-    }
   }
 
   updateStatus(message: string): void {
-    this.spinner.text = chalk.blue(message);
+    this.spinner.text = c.accent(message);
   }
 
   complete(status: 'success' | 'failed', message?: string): void {
     const elapsed = this.getElapsedTime();
 
     if (status === 'success') {
-      this.spinner.succeed(chalk.green(message || 'Test completed successfully'));
+      this.spinner.succeed(c.success(message || 'Test completed successfully'));
     } else {
-      this.spinner.fail(chalk.red(message || 'Test failed'));
+      this.spinner.fail(c.error(message || 'Test failed'));
     }
 
-    console.log(chalk.gray(`📸 ${this.screenshotCount} screenshots captured`));
-    console.log(chalk.gray(`⏱️  Duration: ${elapsed}`));
+    console.log(c.muted(`${this.screenshotCount} screenshots · ${elapsed}`));
   }
 
   error(message: string): void {
-    this.spinner.fail(chalk.red(message));
+    this.spinner.fail(c.error(message));
   }
 
   private getElapsedTime(): string {
@@ -125,19 +120,19 @@ export class LiveProgressRenderer {
 
     switch (actionType) {
       case 'go_to_url':
-        return `🔗 Navigate to: ${params?.url || params}`;
+        return `Navigate to: ${params?.url || params}`;
       case 'click_element':
       case 'click_element_by_index':
-        return `🖱️  Click element${params?.index !== undefined ? ` #${params.index}` : ''}`;
+        return `Click element${params?.index !== undefined ? ` #${params.index}` : ''}`;
       case 'input_text':
       case 'type_text':
-        return `⌨️  Type: "${params?.text || params}"${
+        return `Type: "${params?.text || params}"${
           params?.index !== undefined ? ` into element #${params.index}` : ''
         }`;
       case 'scroll':
-        return `📜 Scroll ${params?.direction || 'down'}`;
+        return `Scroll ${params?.direction || 'down'}`;
       case 'done':
-        return `✅ ${params?.text || 'Task completed'}`;
+        return params?.text as string || 'Task completed';
       default:
         return `${actionType}: ${JSON.stringify(params)}`;
     }

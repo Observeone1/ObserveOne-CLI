@@ -12,6 +12,7 @@ import {
   StatusPage,
   Incident,
 } from '../types/index.js';
+import { brand as c } from '../utils/theme.js';
 
 /**
  * Output formatting service implementation
@@ -23,9 +24,10 @@ export class OutputService implements IOutputService {
   enableJsonMode(): void {
     this.isJsonMode = true;
   }
+
   success(message: string): void {
     if (this.isJsonMode) return;
-    console.log(chalk.green(`✅ ${message}`));
+    console.log(c.success(`✓ ${message}`));
   }
 
   error(message: string): void {
@@ -38,22 +40,22 @@ export class OutputService implements IOutputService {
       console.log(JSON.stringify(envelope, null, 2));
       return;
     }
-    console.error(chalk.red(`❌ ${message}`));
+    console.error(c.error(`✗ ${message}`));
   }
 
   warning(message: string): void {
     if (this.isJsonMode) return;
-    console.log(chalk.yellow(`⚠️  ${message}`));
+    console.log(c.warning(`! ${message}`));
   }
 
   info(message: string): void {
     if (this.isJsonMode) return;
-    console.log(chalk.blue(`ℹ️  ${message}`));
+    console.log(c.muted(message));
   }
 
   progress(message: string): void {
     if (this.isJsonMode) return;
-    console.log(chalk.cyan(`🔄 ${message}`));
+    console.log(c.accent(message));
   }
 
   formatTestList(tests: Test[], verbose: boolean = false): void {
@@ -62,20 +64,20 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n🤖 AI Browser Checks:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nAI Browser Checks'));
+    console.log(c.muted('─'.repeat(80)));
 
     tests.forEach((test, index) => {
       console.log(chalk.bold(`${index + 1}. ${test.name}`));
       if (test.description) {
-        console.log(chalk.gray(`   ${test.description}`));
+        console.log(c.muted(`   ${test.description}`));
       }
-      console.log(chalk.gray(`   URL: ${test.url}`));
-      console.log(chalk.gray(`   ID: ${test.id}`));
+      console.log(c.muted(`   URL: ${test.url}`));
+      console.log(c.muted(`   ID: ${test.id}`));
 
       if (verbose) {
-        console.log(chalk.gray(`   Prompt: ${test.prompt}`));
-        console.log(chalk.gray(`   Created: ${new Date(test.created_at).toLocaleString()}`));
+        console.log(c.muted(`   Prompt: ${test.prompt}`));
+        console.log(c.muted(`   Created: ${new Date(test.created_at).toLocaleString()}`));
       }
       console.log('');
     });
@@ -87,20 +89,20 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n🌐 URL Monitors:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nURL Monitors'));
+    console.log(c.muted('─'.repeat(80)));
 
     monitors.forEach((monitor, index) => {
-      const status = monitor.is_active ? chalk.green('ACTIVE') : chalk.yellow('PAUSED');
+      const status = monitor.is_active ? c.success('ACTIVE') : c.warning('PAUSED');
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
 
-      console.log(chalk.gray(`   URL: ${monitor.url}`));
-      console.log(chalk.gray(`   ID: ${monitor.id}`));
+      console.log(c.muted(`   URL: ${monitor.url}`));
+      console.log(c.muted(`   ID: ${monitor.id}`));
 
       if (verbose) {
-        if (monitor.description) console.log(chalk.gray(`   Desc: ${monitor.description}`));
-        console.log(chalk.gray(`   Interval: ${monitor.cron_expression || 'Default'}`));
-        console.log(chalk.gray(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
+        if (monitor.description) console.log(c.muted(`   Desc: ${monitor.description}`));
+        console.log(c.muted(`   Interval: ${monitor.cron_expression || 'Default'}`));
+        console.log(c.muted(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
       }
       console.log('');
     });
@@ -112,19 +114,19 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n🔌 API Checks:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nAPI Checks'));
+    console.log(c.muted('─'.repeat(80)));
 
     checks.forEach((check, index) => {
-      const status = check.is_active ? chalk.green('ACTIVE') : chalk.yellow('PAUSED');
+      const status = check.is_active ? c.success('ACTIVE') : c.warning('PAUSED');
       console.log(chalk.bold(`${index + 1}. ${check.name} [${status}]`));
 
-      console.log(chalk.gray(`   Endpoint: ${check.method} ${check.url}`));
-      console.log(chalk.gray(`   ID: ${check.id}`));
+      console.log(c.muted(`   Endpoint: ${check.method} ${check.url}`));
+      console.log(c.muted(`   ID: ${check.id}`));
 
       if (verbose) {
-        if (check.description) console.log(chalk.gray(`   Desc: ${check.description}`));
-        console.log(chalk.gray(`   Assertions: ${check.assertions?.length || 0}`));
+        if (check.description) console.log(c.muted(`   Desc: ${check.description}`));
+        console.log(c.muted(`   Assertions: ${check.assertions?.length || 0}`));
       }
       console.log('');
     });
@@ -136,23 +138,23 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n💓 Heartbeats:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nHeartbeats'));
+    console.log(c.muted('─'.repeat(80)));
 
     heartbeats.forEach((hb, index) => {
       const statusColor =
-        hb.status === 'UP' ? chalk.green : hb.status === 'DOWN' ? chalk.red : chalk.yellow;
+        hb.status === 'UP' ? c.success : hb.status === 'DOWN' ? c.error : c.warning;
       const status = statusColor(hb.status);
-      const activeStatus = hb.is_active ? '' : chalk.yellow(' (PAUSED)');
+      const activeStatus = hb.is_active ? '' : c.warning(' (PAUSED)');
 
       console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}${activeStatus}`));
-      console.log(chalk.gray(`   Key: ${hb.ping_key}`));
-      console.log(chalk.gray(`   ID: ${hb.id}`));
+      console.log(c.muted(`   Key: ${hb.ping_key}`));
+      console.log(c.muted(`   ID: ${hb.id}`));
 
       if (verbose) {
-        console.log(chalk.gray(`   Period: ${hb.period}s (Grace: ${hb.grace_period}s)`));
+        console.log(c.muted(`   Period: ${hb.period}s (Grace: ${hb.grace_period}s)`));
         console.log(
-          chalk.gray(
+          c.muted(
             `   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : 'Never'}`
           )
         );
@@ -167,18 +169,18 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n🔔 Alert Channels:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nAlert Channels'));
+    console.log(c.muted('─'.repeat(80)));
 
     channels.forEach((channel, index) => {
-      const defaultFlag = channel.is_default ? chalk.green('DEFAULT') : chalk.gray('CUSTOM');
+      const defaultFlag = channel.is_default ? c.success('DEFAULT') : c.muted('CUSTOM');
       console.log(chalk.bold(`${index + 1}. ${channel.name} [${channel.type}] (${defaultFlag})`));
-      console.log(chalk.gray(`   ID: ${channel.id}`));
+      console.log(c.muted(`   ID: ${channel.id}`));
 
       if (verbose) {
         const configKeys = Object.keys(channel.config || {});
         console.log(
-          chalk.gray(`   Config keys: ${configKeys.length ? configKeys.join(', ') : 'None'}`)
+          c.muted(`   Config keys: ${configKeys.length ? configKeys.join(', ') : 'None'}`)
         );
       }
       console.log('');
@@ -191,21 +193,21 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n📣 Status Pages:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nStatus Pages'));
+    console.log(c.muted('─'.repeat(80)));
 
     statusPages.forEach((page, index) => {
-      const visibility = page.is_public ? chalk.green('PUBLIC') : chalk.yellow('PRIVATE');
+      const visibility = page.is_public ? c.success('PUBLIC') : c.warning('PRIVATE');
       console.log(chalk.bold(`${index + 1}. ${page.name} [${visibility}]`));
-      console.log(chalk.gray(`   Slug: ${page.slug}`));
-      console.log(chalk.gray(`   ID: ${page.id}`));
+      console.log(c.muted(`   Slug: ${page.slug}`));
+      console.log(c.muted(`   ID: ${page.id}`));
 
       if (verbose) {
-        if (page.description) console.log(chalk.gray(`   Desc: ${page.description}`));
+        if (page.description) console.log(c.muted(`   Desc: ${page.description}`));
         if (page.theme_primary_color)
-          console.log(chalk.gray(`   Theme Primary: ${page.theme_primary_color}`));
+          console.log(c.muted(`   Theme Primary: ${page.theme_primary_color}`));
         if (page.theme_background_color)
-          console.log(chalk.gray(`   Theme Background: ${page.theme_background_color}`));
+          console.log(c.muted(`   Theme Background: ${page.theme_background_color}`));
       }
       console.log('');
     });
@@ -217,20 +219,20 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(chalk.bold('\n🚨 Incidents:'));
-    console.log(chalk.gray('─'.repeat(80)));
+    console.log(chalk.bold('\nIncidents'));
+    console.log(c.muted('─'.repeat(80)));
 
     incidents.forEach((incident, index) => {
       console.log(
         chalk.bold(`${index + 1}. ${incident.title} [${incident.priority}] (${incident.status})`)
       );
-      console.log(chalk.gray(`   ID: ${incident.id}`));
+      console.log(c.muted(`   ID: ${incident.id}`));
       if (incident.assigned_to) {
-        console.log(chalk.gray(`   Assigned: ${incident.assigned_to}`));
+        console.log(c.muted(`   Assigned: ${incident.assigned_to}`));
       }
 
       if (verbose && incident.description) {
-        console.log(chalk.gray(`   Desc: ${incident.description}`));
+        console.log(c.muted(`   Desc: ${incident.description}`));
       }
       console.log('');
     });
@@ -240,8 +242,8 @@ export class OutputService implements IOutputService {
     const statusColor = this.getStatusColor(execution.status);
     const statusIcon = this.getStatusIcon(execution.status);
 
-    console.log(chalk.bold('\n📊 Test Execution Status:'));
-    console.log(chalk.gray('─'.repeat(50)));
+    console.log(chalk.bold('\nExecution Status'));
+    console.log(c.muted('─'.repeat(50)));
     console.log(`Status: ${statusColor(`${statusIcon} ${execution.status}`)}`);
     console.log(`Execution ID: ${execution.id}`);
     console.log(`Test ID: ${execution.test_id}`);
@@ -252,7 +254,7 @@ export class OutputService implements IOutputService {
     }
 
     if (execution.error_message) {
-      console.log(chalk.red(`Error: ${execution.error_message}`));
+      console.log(c.error(`Error: ${execution.error_message}`));
     }
 
     if (execution.task_id) {
@@ -264,8 +266,8 @@ export class OutputService implements IOutputService {
     const statusColor = this.getStatusColor(result.status);
     const statusIcon = this.getStatusIcon(result.status);
 
-    console.log(chalk.bold('\n🎯 Test Result:'));
-    console.log(chalk.gray('─'.repeat(50)));
+    console.log(chalk.bold('\nResult'));
+    console.log(c.muted('─'.repeat(50)));
     console.log(`Status: ${statusColor(`${statusIcon} ${result.status}`)}`);
     console.log(`Message: ${result.message}`);
 
@@ -278,7 +280,7 @@ export class OutputService implements IOutputService {
     }
 
     if (result.screenshots && result.screenshots.length > 0) {
-      console.log(chalk.blue(`\n📸 Screenshots: ${result.screenshots.length} captured`));
+      console.log(c.muted(`\nScreenshots: ${result.screenshots.length} captured`));
     }
   }
 
@@ -358,15 +360,15 @@ ${testSuite.testCases
   private getStatusColor(status: string): (text: string) => string {
     switch (status.toUpperCase()) {
       case 'SUCCESS':
-        return chalk.green;
+        return c.success;
       case 'FAILED':
-        return chalk.red;
+        return c.error;
       case 'RUNNING':
-        return chalk.blue;
+        return c.accent;
       case 'PENDING':
-        return chalk.yellow;
+        return c.warning;
       case 'CANCELLED':
-        return chalk.gray;
+        return c.muted;
       default:
         return chalk.white;
     }
@@ -375,17 +377,17 @@ ${testSuite.testCases
   private getStatusIcon(status: string): string {
     switch (status.toUpperCase()) {
       case 'SUCCESS':
-        return '✅';
+        return '✓';
       case 'FAILED':
-        return '❌';
+        return '✗';
       case 'RUNNING':
-        return '🔄';
+        return '~';
       case 'PENDING':
-        return '⏳';
+        return '-';
       case 'CANCELLED':
-        return '⏹️';
+        return '·';
       default:
-        return '❓';
+        return '?';
     }
   }
 
@@ -396,15 +398,12 @@ ${testSuite.testCases
       request?: unknown;
     };
     if (err.response) {
-      // API error
       const status = err.response.status;
       const message = err.response.data?.error || err.response.data?.message || err.message;
       return `API Error (${status}): ${message}`;
     } else if (err.request) {
-      // Network error
       return `Network Error: Unable to connect to API. Please check your internet connection and API URL.`;
     } else {
-      // Other error
       return err.message || 'An unknown error occurred';
     }
   }
