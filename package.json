@@ -1,6 +1,6 @@
 {
   "name": "@observeone/cli",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "type": "module",
   "description": "ObserveOne CLI - AI-powered website monitoring and testing from the command line",
   "main": "dist/index.js",
