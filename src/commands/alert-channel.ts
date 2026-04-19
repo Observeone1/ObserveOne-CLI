@@ -91,7 +91,10 @@ export function createAlertChannelCommand(
     createCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Channel name')
-        .option('-t, --type <type>', 'Channel type (email, slack, discord, teams, telegram, sms, webhook)')
+        .option(
+          '-t, --type <type>',
+          'Channel type (email, slack, discord, teams, telegram, sms, webhook)'
+        )
         .option('--email <email>', 'Email address for email alerts')
         .option('--webhook-url <url>', 'Webhook URL for slack/discord/teams/webhook')
         .option('--bot-token <token>', 'Telegram bot token')
@@ -105,7 +108,10 @@ export function createAlertChannelCommand(
     updateCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Channel name')
-        .option('-t, --type <type>', 'Channel type (email, slack, discord, teams, telegram, sms, webhook)')
+        .option(
+          '-t, --type <type>',
+          'Channel type (email, slack, discord, teams, telegram, sms, webhook)'
+        )
         .option('--email <email>', 'Email address for email alerts')
         .option('--webhook-url <url>', 'Webhook URL for slack/discord/teams/webhook')
         .option('--bot-token <token>', 'Telegram bot token')

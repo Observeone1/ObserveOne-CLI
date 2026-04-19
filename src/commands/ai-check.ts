@@ -25,6 +25,12 @@ interface AiCheckRunOptions {
   json?: boolean;
 }
 
+function isJsonOutputMode(options: AiCheckRunOptions): boolean {
+  return (
+    process.env.OBS_JSON_OUTPUT === 'true' || options.json === true || options.reporter === 'json'
+  );
+}
+
 /**
  * Factory function to create ai-check command with direct service injection
  */
@@ -54,8 +60,7 @@ export function createAiCheckCommand(
     .option('--api-key <key>', 'Override API key')
     .option('-j, --json', 'Output in JSON format')
     .action(async (testNames: string[], options: AiCheckRunOptions) => {
-      const isJson =
-        process.env.OBS_JSON_OUTPUT === 'true' || options.json || options.reporter === 'json';
+      const isJson = isJsonOutputMode(options);
       if (isJson) {
         outputService.enableJsonMode();
       }
@@ -104,7 +109,7 @@ export function createAiCheckCommand(
           );
         }
 
-        await formatAndOutputResults(results, options, outputService);
+        await formatAndOutputResults(results, options, outputService, isJson);
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
         process.exit(1);
@@ -305,6 +310,98 @@ export function createAiCheckCommand(
           outputService.formatJsonOutput({ success: true, id: testId });
         } else {
           outputService.success(`AI check ${testId} deleted successfully.`);
+        }
+      } catch (error: unknown) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  // STATUS
+  aiCheck
+    .command('status <execution-id>')
+    .description('Get the status of a browser check execution')
+    .option('-j, --json', 'Output in JSON format')
+    .action(async (executionId: string, options: Record<string, unknown>) => {
+      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        const id = parseInt(executionId);
+        if (isNaN(id)) {
+          outputService.error('Invalid execution ID. Must be a numeric ID from a named check run.');
+          process.exit(1);
+        }
+
+        outputService.progress(`Fetching execution status for ${id}...`);
+        const execution = await apiClient.getExecutionStatus(id);
+        outputService.formatJsonOutput(execution);
+      } catch (error: unknown) {
+        outputService.error(outputService.formatError(error));
+        process.exit(1);
+      }
+    });
+
+  // WAIT
+  aiCheck
+    .command('wait <execution-id>')
+    .description('Wait for a browser check execution to complete')
+    .option('-j, --json', 'Output in JSON format')
+    .option('-t, --timeout <ms>', 'Max time to wait in milliseconds', '300000')
+    .action(async (executionId: string, options: Record<string, unknown>) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
+      if (isJson) {
+        outputService.enableJsonMode();
+      }
+      try {
+        const apiKey = configService.getApiKey();
+        if (!apiKey) {
+          outputService.error('Not authenticated. Please run "obs login" first.');
+          process.exit(1);
+        }
+
+        const id = parseInt(executionId);
+        if (isNaN(id)) {
+          outputService.error('Invalid execution ID. Must be a numeric ID from a named check run.');
+          process.exit(1);
+        }
+
+        const timeoutMs = parseInt(options.timeout as string) || 300000;
+        const intervalMs = 5000;
+        const maxAttempts = Math.ceil(timeoutMs / intervalMs);
+
+        const spinner = isJson ? null : ora(`Waiting for execution ${id}...`).start();
+
+        const execution = await apiClient.pollExecutionStatus(id, maxAttempts, intervalMs);
+
+        if (spinner) {
+          if (execution.status === 'SUCCESS') {
+            spinner.succeed(`Execution ${id} completed successfully.`);
+          } else {
+            spinner.fail(`Execution ${id} ended with status: ${execution.status}`);
+          }
+        }
+
+        let results: unknown[] | undefined;
+        if (execution.status === 'SUCCESS') {
+          try {
+            results = await apiClient.getExecutionResults(id);
+          } catch {
+            // results are optional — don't fail the command if they're unavailable
+          }
+        }
+
+        const payload = { execution, ...(results !== undefined && { results }) };
+        outputService.formatJsonOutput(payload);
+
+        if (execution.status !== 'SUCCESS') {
+          process.exit(1);
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
@@ -617,9 +714,10 @@ async function streamTestProgress(
 async function formatAndOutputResults(
   results: TestResult[],
   options: AiCheckRunOptions,
-  outputService: IOutputService
+  outputService: IOutputService,
+  isJson: boolean
 ): Promise<void> {
-  if (options.reporter === 'json' || process.env.OBS_JSON_OUTPUT === 'true') {
+  if (isJson) {
     outputService.enableJsonMode();
     outputService.formatJsonOutput(results);
   } else if (options.reporter === 'junit') {
@@ -634,7 +732,7 @@ async function formatAndOutputResults(
     // Console output
     results.forEach((result, index) => {
       if (results.length > 1) {
-        console.log(chalk.bold(`\n📊 Test ${index + 1} Results:`));
+        console.log(chalk.bold(`\nTest ${index + 1}:`));
       }
       outputService.formatTestResult(result);
     });
@@ -643,7 +741,7 @@ async function formatAndOutputResults(
     const successCount = results.filter((r) => r.status === 'SUCCESS').length;
     const totalCount = results.length;
 
-    console.log(chalk.bold('\n📈 Summary:'));
+    console.log(chalk.bold('\nSummary'));
     console.log(chalk.gray('─'.repeat(30)));
     console.log(`Total: ${totalCount}`);
     console.log(chalk.green(`Passed: ${successCount}`));

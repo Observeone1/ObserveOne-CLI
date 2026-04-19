@@ -32,7 +32,7 @@ export function createInitCommand(
           }
         }
 
-        console.log(chalk.bold('\n🚀 Setting up project configuration...'));
+        console.log(chalk.bold('\nSetting up project configuration...'));
 
         const projectAnswers = await inquirer.prompt<{
           projectName: string;

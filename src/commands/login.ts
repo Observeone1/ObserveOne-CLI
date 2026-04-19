@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { brand } from '../utils/theme.js';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
@@ -29,10 +30,10 @@ export function createLoginCommand(
         // Warning if environment variable is already set (will override new login)
         if (process.env.OBS_API_KEY && !process.env.OBS_JSON_OUTPUT) {
           console.warn(
-            chalk.yellow('\n⚠️  Warning: OBS_API_KEY is already set in your environment variables.')
+            brand.warning('\nWarning: OBS_API_KEY is already set in your environment variables.')
           );
           console.warn(
-            chalk.yellow(
+            brand.warning(
               '   This will take precedence over any keys saved during this login session.\n'
             )
           );
@@ -122,7 +123,7 @@ export function createLoginCommand(
         }
 
         // Browser-based authentication flow
-        console.log(chalk.bold('\n🔐 ObserveOne Authentication'));
+        console.log(chalk.bold('\nAuthentication'));
 
         // Request auth session
         outputService.progress('Requesting authentication session...');
@@ -137,7 +138,7 @@ export function createLoginCommand(
         console.log(chalk.gray(`Auth URL: ${auth_url}`));
         console.log(chalk.gray("If the browser doesn't open automatically, visit the URL above."));
         console.log('');
-        console.log(chalk.yellow('⏳ Waiting for authentication...'));
+        console.log(brand.warning('Waiting for authentication...'));
 
         try {
           await open(auth_url);
@@ -162,9 +163,7 @@ export function createLoginCommand(
               outputService.success('Successfully authenticated!');
 
               // Project configuration setup is now separated to "obs init"
-              console.log(
-                chalk.yellow('\n💡 Run "obs init" to create local project configuration!')
-              );
+              console.log(brand.warning('\nRun "obs init" to create local project configuration.'));
 
               console.log('');
               console.log(chalk.bold('Next steps:'));

@@ -21,7 +21,7 @@ When `--json` is detected, the CLI completely alters its behavior:
 2. **Guaranteed Schema:** It wraps every response in a strict `JsonEnvelope` schema.
 3. **Fatal Error Trapping:** It catches unhandled internal rejections and Commander.js parsing errors, converting them into structured JSON so your agent's JSON parser never crashes.
 
-For `obs ai-check run`, JSON mode returns immediately with a task identifier unless `--wait` is supplied.
+For `obs ai-check run`, JSON mode returns a single JSON envelope only. Without `--wait`, it returns immediately with the started task payload. With `--wait`, it stays silent during execution and returns one final completed envelope when the run finishes.
 
 ### The JSON Envelope Schema
 

@@ -5,6 +5,21 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-04-19
+
+### Added
+- `obs ai-check status <execution-id>` to fetch the status of a persisted browser-check execution.
+- `obs ai-check wait <execution-id>` to poll a persisted execution until terminal state, with optional `--timeout <ms>` and final results payload.
+
+### Fixed
+- `obs ai-check run --json` now emits a single strict JSON envelope on stdout with no SSE or spinner noise. `--reporter json` and `OBS_JSON_OUTPUT=true` route through the same path.
+
+### Changed
+- Visual refresh across CLI output. Emoji prefixes replaced with plain ASCII symbols and the brand palette is applied via a shared `theme.ts`.
+
+### Internal
+- E2E suite split into per-resource files with parallel runner. Full suite wall-clock dropped from ~813s to ~310s.
+
 ## [1.4.1] - 2026-03-16
 
 ### Fixed

@@ -173,3 +173,25 @@ export function assertJSON(output: string, message?: string): void {
     throw new Error(`${message || 'Output should be valid JSON'}\\nGot: ${output}`);
   }
 }
+
+/**
+ * Assert that output is a single JSON document with no surrounding noise.
+ * Stricter than assertJSON: rejects empty output, leading non-JSON (BOM, ANSI,
+ * SSE markers, spinner frames), and trailing garbage after the document.
+ */
+export function assertStrictJSON(output: string, message?: string): void {
+  const label = message || 'Output should be strict JSON only';
+  const trimmed = output.trim();
+
+  if (trimmed.length === 0) {
+    throw new Error(`${label} — empty output\nGot: ${JSON.stringify(output)}`);
+  }
+  if (!/^[[{]/.test(trimmed)) {
+    throw new Error(`${label} — leading non-JSON content\nGot: ${output}`);
+  }
+  try {
+    JSON.parse(trimmed);
+  } catch (_error) {
+    throw new Error(`${label}\nGot: ${output}`);
+  }
+}
