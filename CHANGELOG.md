@@ -5,6 +5,17 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-04-19
+
+### Added
+- `obs <resource> create --file <path>` — all resource create commands now accept a JSON file as payload, skipping interactive prompts. Works for monitor, check, heartbeat, alert-channel, status-page, incident, and ai-check.
+- `obs validate -r <type> -f <path>` — offline schema validation against bundled schemas, no network call. Returns field-level errors on missing required fields. Supports `--json` output.
+- `obs init <resource>` — extended `obs init` to scaffold a ready-to-edit JSON template for any resource type. Supports `--out <path>` with automatic directory creation.
+
+### Internal
+- `src/utils/schemas.ts` — bundled resource schemas (required fields + full templates) for all 7 resource types.
+- E2e coverage: `file-workflow.test.ts` covers scaffold, validate (valid + invalid + missing file), and create --file with cleanup.
+
 ## [1.5.0] - 2026-04-19
 
 ### Added
