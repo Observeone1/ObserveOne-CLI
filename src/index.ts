@@ -21,6 +21,7 @@ import { UpdateService } from './services/update.service.js';
 import { createLoginCommand } from './commands/login.js';
 import { createLogoutCommand } from './commands/logout.js';
 import { createInitCommand } from './commands/init.js';
+import { createValidateCommand } from './commands/validate.js';
 import { createAiCheckCommand } from './commands/ai-check.js';
 import { createMonitorCommand } from './commands/monitor.js';
 import { createCheckCommand } from './commands/check.js';
@@ -76,6 +77,7 @@ program.addCommand(createExportCommand(configService, apiClient, outputService))
 program.addCommand(createAlertChannelCommand(configService, apiClient, outputService));
 program.addCommand(createStatusPageCommand(configService, apiClient, outputService));
 program.addCommand(createIncidentCommand(configService, apiClient, outputService));
+program.addCommand(createValidateCommand(outputService));
 
 // Global options handler
 program.hook('preAction', (thisCommand) => {

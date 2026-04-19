@@ -1,17 +1,47 @@
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync, writeFileSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { resolveSchema, resourceNames } from '../utils/schemas.js';
 
 export function createInitCommand(
   configService: IConfigService,
   outputService: IOutputService
 ): Command {
   return new Command('init')
-    .description('Initialize project configuration in the current directory')
-    .action(async () => {
+    .description('Initialize project configuration, or scaffold a resource template')
+    .argument('[resource]', `Scaffold a JSON template for a resource (${resourceNames.join(', ')})`)
+    .option('-o, --out <path>', 'Output file path (directories will be created if needed)')
+    .action(async (resource?: string, options?: { out?: string }) => {
+      if (resource) {
+        const schema = resolveSchema(resource);
+        if (!schema) {
+          outputService.error(
+            `Unknown resource type "${resource}". Valid types: ${resourceNames.join(', ')}`
+          );
+          process.exit(1);
+        }
+        const outPath = options?.out ?? `obs-\${resource}.json`;
+        if (existsSync(outPath)) {
+          outputService.warning(`${outPath} already exists.`);
+          const { overwrite } = await inquirer.prompt<{ overwrite: boolean }>([
+            { type: 'confirm', name: 'overwrite', message: 'Overwrite it?', default: false },
+          ]);
+          if (!overwrite) {
+            console.log(chalk.gray('Aborted.'));
+            process.exit(0);
+          }
+        }
+        const outDir = dirname(outPath);
+        if (outDir && outDir !== '.') mkdirSync(outDir, { recursive: true });
+        writeFileSync(outPath, JSON.stringify(schema.template, null, 2));
+        outputService.success(`Template written to ${outPath}`);
+        process.exit(0);
+      }
+
       try {
         const configPath = '.obs.config.json';
         if (existsSync(configPath)) {
