@@ -72,7 +72,7 @@ export async function testAiCheckWithAdHocTest() {
 }
 
 export async function testAiCheckJsonAdhocOutputIsStrictEnvelope() {
-  const result = await runCLI([
+  const baseArgs = [
     'ai-check',
     'run',
     '--url',
@@ -81,23 +81,71 @@ export async function testAiCheckJsonAdhocOutputIsStrictEnvelope() {
     'Check if page loads',
     '--timeout',
     '5000',
-    '--json',
-  ]);
+  ];
 
-  if (result.stdout.trim().length === 0) {
-    throw new Error(`Expected JSON output on stdout. Stderr: ${result.stderr}`);
-  }
+  const triggers: Array<{
+    label: string;
+    args: string[];
+    env?: Record<string, string | undefined>;
+  }> = [
+    { label: '--json flag', args: ['--json'] },
+    { label: '--reporter json', args: ['--reporter', 'json'] },
+    { label: 'OBS_JSON_OUTPUT env', args: [], env: { OBS_JSON_OUTPUT: 'true' } },
+  ];
 
-  assertStrictJSON(result.stdout, 'AI check JSON run should emit a single JSON envelope');
+  for (const trigger of triggers) {
+    const result = await runCLI([...baseArgs, ...trigger.args], 30000, trigger.env);
 
-  if (result.stderr.trim().length > 0) {
-    throw new Error(`Expected no stderr noise in JSON mode. Got: ${result.stderr}`);
-  }
+    if (result.stdout.trim().length === 0) {
+      throw new Error(`[${trigger.label}] Expected JSON output on stdout. Stderr: ${result.stderr}`);
+    }
 
-  if (result.exitCode !== 0) {
-    const parsed = JSON.parse(result.stdout);
-    if (parsed.status !== 'ERROR') {
-      throw new Error(`Expected JSON error envelope on failure. Got: ${result.stdout}`);
+    assertStrictJSON(
+      result.stdout,
+      `[${trigger.label}] AI check JSON run should emit a single JSON envelope`
+    );
+
+    if (result.stderr.trim().length > 0) {
+      throw new Error(
+        `[${trigger.label}] Expected no stderr noise in JSON mode. Got: ${result.stderr}`
+      );
+    }
+
+    const parsed = JSON.parse(result.stdout.trim());
+
+    if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+      throw new Error(
+        `[${trigger.label}] envelope.status must be SUCCESS or ERROR. Got: ${result.stdout}`
+      );
+    }
+    if (!parsed.metadata || typeof parsed.metadata.timestamp !== 'string') {
+      throw new Error(
+        `[${trigger.label}] envelope.metadata.timestamp missing or non-string. Got: ${result.stdout}`
+      );
+    }
+
+    if (result.exitCode !== 0) {
+      if (parsed.status !== 'ERROR') {
+        throw new Error(
+          `[${trigger.label}] Expected ERROR envelope on non-zero exit. Got: ${result.stdout}`
+        );
+      }
+      if (!parsed.error || typeof parsed.error.message !== 'string') {
+        throw new Error(
+          `[${trigger.label}] ERROR envelope must carry error.message. Got: ${result.stdout}`
+        );
+      }
+    } else {
+      if (parsed.status !== 'SUCCESS') {
+        throw new Error(
+          `[${trigger.label}] Expected SUCCESS envelope on zero exit. Got: ${result.stdout}`
+        );
+      }
+      if (parsed.data === undefined) {
+        throw new Error(
+          `[${trigger.label}] SUCCESS envelope must carry data. Got: ${result.stdout}`
+        );
+      }
     }
   }
 }

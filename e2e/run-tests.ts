@@ -18,8 +18,78 @@ interface TestResult {
   duration: number;
 }
 
+interface FileResult {
+  file: string;
+  results: TestResult[];
+  output: string;
+}
+
+async function runFile(file: string, testsDir: string): Promise<FileResult> {
+  const lines: string[] = [`\n ${chalk.gray(file)}\n`];
+  const results: TestResult[] = [];
+
+  let testModule: Record<string, unknown>;
+  try {
+    testModule = await import(pathToFileURL(join(testsDir, file)).href);
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    lines.push(chalk.red(`    ✗ Failed to import: ${msg}`));
+    return {
+      file,
+      results: [{ name: `[import] ${file}`, passed: false, error: msg, duration: 0 }],
+      output: lines.join('\n'),
+    };
+  }
+
+  const testFunctions = Object.entries(testModule).filter(
+    ([key]) => key.startsWith('test') && typeof testModule[key] === 'function'
+  );
+
+  for (const [name, testFn] of testFunctions) {
+    const start = Date.now();
+    try {
+      await (testFn as Function)();
+      const duration = Date.now() - start;
+      results.push({ name, passed: true, duration });
+      lines.push(chalk.green(`    ✓ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
+    } catch (error: any) {
+      const duration = Date.now() - start;
+      results.push({ name, passed: false, error: error.message, duration });
+      lines.push(chalk.red(`    ✗ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
+      if (error.message) {
+        lines.push(chalk.gray(`      ${error.message}`));
+      }
+    }
+  }
+
+  return { file, results, output: lines.join('\n') };
+}
+
+async function runWithConcurrency(
+  files: string[],
+  concurrency: number,
+  testsDir: string,
+  onDone: (result: FileResult) => void
+): Promise<void> {
+  const queue = [...files];
+
+  async function worker() {
+    while (queue.length > 0) {
+      const file = queue.shift()!;
+      const result = await runFile(file, testsDir);
+      onDone(result);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, worker));
+}
+
 async function runTests(): Promise<void> {
   const isCI = process.argv.includes('--ci');
+  const isList = process.argv.includes('--list');
+  const concurrencyArg = process.argv.find((a) => a.startsWith('--concurrency='));
+  const concurrency = concurrencyArg ? parseInt(concurrencyArg.split('=')[1], 10) : 4;
+  const filters = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
   if (isCI) {
     console.log('Running E2E Tests in CI mode...');
@@ -39,7 +109,6 @@ async function runTests(): Promise<void> {
     if (loginResult.exitCode === 0) {
       console.log(chalk.green('✓ Successfully authenticated and provisioned API key.'));
       didBootstrapAuth = true;
-      // We don't need to set the API key in process.env because it's now stored in the CLI's local config
     } else {
       console.log(
         chalk.red(`✗ Headless login failed: ${loginResult.stderr || loginResult.stdout}`)
@@ -48,7 +117,6 @@ async function runTests(): Promise<void> {
     }
   }
 
-  // Display binary mode being used
   const binaryMode = process.env.OBS_BINARY_MODE || 'local';
   const modeDescriptions: Record<string, string> = {
     local: 'local build (dist/index.js)',
@@ -58,7 +126,6 @@ async function runTests(): Promise<void> {
   const modeDesc = modeDescriptions[binaryMode] || `custom (${binaryMode})`;
   console.log(chalk.gray(`Binary mode: ${chalk.white(binaryMode)} - ${modeDesc}`));
 
-  // Display test configuration
   const apiUrl = process.env.API_URL || process.env.OBS_API_URL || '(not set)';
   const displayApiKey = apiKey || (didBootstrapAuth ? '(Bootstrapped securely)' : '(not set)');
   const maskedApiKey = displayApiKey.startsWith('obs_')
@@ -69,61 +136,59 @@ async function runTests(): Promise<void> {
   console.log(chalk.gray(`API Key: ${chalk.white(maskedApiKey)}\n`));
 
   const testsDir = join(process.cwd(), 'e2e', 'tests');
-  const testFiles = readdirSync(testsDir).filter((f) => f.endsWith('.test.ts'));
+  const allFiles = readdirSync(testsDir).filter((f) => f.endsWith('.test.ts'));
+  const testFiles =
+    filters.length > 0
+      ? allFiles.filter((f) => filters.some((p) => f.includes(p)))
+      : allFiles;
 
-  const results: TestResult[] = [];
-  let totalTests = 0;
-  let passedTests = 0;
-  const startTime = Date.now();
-
-  for (const file of testFiles) {
-    console.log(chalk.gray(`\n ${file}\n`));
-
-    const testPath = join(testsDir, file);
-    const testModule = await import(pathToFileURL(testPath).href);
-
-    // Find all exported test functions
-    const testFunctions = Object.entries(testModule).filter(
-      ([key]) => key.startsWith('test') && typeof testModule[key] === 'function'
-    );
-
-    for (const [name, testFn] of testFunctions) {
-      totalTests++;
-      const start = Date.now();
-
+  if (isList) {
+    for (const file of testFiles) {
+      console.log(chalk.white(`\n ${file}`));
       try {
-        await (testFn as Function)();
-        const duration = Date.now() - start;
-        results.push({ name, passed: true, duration });
-        passedTests++;
-        console.log(chalk.green(`    ✓ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
-      } catch (error: any) {
-        const duration = Date.now() - start;
-        results.push({
-          name,
-          passed: false,
-          error: error.message,
-          duration,
-        });
-        console.log(chalk.red(`    ✗ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
-        if (error.message) {
-          console.log(chalk.gray(`      ${error.message}`));
+        const testModule = await import(pathToFileURL(join(testsDir, file)).href);
+        const names = Object.keys(testModule).filter(
+          (k) => k.startsWith('test') && typeof testModule[k] === 'function'
+        );
+        for (const name of names) {
+          console.log(chalk.gray(`   · ${name}`));
         }
+      } catch (err: any) {
+        console.log(chalk.red(`   ✗ Import error: ${err?.message}`));
       }
     }
+    console.log('');
+    process.exit(0);
   }
 
-  const totalTime = Date.now() - startTime;
+  if (filters.length > 0) {
+    console.log(
+      chalk.gray(`Filter: ${chalk.white(filters.join(', '))} → ${testFiles.length} file(s)\n`)
+    );
+  }
+  if (concurrency > 1 && testFiles.length > 1) {
+    console.log(chalk.gray(`Concurrency: ${chalk.white(String(concurrency))} parallel files\n`));
+  }
 
-  // Summary
+  const allResults: TestResult[] = [];
+  const startTime = Date.now();
+
+  await runWithConcurrency(testFiles, concurrency, testsDir, (fileResult) => {
+    process.stdout.write(fileResult.output + '\n');
+    allResults.push(...fileResult.results);
+  });
+
+  const totalTime = Date.now() - startTime;
+  const passedTests = allResults.filter((r) => r.passed).length;
+  const totalTests = allResults.length;
+
   console.log(chalk.bold('\n\n Summary\n'));
   console.log(chalk.gray('─'.repeat(50)));
 
-  if (results.some((r) => !r.passed)) {
+  if (allResults.some((r) => !r.passed)) {
     console.log(chalk.red.bold('  ❌ Failed Tests'));
     console.log(chalk.gray('  ─'.repeat(25)));
-    const failedTests = results.filter((r) => !r.passed);
-    for (const result of failedTests) {
+    for (const result of allResults.filter((r) => !r.passed)) {
       console.log(chalk.red(`  ✗ ${result.name}`));
       console.log(chalk.gray(`    ${result.error}`));
     }
@@ -135,7 +200,6 @@ async function runTests(): Promise<void> {
   console.log(chalk.red(`  Failed: ${totalTests - passedTests}`));
   console.log(chalk.blue(`  Time: ${totalTime}ms`));
 
-  // Cleanup Bootstrapped Auth
   if (didBootstrapAuth) {
     console.log(chalk.yellow('\n🧹 Cleaning up bootstrapped authentication...'));
     await runCLI(['logout']);
