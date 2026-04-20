@@ -1,4 +1,15 @@
-import { runCLI, assertSuccess, assertJSON } from '../../lib/test-runner.js';
+import { runCLI, assertSuccess, assertJSON, assertStrictJSON } from '../../lib/test-runner.js';
+
+export async function testAiCheckListJsonEnvelope() {
+  const result = await runCLI(['ai-check', 'list', '--json']);
+  if (result.stdout.trim()) {
+    assertStrictJSON(result.stdout, 'ai-check list --json must output valid JSON envelope');
+    const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+    if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+      throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
+    }
+  }
+}
 
 export async function testAiCheckLifecycle() {
   const timestamp = Date.now();
