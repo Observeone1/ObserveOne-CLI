@@ -9,6 +9,7 @@ import { readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 import { pathToFileURL } from 'url';
 import chalk from 'chalk';
+import { brand } from '../src/utils/theme.js';
 import { runCLI } from './lib/test-runner.js';
 
 interface TestResult {
@@ -25,31 +26,78 @@ interface FileResult {
 
 type TestEvent =
   | { kind: 'file-start'; file: string }
+  | { kind: 'file-done'; file: string }
   | { kind: 'file-import-error'; file: string; error: string }
   | { kind: 'test-done'; file: string; result: TestResult };
 
 function formatTestName(name: string): string {
-  return name.replace(/([A-Z])/g, ' $1').trim();
+  return name
+    .replace(/^test/, '')
+    .replace(/([A-Z])/g, ' $1')
+    .trim();
+}
+
+// --- Live renderer ---
+const inProgress = new Set<string>();
+let footerLines = 0;
+const isCI = process.argv.includes('--ci');
+
+function clearFooter(): void {
+  if (footerLines > 0) {
+    process.stdout.write(`\x1b[${footerLines}A\x1b[0J`);
+    footerLines = 0;
+  }
+}
+
+function renderFooter(): void {
+  if (isCI || inProgress.size === 0) return;
+  for (const file of inProgress) {
+    process.stdout.write(`${chalk.gray(file.padEnd(32))}${chalk.gray('running...')}\n`);
+    footerLines++;
+  }
 }
 
 function printEvent(ev: TestEvent): void {
-  const prefix = ev.kind === 'file-start' ? ev.file : ev.kind === 'test-done' ? ev.file : ev.file;
-  const label = chalk.gray(prefix.padEnd(32));
+  if (isCI) {
+    // Simple linear output for CI
+    if (ev.kind === 'file-start') {
+      process.stdout.write(`${ev.file.padEnd(32)}starting\n`);
+    } else if (ev.kind === 'file-import-error') {
+      process.stdout.write(`${ev.file.padEnd(32)}✗ import error: ${ev.error}\n`);
+    } else if (ev.kind === 'test-done') {
+      const { name, passed, duration, error } = ev.result;
+      const status = passed ? '✓' : '✗';
+      process.stdout.write(
+        `${ev.file.padEnd(32)}${status} ${formatTestName(name)} (${duration}ms)\n`
+      );
+      if (!passed && error) process.stdout.write(`${' '.repeat(32)}${error}\n`);
+    }
+    return;
+  }
+
+  clearFooter();
+
   if (ev.kind === 'file-start') {
-    process.stdout.write(`${label}${chalk.gray('starting')}\n`);
-    return;
+    inProgress.add(ev.file);
+  } else if (ev.kind === 'file-done') {
+    inProgress.delete(ev.file);
+  } else if (ev.kind === 'file-import-error') {
+    inProgress.delete(ev.file);
+    process.stdout.write(
+      `${chalk.gray(ev.file.padEnd(32))}${chalk.red('✗ import error:')} ${ev.error}\n`
+    );
+  } else if (ev.kind === 'test-done') {
+    const { name, passed, duration, error } = ev.result;
+    const label = chalk.gray(ev.file.padEnd(32));
+    const status = passed ? chalk.green('✓') : chalk.red('✗');
+    const testLabel = passed ? chalk.green(formatTestName(name)) : chalk.red(formatTestName(name));
+    process.stdout.write(`${label}${status} ${testLabel} ${brand.muted(`(${duration}ms)`)}\n`);
+    if (!passed && error) {
+      process.stdout.write(`${' '.repeat(32)}${chalk.gray(error)}\n`);
+    }
   }
-  if (ev.kind === 'file-import-error') {
-    process.stdout.write(`${label}${chalk.red('✗ import error:')} ${ev.error}\n`);
-    return;
-  }
-  const { name, passed, duration, error } = ev.result;
-  const status = passed ? chalk.green('✓') : chalk.red('✗');
-  const testLabel = passed ? chalk.green(formatTestName(name)) : chalk.red(formatTestName(name));
-  process.stdout.write(`${label}${status} ${testLabel} ${chalk.gray(`(${duration}ms)`)}\n`);
-  if (!passed && error) {
-    process.stdout.write(`${' '.repeat(32)}${chalk.gray(error)}\n`);
-  }
+
+  renderFooter();
 }
 
 async function runFile(
@@ -93,6 +141,7 @@ async function runFile(
     }
   }
 
+  onEvent({ kind: 'file-done', file });
   return { file, results };
 }
 
@@ -117,7 +166,6 @@ async function runWithConcurrency(
 }
 
 async function runTests(): Promise<void> {
-  const isCI = process.argv.includes('--ci');
   const isList = process.argv.includes('--list');
   const concurrencyArg = process.argv.find((a) => a.startsWith('--concurrency='));
   const concurrency = concurrencyArg ? parseInt(concurrencyArg.split('=')[1], 10) : 4;
@@ -242,7 +290,7 @@ async function runTests(): Promise<void> {
   console.log(`  Total: ${totalTests}`);
   console.log(chalk.green(`  Passed: ${passedTests}`));
   console.log(chalk.red(`  Failed: ${totalTests - passedTests}`));
-  console.log(chalk.blue(`  Time: ${totalTime}ms`));
+  console.log(brand.muted(`  Time: ${totalTime}ms`));
 
   if (didBootstrapAuth) {
     console.log(chalk.yellow('\n🧹 Cleaning up bootstrapped authentication...'));
