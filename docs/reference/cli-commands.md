@@ -7,6 +7,21 @@ description: Exhaustive list of all manual CRUD and operational commands
 
 The `obs` command-line interface (CLI) provides comprehensive manual create, read, update, delete (CRUD) resource management.
 
+## Authentication
+Manage CLI sessions and account provisioning.
+```bash
+obs login                # Interactive OAuth-based authentication
+obs login --force        # Force a new login session (bypass existing credentials)
+obs login --headless     # Use pre-provisioned OBS_EMAIL/OBS_PASSWORD to authenticate
+obs logout               # Clear local authentication credentials
+```
+
+## Project Initialization
+Initialize local project configuration.
+```bash
+obs init                 # Create obs.json in the current directory
+```
+
 ## Monitors
 Manage basic HTTP ping monitors.
 ```bash
@@ -32,7 +47,7 @@ obs check delete <id> -y
 ## Heartbeats
 Manage heartbeat checks (for monitoring background jobs or cron tasks).
 ```bash
-obs heartbeat create --name "Daily Backup" --period 86400
+obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
 obs heartbeat list
 obs heartbeat get <id>
 obs heartbeat update <id> --period 43200
@@ -99,4 +114,73 @@ obs ai-check run "Login Flow" --json --wait
 # Reporters
 obs ai-check run "Login Flow" --reporter json
 obs ai-check run "Login Flow" --reporter junit --output results.xml
+```
+
+### Tracking Async Executions
+For saved checks, `obs ai-check run` returns an `execution_id`. Use `status` and `wait` to track it without blocking your pipeline.
+```bash
+obs ai-check status <execution-id>
+obs ai-check wait <execution-id>
+obs ai-check wait <execution-id> --timeout 120000
+obs ai-check status <execution-id> --json
+obs ai-check wait <execution-id> --json
+```
+
+### Reporter Options
+Use `--reporter` to control the output format of `obs ai-check run`.
+
+| Reporter | Output | Use case |
+|----------|--------|----------|
+| `console` | Human-readable terminal output | Default. Local development and debugging. |
+| `json` | Single strict JSON envelope on stdout | AI agent pipelines and scripting. |
+| `junit` | JUnit XML report | CI/CD systems (GitHub Actions, Jenkins, CircleCI). |
+
+```bash
+obs ai-check run "Login Flow" --reporter console   # default
+obs ai-check run "Login Flow" --reporter json
+obs ai-check run "Login Flow" --reporter junit > results.xml
+```
+
+## Playwright Autopilot Suites
+Generate and manage AI-driven Playwright test suites from a URL.
+
+```bash
+# Generate a suite (manual trigger, no schedule)
+obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
+
+# Generate with a cron schedule and wait for generation to complete
+obs suite generate https://example.com --cron "0 */6 * * *" --wait
+
+# Pass credentials/variables to the test runner
+obs suite generate https://example.com --var USERNAME=admin --var PASSWORD=secret
+obs suite generate https://example.com --var-file .env.test
+
+# List all suites
+obs suite list
+
+# Get full suite details (tests, variables, schedule)
+obs suite get <id>
+
+# Trigger a run
+obs suite run <id>
+
+# Trigger a run and stream results
+obs suite run <id> --wait
+
+# Check the latest execution status
+obs suite status <id>
+
+# Wait on a specific execution
+obs suite wait <id> <executionId>
+
+# Delete a suite
+obs suite delete <id>
+```
+
+## Config-as-Code
+Manage your infrastructure declaratively.
+```bash
+obs export               # Export all remote resources to obs.json
+obs apply                # Synchronize local obs.json with the backend
+obs apply -f custom.json # Use a specific configuration file
 ```
