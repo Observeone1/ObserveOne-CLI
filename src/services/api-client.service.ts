@@ -509,6 +509,21 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
+  async updateSuiteSchedule(
+    suiteId: string,
+    payload: { schedule_active?: boolean; cron_expression?: string }
+  ): Promise<Suite> {
+    const response = await this.client.patch<Suite>(
+      `/playwright-autopilot/suites/${suiteId}/schedule`,
+      payload
+    );
+    return response.data;
+  }
+
+  async updateSuiteSecrets(suiteId: string, secrets: Record<string, string>): Promise<void> {
+    await this.client.patch(`/playwright-autopilot/suites/${suiteId}/secrets`, { secrets });
+  }
+
   async runSuite(suiteId: string, testIds?: string[]): Promise<{ execution_id: string }> {
     const response = await this.client.post<{ execution_id: string }>(
       `/playwright-autopilot/suites/${suiteId}/run`,

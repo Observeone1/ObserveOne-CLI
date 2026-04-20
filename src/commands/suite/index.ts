@@ -9,6 +9,8 @@ import { createSuiteRunCommand } from './run.js';
 import { createSuiteStatusCommand } from './status.js';
 import { createSuiteWaitCommand } from './wait.js';
 import { createSuiteDeleteCommand } from './delete.js';
+import { createSuiteScheduleCommand } from './schedule.js';
+import { createSuiteSecretsCommand } from './secrets.js';
 
 export function createSuiteCommand(
   configService: IConfigService,
@@ -24,6 +26,8 @@ export function createSuiteCommand(
   suite.addCommand(createSuiteStatusCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteWaitCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteDeleteCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteScheduleCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteSecretsCommand(configService, apiClient, outputService));
 
   return suite;
 }
