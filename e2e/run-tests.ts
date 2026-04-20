@@ -31,7 +31,10 @@ type TestEvent =
   | { kind: 'test-done'; file: string; result: TestResult };
 
 function formatTestName(name: string): string {
-  return name.replace(/^test/, '').replace(/([A-Z])/g, ' $1').trim();
+  return name
+    .replace(/^test/, '')
+    .replace(/([A-Z])/g, ' $1')
+    .trim();
 }
 
 // --- Live renderer ---
@@ -64,7 +67,9 @@ function printEvent(ev: TestEvent): void {
     } else if (ev.kind === 'test-done') {
       const { name, passed, duration, error } = ev.result;
       const status = passed ? '✓' : '✗';
-      process.stdout.write(`${ev.file.padEnd(32)}${status} ${formatTestName(name)} (${duration}ms)\n`);
+      process.stdout.write(
+        `${ev.file.padEnd(32)}${status} ${formatTestName(name)} (${duration}ms)\n`
+      );
       if (!passed && error) process.stdout.write(`${' '.repeat(32)}${error}\n`);
     }
     return;
