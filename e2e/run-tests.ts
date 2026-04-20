@@ -21,23 +21,54 @@ interface TestResult {
 interface FileResult {
   file: string;
   results: TestResult[];
-  output: string;
 }
 
-async function runFile(file: string, testsDir: string): Promise<FileResult> {
-  const lines: string[] = [`\n ${chalk.gray(file)}\n`];
+type TestEvent =
+  | { kind: 'file-start'; file: string }
+  | { kind: 'file-import-error'; file: string; error: string }
+  | { kind: 'test-done'; file: string; result: TestResult };
+
+function formatTestName(name: string): string {
+  return name.replace(/([A-Z])/g, ' $1').trim();
+}
+
+function printEvent(ev: TestEvent): void {
+  const prefix = ev.kind === 'file-start' ? ev.file : ev.kind === 'test-done' ? ev.file : ev.file;
+  const label = chalk.gray(prefix.padEnd(32));
+  if (ev.kind === 'file-start') {
+    process.stdout.write(`${label}${chalk.gray('starting')}\n`);
+    return;
+  }
+  if (ev.kind === 'file-import-error') {
+    process.stdout.write(`${label}${chalk.red('✗ import error:')} ${ev.error}\n`);
+    return;
+  }
+  const { name, passed, duration, error } = ev.result;
+  const status = passed ? chalk.green('✓') : chalk.red('✗');
+  const testLabel = passed ? chalk.green(formatTestName(name)) : chalk.red(formatTestName(name));
+  process.stdout.write(`${label}${status} ${testLabel} ${chalk.gray(`(${duration}ms)`)}\n`);
+  if (!passed && error) {
+    process.stdout.write(`${' '.repeat(32)}${chalk.gray(error)}\n`);
+  }
+}
+
+async function runFile(
+  file: string,
+  testsDir: string,
+  onEvent: (ev: TestEvent) => void
+): Promise<FileResult> {
+  onEvent({ kind: 'file-start', file });
   const results: TestResult[] = [];
 
   let testModule: Record<string, unknown>;
   try {
     testModule = await import(pathToFileURL(join(testsDir, file)).href);
-  } catch (err: any) {
-    const msg = err?.message || String(err);
-    lines.push(chalk.red(`    ✗ Failed to import: ${msg}`));
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message || String(err);
+    onEvent({ kind: 'file-import-error', file, error: msg });
     return {
       file,
       results: [{ name: `[import] ${file}`, passed: false, error: msg, duration: 0 }],
-      output: lines.join('\n'),
     };
   }
 
@@ -48,36 +79,37 @@ async function runFile(file: string, testsDir: string): Promise<FileResult> {
   for (const [name, testFn] of testFunctions) {
     const start = Date.now();
     try {
-      await (testFn as Function)();
+      await (testFn as () => Promise<void>)();
       const duration = Date.now() - start;
-      results.push({ name, passed: true, duration });
-      lines.push(chalk.green(`    ✓ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
-    } catch (error: any) {
+      const result: TestResult = { name, passed: true, duration };
+      results.push(result);
+      onEvent({ kind: 'test-done', file, result });
+    } catch (error: unknown) {
       const duration = Date.now() - start;
-      results.push({ name, passed: false, error: error.message, duration });
-      lines.push(chalk.red(`    ✗ ${name.replace(/([A-Z])/g, ' $1').trim()} (${duration}ms)`));
-      if (error.message) {
-        lines.push(chalk.gray(`      ${error.message}`));
-      }
+      const msg = (error as Error)?.message || String(error);
+      const result: TestResult = { name, passed: false, error: msg, duration };
+      results.push(result);
+      onEvent({ kind: 'test-done', file, result });
     }
   }
 
-  return { file, results, output: lines.join('\n') };
+  return { file, results };
 }
 
 async function runWithConcurrency(
   files: string[],
   concurrency: number,
   testsDir: string,
-  onDone: (result: FileResult) => void
+  onEvent: (ev: TestEvent) => void,
+  onFileDone: (result: FileResult) => void
 ): Promise<void> {
   const queue = [...files];
 
   async function worker() {
     while (queue.length > 0) {
       const file = queue.shift()!;
-      const result = await runFile(file, testsDir);
-      onDone(result);
+      const result = await runFile(file, testsDir, onEvent);
+      onFileDone(result);
     }
   }
 
@@ -166,8 +198,8 @@ async function runTests(): Promise<void> {
         for (const name of names) {
           console.log(chalk.gray(`   · ${name}`));
         }
-      } catch (err: any) {
-        console.log(chalk.red(`   ✗ Import error: ${err?.message}`));
+      } catch (err: unknown) {
+        console.log(chalk.red(`   ✗ Import error: ${(err as Error)?.message}`));
       }
     }
     console.log('');
@@ -186,8 +218,7 @@ async function runTests(): Promise<void> {
   const allResults: TestResult[] = [];
   const startTime = Date.now();
 
-  await runWithConcurrency(testFiles, concurrency, testsDir, (fileResult) => {
-    process.stdout.write(fileResult.output + '\n');
+  await runWithConcurrency(testFiles, concurrency, testsDir, printEvent, (fileResult) => {
     allResults.push(...fileResult.results);
   });
 
