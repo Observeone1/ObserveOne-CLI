@@ -37,14 +37,11 @@ export async function testSuiteListRequiresAuth() {
 
 export async function testSuiteListJsonEnvelope() {
   const result = await runCLI(['suite', 'list', '--json']);
-  // May fail with auth error in CI, but output must always be valid JSON
   if (result.stdout.trim()) {
-    const parsed = assertStrictJSON(result, 'suite list --json must output valid JSON envelope');
-    if (parsed && typeof parsed === 'object' && 'status' in parsed) {
-      const status = (parsed as { status: string }).status;
-      if (status !== 'SUCCESS' && status !== 'ERROR') {
-        throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${status}`);
-      }
+    assertStrictJSON(result.stdout, 'suite list --json must output valid JSON envelope');
+    const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+    if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+      throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
     }
   }
 }
@@ -93,12 +90,10 @@ export async function testSuiteWaitRequiresBothArgs() {
 export async function testSuiteStatusJsonEnvelope() {
   const result = await runCLI(['suite', 'status', 'nonexistent-suite-xyz', '--json']);
   if (result.stdout.trim()) {
-    const parsed = assertStrictJSON(result, 'suite status --json must output valid JSON');
-    if (parsed && typeof parsed === 'object' && 'status' in parsed) {
-      const status = (parsed as { status: string }).status;
-      if (status !== 'SUCCESS' && status !== 'ERROR') {
-        throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${status}`);
-      }
+    assertStrictJSON(result.stdout, 'suite status --json must output valid JSON');
+    const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+    if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+      throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
     }
   }
 }
