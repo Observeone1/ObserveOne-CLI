@@ -22,7 +22,7 @@ import { createLoginCommand } from './commands/login.js';
 import { createLogoutCommand } from './commands/logout.js';
 import { createInitCommand } from './commands/init.js';
 import { createValidateCommand } from './commands/validate.js';
-import { createAiCheckCommand } from './commands/ai-check.js';
+import { createAiCheckCommand } from './commands/ai-check/index.js';
 import { createMonitorCommand } from './commands/monitor.js';
 import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
