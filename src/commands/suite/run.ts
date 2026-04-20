@@ -20,16 +20,15 @@ export function createSuiteRunCommand(
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
         const testIds = options.tests ? options.tests.split(',').map(s => s.trim()) : undefined;
-        const execution = await apiClient.runSuite(id, testIds);
+        const { execution_id } = await apiClient.runSuite(id, testIds);
 
         if (!options.wait) {
           if (isJson) {
-            outputService.formatJsonOutput({ execution });
+            outputService.formatJsonOutput({ execution_id });
           } else {
             console.log(chalk.bold(`\n Suite run triggered`));
-            console.log(chalk.gray(` Execution ID: ${execution.id}`));
-            console.log(chalk.gray(` Status:       ${execution.status}`));
-            console.log(chalk.gray(` Wait:         obs suite wait ${id} ${execution.id}\n`));
+            console.log(chalk.gray(` Execution ID: ${execution_id}`));
+            console.log(chalk.gray(` Wait:         obs suite wait ${id} ${execution_id}\n`));
           }
           return;
         }
@@ -42,7 +41,7 @@ export function createSuiteRunCommand(
         const spinner = ora({ text: 'Running...', stream: process.stdout }).start();
         const started = Date.now();
 
-        const done = await apiClient.pollSuiteExecution(id, execution.id);
+        const done = await apiClient.pollSuiteExecution(id, execution_id);
         const elapsed = ((Date.now() - started) / 1000).toFixed(0);
 
         spinner.stop();

@@ -508,8 +508,8 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async runSuite(suiteId: string, testIds?: string[]): Promise<SuiteExecution> {
-    const response = await this.client.post<SuiteExecution>(
+  async runSuite(suiteId: string, testIds?: string[]): Promise<{ execution_id: string }> {
+    const response = await this.client.post<{ execution_id: string }>(
       `/playwright-autopilot/suites/${suiteId}/run`,
       testIds?.length ? { test_ids: testIds } : {}
     );
@@ -528,6 +528,10 @@ export class ApiClient implements IApiClient {
       `/playwright-autopilot/suites/${suiteId}/executions`
     );
     return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async deleteSuite(id: string): Promise<void> {
+    await this.client.delete(`/playwright-autopilot/suites/${id}`);
   }
 
   async pollSuiteGeneration(
