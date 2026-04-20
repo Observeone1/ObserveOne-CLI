@@ -22,7 +22,8 @@ export function createSuiteStatusCommand(
           resolvedExecId = executionId;
         } else {
           const executions = await apiClient.listSuiteExecutions(id);
-          if (executions.length === 0) {
+          const latest = executions[0];
+          if (!latest) {
             const msg = 'No executions found for this suite. Run: obs suite run <id>';
             if (isJson) {
               outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
@@ -31,7 +32,7 @@ export function createSuiteStatusCommand(
             }
             return;
           }
-          resolvedExecId = executions[0]!.id;
+          resolvedExecId = latest.id;
         }
 
         const execution = await apiClient.getSuiteExecution(id, resolvedExecId);
