@@ -58,7 +58,10 @@ export function createSuiteGenerateCommand(
           suite_name: suiteName,
           max_tests: Math.min(30, Math.max(1, parseInt(options.maxTests || '10', 10))),
         };
-        if (options.cron) payload.cron_expression = options.cron;
+        if (options.cron) {
+          payload.cron_expression = options.cron;
+          payload.schedule_active = true;
+        }
         if (secrets) payload.secrets = secrets;
         if (options.allowFormSubmit) payload.allow_form_submit = true;
 

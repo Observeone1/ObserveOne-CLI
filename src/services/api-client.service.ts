@@ -500,6 +500,7 @@ export class ApiClient implements IApiClient {
     target_url: string;
     suite_name: string;
     cron_expression?: string;
+    schedule_active?: boolean;
     max_tests?: number;
     secrets?: Record<string, string>;
     allow_form_submit?: boolean;
