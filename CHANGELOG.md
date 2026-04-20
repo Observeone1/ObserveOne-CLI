@@ -5,6 +5,12 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-04-20
+
+### Docs
+- README now documents the v1.8.0 `obs suite schedule` and `obs suite secrets` commands.
+- README has a new Resource Discovery section covering `obs schema`, `obs templates list`, `obs validate`, and `obs init <resource>` (the agent-ready offline chain).
+
 ## [1.9.0] - 2026-04-20
 
 ### Added
