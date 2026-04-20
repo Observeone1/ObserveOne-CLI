@@ -189,6 +189,42 @@ obs ai-check run --adhoc --url https://example.com --prompt "Verify login sectio
 
 ---
 
+## Playwright Autopilot Suites
+
+Generate and manage AI-driven Playwright test suites from your terminal.
+
+```bash
+# Generate a suite (runs immediately, manual trigger only)
+obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
+
+# Generate with a cron schedule and wait for generation to finish
+obs suite generate https://example.com --cron "0 */6 * * *" --wait
+
+# Pass credentials/variables to the test runner
+obs suite generate https://example.com --var USERNAME=admin --var PASSWORD=secret
+obs suite generate https://example.com --var-file .env.test
+
+# List all suites
+obs suite list
+
+# Get full suite details
+obs suite get <id>
+
+# Trigger a run and stream results
+obs suite run <id> --wait
+
+# Check the latest execution status
+obs suite status <id>
+
+# Wait on a specific execution
+obs suite wait <id> <executionId>
+
+# Delete a suite
+obs suite delete <id>
+```
+
+---
+
 ## AI Agent Integration (Headless Mode)
 
 The `obs` CLI is explicitly designed to be used by AI coding agents.

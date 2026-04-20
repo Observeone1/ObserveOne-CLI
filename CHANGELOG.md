@@ -5,6 +5,20 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-04-20
+
+### Added
+- `obs suite generate <url>` — generate a Playwright Autopilot test suite from a URL. Supports `--cron`, `--max-tests`, `--var KEY=VALUE`, `--var-file`, `--allow-form-submit`, and `-w/--wait` to stream generation progress.
+- `obs suite list` — list all suites with status, test count, and schedule.
+- `obs suite get <id>` — show full suite details including generated tests and variables.
+- `obs suite run <id>` — trigger a suite execution. Supports `--wait` to stream results and `--tests` to run a subset.
+- `obs suite status <id>` — show the latest execution status and results.
+- `obs suite wait <id> <executionId>` — poll an execution until terminal state with a live spinner.
+- `obs suite delete <id>` — delete a suite by ID.
+
+### Fixed
+- Suites created without `--cron` now default to `schedule_active=false` instead of showing "every 6h" inherited from the DB default.
+
 ## [1.6.0] - 2026-04-19
 
 ### Added
