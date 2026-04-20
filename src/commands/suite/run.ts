@@ -19,7 +19,7 @@ export function createSuiteRunCommand(
     .action(async (id: string, options: { wait?: boolean; tests?: string }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const testIds = options.tests ? options.tests.split(',').map(s => s.trim()) : undefined;
+        const testIds = options.tests ? options.tests.split(',').map((s) => s.trim()) : undefined;
         const { execution_id } = await apiClient.runSuite(id, testIds);
 
         if (!options.wait) {

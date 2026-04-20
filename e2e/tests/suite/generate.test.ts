@@ -11,9 +11,13 @@ export async function testSuiteGenerateInvalidUrl() {
 export async function testSuiteGenerateVarParsing() {
   // Should fail at auth, not at --var parsing
   const result = await runCLI([
-    'suite', 'generate', 'https://example.com',
-    '--var', 'USERNAME=testuser',
-    '--var', 'password=secret123',
+    'suite',
+    'generate',
+    'https://example.com',
+    '--var',
+    'USERNAME=testuser',
+    '--var',
+    'password=secret123',
   ]);
   if (result.exitCode !== 0) {
     const output = result.stderr || result.stdout;

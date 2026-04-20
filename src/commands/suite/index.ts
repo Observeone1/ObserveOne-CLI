@@ -15,8 +15,7 @@ export function createSuiteCommand(
   apiClient: ApiClient,
   outputService: IOutputService
 ): Command {
-  const suite = new Command('suite')
-    .description('Manage Playwright Autopilot suites');
+  const suite = new Command('suite').description('Manage Playwright Autopilot suites');
 
   suite.addCommand(createSuiteListCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteGetCommand(configService, apiClient, outputService));

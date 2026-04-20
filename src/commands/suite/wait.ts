@@ -18,7 +18,10 @@ export function createSuiteWaitCommand(
     .action(async (id: string, executionId: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const spinner = ora({ text: 'Waiting for execution to complete...', stream: process.stdout }).start();
+        const spinner = ora({
+          text: 'Waiting for execution to complete...',
+          stream: process.stdout,
+        }).start();
 
         const done = await apiClient.pollSuiteExecution(id, executionId);
 
