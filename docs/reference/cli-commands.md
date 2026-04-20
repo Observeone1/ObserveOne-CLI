@@ -17,10 +17,23 @@ obs logout               # Clear local authentication credentials
 ```
 
 ## Project Initialization
-Initialize local project configuration.
+Initialize local project configuration, or scaffold a resource template.
 ```bash
-obs init                 # Create obs.json in the current directory
+obs init                          # Create obs.json in the current directory
+obs init monitor                  # Scaffold obs-monitor.json template
+obs init ai-check --out ./tests/ai-check.json
 ```
+
+## Resource Discovery
+Enumerate resource templates and fetch their JSON schemas (offline, no API call).
+```bash
+obs templates list                # List all 7 resource types with required fields
+obs templates list --json
+obs schema monitor                # Print JSON Schema (Draft-07) for a resource
+obs schema alert-channel --out ./schemas/alert-channel.schema.json
+obs validate -r monitor -f ./my-monitor.json   # Offline schema validation
+```
+Aliases: `api-check` → `check`, `url-monitor` → `monitor`, `browser-check` → `ai-check`.
 
 ## Monitors
 Manage basic HTTP ping monitors.

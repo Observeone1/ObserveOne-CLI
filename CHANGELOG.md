@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-04-20
+
+### Added
+- `obs schema <resource>` — prints the JSON Schema (Draft-07) for a resource type. Supports `-o/--out <path>` to write to a file (auto-creates directories), `--json` for envelope output, and all resource aliases (`api-check` → `check`, etc.). Useful for editor integrations and agent tooling.
+- `obs templates list` — lists all available resource templates with name, description, and required fields. Supports `--json`.
+
+### Internal
+- `src/utils/schemas.ts` — added `description` field to each resource schema and a `buildJsonSchema()` helper that synthesizes Draft-07 JSON Schema from the bundled templates.
+- E2E coverage: `schema.test.ts` (valid/invalid/alias/JSON envelope), `templates.test.ts` (list + JSON envelope).
+
 ## [1.8.0] - 2026-04-20
 
 ### Added
