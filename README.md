@@ -219,9 +219,46 @@ obs suite status <id>
 # Wait on a specific execution
 obs suite wait <id> <executionId>
 
+# Update schedule without regenerating (v1.8.0)
+obs suite schedule <id> --enable
+obs suite schedule <id> --disable
+obs suite schedule <id> --cron "*/30 * * * *"
+
+# Update credentials/variables without regenerating (v1.8.0)
+obs suite secrets <id> --var USERNAME=admin --var PASSWORD=secret
+obs suite secrets <id> --var-file .env.test
+
 # Delete a suite
 obs suite delete <id>
 ```
+
+---
+
+## Resource Discovery (v1.9.0)
+
+Enumerate resource templates and fetch their JSON schemas. All commands work offline against bundled schemas, no login required.
+
+```bash
+# List every resource type with required fields
+obs templates list
+obs templates list --json
+
+# Print the JSON Schema (Draft-07) for any resource
+obs schema monitor
+obs schema ai-check
+obs schema alert-channel --out ./schemas/alert-channel.schema.json
+
+# Validate a JSON file against the bundled schema (offline)
+obs validate --resource monitor --file ./my-monitor.json
+
+# Scaffold a ready-to-edit template
+obs init monitor
+obs init ai-check --out ./tests/ai-check.json
+```
+
+Aliases: `api-check` → `check`, `url-monitor` → `monitor`, `browser-check` → `ai-check`.
+
+The full chain for agents: `obs templates list` → `obs schema <name>` → generate payload → `obs validate` → `obs <resource> create --file <path>`. All steps except the final create are fully offline.
 
 ---
 
