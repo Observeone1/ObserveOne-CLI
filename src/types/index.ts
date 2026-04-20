@@ -176,6 +176,63 @@ export interface IncidentListResponse {
   };
 }
 
+export type SuiteStatus =
+  | 'pending'
+  | 'crawling'
+  | 'planning'
+  | 'generating'
+  | 'healing'
+  | 'scheduled'
+  | 'failed';
+
+export type SuiteExecutionStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type SuiteTestResultStatus = 'PASSED' | 'FAILED' | 'SKIPPED' | 'PENDING';
+
+export interface SuiteTestResult {
+  test_id: string;
+  name: string;
+  status: SuiteTestResultStatus;
+  duration_ms: number | null;
+  error: string | null;
+}
+
+export interface Suite {
+  id: string;
+  user_id: string;
+  team_id: number | null;
+  target_url: string;
+  suite_name: string;
+  status: SuiteStatus;
+  error_message: string | null;
+  plan_markdown: string | null;
+  test_count: number;
+  max_tests: number;
+  public_slug: string | null;
+  is_public: boolean;
+  cron_expression: string;
+  schedule_active: boolean;
+  secret_keys: string[];
+  allow_form_submit: boolean;
+  generated_tests: Array<{ id: string; name: string; script_path: string }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SuiteExecution {
+  id: string;
+  suite_id: string;
+  user_id: string;
+  status: SuiteExecutionStatus;
+  test_results: SuiteTestResult[];
+  total: number;
+  passed: number;
+  failed: number;
+  duration_ms: number | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JsonEnvelope<T = unknown> {
   status: 'SUCCESS' | 'ERROR';
   data?: T | undefined;

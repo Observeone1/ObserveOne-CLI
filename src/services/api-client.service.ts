@@ -12,6 +12,8 @@ import {
   StatusPage,
   Incident,
   IncidentListResponse,
+  Suite,
+  SuiteExecution,
 } from '../types/index.js';
 
 /**
@@ -481,6 +483,88 @@ export class ApiClient implements IApiClient {
     }
 
     throw new Error(`Test execution ${executionId} did not complete within the timeout period`);
+  }
+
+  // Suites (Playwright Autopilot)
+  async listSuites(): Promise<Suite[]> {
+    const response = await this.client.get<Suite[]>('/playwright-autopilot/suites');
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async getSuite(id: string): Promise<Suite> {
+    const response = await this.client.get<Suite>(`/playwright-autopilot/suites/${id}`);
+    return response.data;
+  }
+
+  async generateSuite(payload: {
+    target_url: string;
+    suite_name: string;
+    cron_expression?: string;
+    max_tests?: number;
+    secrets?: Record<string, string>;
+    allow_form_submit?: boolean;
+  }): Promise<Suite> {
+    const response = await this.client.post<Suite>('/playwright-autopilot/suites', payload);
+    return response.data;
+  }
+
+  async runSuite(suiteId: string, testIds?: string[]): Promise<SuiteExecution> {
+    const response = await this.client.post<SuiteExecution>(
+      `/playwright-autopilot/suites/${suiteId}/run`,
+      testIds?.length ? { test_ids: testIds } : {}
+    );
+    return response.data;
+  }
+
+  async getSuiteExecution(suiteId: string, executionId: string): Promise<SuiteExecution> {
+    const response = await this.client.get<SuiteExecution>(
+      `/playwright-autopilot/suites/${suiteId}/executions/${executionId}`
+    );
+    return response.data;
+  }
+
+  async listSuiteExecutions(suiteId: string): Promise<SuiteExecution[]> {
+    const response = await this.client.get<SuiteExecution[]>(
+      `/playwright-autopilot/suites/${suiteId}/executions`
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async pollSuiteGeneration(
+    suiteId: string,
+    maxAttempts: number = 120,
+    intervalMs: number = 5000
+  ): Promise<Suite> {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      const suite = await this.getSuite(suiteId);
+      if (suite.status === 'scheduled' || suite.status === 'failed') return suite;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      attempts++;
+    }
+    throw new Error('Suite generation did not complete within the timeout period');
+  }
+
+  async pollSuiteExecution(
+    suiteId: string,
+    executionId: string,
+    maxAttempts: number = 60,
+    intervalMs: number = 5000
+  ): Promise<SuiteExecution> {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      try {
+        const execution = await this.getSuiteExecution(suiteId, executionId);
+        if (execution.status === 'COMPLETED' || execution.status === 'FAILED') return execution;
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        attempts++;
+      } catch (_error: unknown) {
+        attempts++;
+        if (attempts >= maxAttempts) throw _error;
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+    }
+    throw new Error('Suite execution did not complete within the timeout period');
   }
 
   async requestCliAuth(): Promise<{ request_id: string; auth_url: string }> {

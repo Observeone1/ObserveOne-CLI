@@ -31,6 +31,7 @@ import { createExportCommand } from './commands/export.js';
 import { createAlertChannelCommand } from './commands/alert-channel.js';
 import { createStatusPageCommand } from './commands/status-page.js';
 import { createIncidentCommand } from './commands/incident.js';
+import { createSuiteCommand } from './commands/suite/index.js';
 
 const packageJson = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8')
@@ -78,6 +79,7 @@ program.addCommand(createAlertChannelCommand(configService, apiClient, outputSer
 program.addCommand(createStatusPageCommand(configService, apiClient, outputService));
 program.addCommand(createIncidentCommand(configService, apiClient, outputService));
 program.addCommand(createValidateCommand(outputService));
+program.addCommand(createSuiteCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook('preAction', (thisCommand) => {
