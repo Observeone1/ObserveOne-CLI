@@ -4,7 +4,7 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora, { Ora } from 'ora';
-import { deepEqual, normalizeResource } from '../utils/deep-equal.js';
+import { deepEqual, normalizeResource, diffObjects, FieldDiff } from '../utils/deep-equal.js';
 import { UrlMonitor, ApiCheck, Heartbeat, Test } from '../types/index.js';
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
@@ -31,6 +31,52 @@ interface ApplySummary {
   aiChecks: ResourceSummary;
 }
 
+interface DryRunEntry {
+  type: 'create' | 'update';
+  resource: string;
+  name: string;
+  diff?: Record<string, FieldDiff>;
+}
+
+function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
+  const chalk = { green: (s: string) => `\x1b[32m${s}\x1b[0m`, red: (s: string) => `\x1b[31m${s}\x1b[0m`, yellow: (s: string) => `\x1b[33m${s}\x1b[0m`, bold: (s: string) => `\x1b[1m${s}\x1b[0m`, dim: (s: string) => `\x1b[2m${s}\x1b[0m` };
+
+  if (entries.length === 0) {
+    console.log(chalk.dim('  No changes. Everything is up to date.'));
+    return;
+  }
+
+  for (const entry of entries) {
+    if (entry.type === 'create') {
+      console.log(chalk.green(`+ ${entry.resource} "${entry.name}"  (new)`));
+    } else {
+      console.log(chalk.yellow(`~ ${entry.resource} "${entry.name}"`));
+      if (entry.diff) {
+        for (const [key, { from, to }] of Object.entries(entry.diff)) {
+          console.log(chalk.red(`    - ${key}: ${JSON.stringify(from)}`));
+          console.log(chalk.green(`    + ${key}: ${JSON.stringify(to)}`));
+        }
+      }
+    }
+    console.log('');
+  }
+
+  const totals = [
+    ['Monitors', summary.monitors],
+    ['API Checks', summary.apiChecks],
+    ['Heartbeats', summary.heartbeats],
+    ['AI Checks', summary.aiChecks],
+  ] as const;
+
+  for (const [label, s] of totals) {
+    if (s.created + s.updated + s.unchanged > 0) {
+      console.log(`  ${label}: ${s.created} to create, ${s.updated} to update, ${s.unchanged} unchanged`);
+    }
+  }
+  console.log('');
+  console.log(chalk.dim('  Run without --dry-run to apply.'));
+}
+
 interface ApplyConfig {
   monitors?: Partial<UrlMonitor>[];
   api_checks?: Partial<ApiCheck>[];
@@ -48,9 +94,11 @@ export function createApplyCommand(
     .argument('[file]', 'Path to the JSON configuration file')
     .option('-f, --file <path>', 'Path to the JSON configuration file')
     .option('-j, --json', 'Output in JSON format')
+    .option('--dry-run', 'Preview changes without applying them')
     .action(async (fileArg: string | undefined, options: Record<string, unknown>) => {
       const isVerbose = process.env.OBS_VERBOSE === 'true';
       const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
+      const isDryRun = options.dryRun === true;
 
       if (isJson) {
         outputService.enableJsonMode();
@@ -110,6 +158,7 @@ export function createApplyCommand(
         };
 
         const errors: string[] = [];
+        const dryRunEntries: DryRunEntry[] = [];
         const delayMs = 1000; // 1 second between chunks to respect 100 req/min rate limit
 
         // 1. Process URL Monitors
@@ -162,6 +211,11 @@ export function createApplyCommand(
                       return;
                     }
 
+                    summary.monitors.updated++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'update', resource: 'monitor', name: monitorConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      return;
+                    }
                     logProgress(`Updating monitor: ${monitorConfig.name}`);
                     await apiClient.updateUrlMonitor(existing.id, {
                       name: monitorConfig.name || existing.name,
@@ -174,8 +228,12 @@ export function createApplyCommand(
                       alert_on_failure:
                         monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                     });
-                    summary.monitors.updated++;
                   } else {
+                    summary.monitors.created++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'create', resource: 'monitor', name: monitorConfig.name! });
+                      return;
+                    }
                     logProgress(`Creating monitor: ${monitorConfig.name}`);
                     await apiClient.createUrlMonitor({
                       ...monitorConfig,
@@ -183,7 +241,7 @@ export function createApplyCommand(
                         (monitorConfig as any).interval || monitorConfig.cron_expression,
                       timeout_ms: monitorConfig.timeout_ms || 30000,
                     });
-                    summary.monitors.created++;
+
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -250,6 +308,11 @@ export function createApplyCommand(
                       return;
                     }
 
+                    summary.apiChecks.updated++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'update', resource: 'api-check', name: checkConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      return;
+                    }
                     logProgress(`Updating API check: ${checkConfig.name}`);
                     await apiClient.updateApiCheck(existing.id, {
                       name: checkConfig.name || existing.name,
@@ -259,15 +322,19 @@ export function createApplyCommand(
                       alert_on_failure:
                         checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                     });
-                    summary.apiChecks.updated++;
                   } else {
+                    summary.apiChecks.created++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'create', resource: 'api-check', name: checkConfig.name! });
+                      return;
+                    }
                     logProgress(`Creating API check: ${checkConfig.name}`);
                     await apiClient.createApiCheck({
                       ...checkConfig,
                       timeout_ms: checkConfig.timeout_ms || 30000,
                       method: checkConfig.method?.toUpperCase() || 'GET',
                     });
-                    summary.apiChecks.created++;
+
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -332,6 +399,11 @@ export function createApplyCommand(
                       return;
                     }
 
+                    summary.heartbeats.updated++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'update', resource: 'heartbeat', name: hbConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      return;
+                    }
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
                     await apiClient.updateHeartbeat(existing.id, {
                       name: hbConfig.name || existing.name,
@@ -340,14 +412,18 @@ export function createApplyCommand(
                         hbConfig.description || existing.description || 'Updated via CLI',
                       grace_period: hbConfig.grace_period || existing.grace_period || 60,
                     });
-                    summary.heartbeats.updated++;
                   } else {
+                    summary.heartbeats.created++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'create', resource: 'heartbeat', name: hbConfig.name! });
+                      return;
+                    }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
                     await apiClient.createHeartbeat({
                       name: hbConfig.name,
                       period: hbConfig.period,
                     });
-                    summary.heartbeats.created++;
+
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -412,6 +488,11 @@ export function createApplyCommand(
                       return;
                     }
 
+                    summary.aiChecks.updated++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'update', resource: 'ai-check', name: aiConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      return;
+                    }
                     logProgress(`Updating AI check: ${aiConfig.name}`);
                     await apiClient.updateTest(existing.id, {
                       name: aiConfig.name || existing.name,
@@ -419,8 +500,12 @@ export function createApplyCommand(
                       prompt: aiConfig.prompt || existing.prompt,
                       description: aiConfig.description || existing.description || '',
                     });
-                    summary.aiChecks.updated++;
                   } else {
+                    summary.aiChecks.created++;
+                    if (isDryRun) {
+                      dryRunEntries.push({ type: 'create', resource: 'ai-check', name: aiConfig.name! });
+                      return;
+                    }
                     logProgress(`Creating AI check: ${aiConfig.name}`);
                     await apiClient.createTest({
                       name: aiConfig.name,
@@ -428,7 +513,7 @@ export function createApplyCommand(
                       prompt: aiConfig.prompt,
                       description: aiConfig.description || 'Created via CLI',
                     });
-                    summary.aiChecks.created++;
+
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -450,6 +535,12 @@ export function createApplyCommand(
 
         if (spinner) {
           spinner.stop();
+        }
+
+        if (isDryRun) {
+          console.log('');
+          printDryRun(dryRunEntries, summary);
+          return;
         }
 
         if (isJson) {
@@ -480,7 +571,7 @@ export function createApplyCommand(
             console.log('');
             outputService.error('Some resources failed to apply:');
             errors.forEach((e) => console.log(`  - ${e}`));
-            process.exit(1); // Exit with error if any resource failed
+            process.exit(1);
           }
         }
       } catch (error: unknown) {

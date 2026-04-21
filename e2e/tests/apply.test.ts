@@ -2,6 +2,73 @@ import { runCLI, assertSuccess, assertContains, assertJSON } from '../lib/test-r
 import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 
+export async function testApplyDryRun() {
+  const timestamp = Date.now();
+  const testConfigFile = join(process.cwd(), `e2e-obs-dryrun-${timestamp}.json`);
+
+  const configContent = {
+    monitors: [
+      {
+        name: `E2E-DryRun-Monitor-${timestamp}`,
+        url: 'https://example.com/dry-run-test',
+        interval: '*/10 * * * *',
+        alert_on_failure: true,
+      },
+    ],
+  };
+
+  try {
+    writeFileSync(testConfigFile, JSON.stringify(configContent, null, 2));
+
+    // 1. Dry-run before resource exists — should show as "to create", no API write
+    console.log('      - Running dry-run before create...');
+    const dryRunCreate = await runCLI(['apply', testConfigFile, '--dry-run']);
+    assertSuccess(dryRunCreate, 'Dry-run (pre-create) failed');
+    assertContains(dryRunCreate.stdout, configContent.monitors[0].name);
+    assertContains(dryRunCreate.stdout, 'to create');
+    assertContains(dryRunCreate.stdout, 'Run without --dry-run to apply');
+
+    // 2. Verify resource was NOT created (list should not contain it)
+    console.log('      - Verifying dry-run made no writes...');
+    const listAfterDry = await runCLI(['monitor', 'list', '--json']);
+    const monitors = listAfterDry.exitCode === 0 ? JSON.parse(listAfterDry.stdout).data || [] : [];
+    const exists = monitors.some((m: any) => m.name === configContent.monitors[0].name);
+    if (exists) throw new Error('Dry-run should not have created the monitor');
+
+    // 3. Real apply to create
+    console.log('      - Running real apply to create...');
+    const realApply = await runCLI(['apply', testConfigFile, '--json']);
+    assertSuccess(realApply, 'Real apply failed');
+    assertJSON(realApply.stdout, 'Apply output should be JSON');
+
+    // 4. Dry-run after create with no changes — should show no changes
+    console.log('      - Running dry-run with no changes...');
+    const dryRunNoChange = await runCLI(['apply', testConfigFile, '--dry-run']);
+    assertSuccess(dryRunNoChange, 'Dry-run (no-change) failed');
+    assertContains(dryRunNoChange.stdout, 'No changes');
+
+    // 5. Dry-run after modifying config — should show update diff
+    console.log('      - Running dry-run with modification...');
+    const modifiedConfig = { monitors: [{ ...configContent.monitors[0], interval: '*/30 * * * *' }] };
+    writeFileSync(testConfigFile, JSON.stringify(modifiedConfig, null, 2));
+
+    const dryRunUpdate = await runCLI(['apply', testConfigFile, '--dry-run']);
+    assertSuccess(dryRunUpdate, 'Dry-run (update) failed');
+    assertContains(dryRunUpdate.stdout, configContent.monitors[0].name);
+    assertContains(dryRunUpdate.stdout, 'to update');
+  } finally {
+    if (existsSync(testConfigFile)) unlinkSync(testConfigFile);
+
+    console.log('      - [Cleanup] Removing dry-run test monitor...');
+    const listResult = await runCLI(['monitor', 'list', '--json']);
+    if (listResult.exitCode === 0) {
+      const monitors = JSON.parse(listResult.stdout).data || [];
+      const m = monitors.find((m: any) => m.name === configContent.monitors[0].name);
+      if (m?.id) await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
+    }
+  }
+}
+
 /**
  * E2E test for Declarative Apply Workflow
  */

@@ -41,6 +41,26 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
+export interface FieldDiff {
+  from: unknown;
+  to: unknown;
+}
+
+/** Returns field-level diff between two normalized objects. Only includes changed keys. */
+export function diffObjects(
+  remote: Record<string, unknown>,
+  local: Record<string, unknown>
+): Record<string, FieldDiff> {
+  const diff: Record<string, FieldDiff> = {};
+  const keys = new Set([...Object.keys(remote), ...Object.keys(local)]);
+  for (const key of keys) {
+    if (!deepEqual(remote[key], local[key])) {
+      diff[key] = { from: remote[key], to: local[key] };
+    }
+  }
+  return diff;
+}
+
 /**
  * Normalize a resource object for comparison.
  * Ensures consistent key ordering and default values.
