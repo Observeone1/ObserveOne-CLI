@@ -34,7 +34,9 @@ export function createSuiteGenerateCommand(
     .option('--var-file <path>', 'Load variables from a .env file')
     .option('--allow-form-submit', 'Allow AI agents to submit non-auth forms')
     .option('--plan-only', 'Stop after the planning phase; do not generate test scripts')
-    .addOption(new Option('-w, --wait', 'Deprecated: test generation is now the default').hideHelp())
+    .addOption(
+      new Option('-w, --wait', 'Deprecated: test generation is now the default').hideHelp()
+    )
     .action(
       async (
         url: string,
@@ -90,7 +92,10 @@ export function createSuiteGenerateCommand(
           }
 
           const started = Date.now();
-          const spinner = ora({ text: 'Planning test scenarios...', stream: process.stdout }).start();
+          const spinner = ora({
+            text: 'Planning test scenarios...',
+            stream: process.stdout,
+          }).start();
 
           const planned = await apiClient.pollSuiteGeneration(suite.id);
 
