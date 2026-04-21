@@ -5,6 +5,12 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-04-21
+
+### Added
+- `obs apply --dry-run` — preview changes before applying. Fetches remote state, runs the full diff, and prints a git-style colored diff (red for removed values, green for new values) per changed resource. Shows a summary of resources to create, update, and unchanged. Exits without making any API calls.
+- `diffObjects()` utility in `src/utils/deep-equal.ts` — returns field-level `{ from, to }` diff between two normalized objects.
+
 ## [1.10.0] - 2026-04-21
 
 ### Changed (Breaking)

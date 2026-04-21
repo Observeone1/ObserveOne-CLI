@@ -51,7 +51,7 @@ export function createExportCommand(
           config.monitors = monitors.map((m) => ({
             name: m.name,
             url: m.url,
-            interval: m.cron_expression, // Map for json schema consistency
+            cron_expression: (m as any).interval || m.cron_expression,
             timeout_ms: m.timeout_ms,
             alert_on_failure: m.alert_on_failure,
           })) as any;
@@ -84,6 +84,7 @@ export function createExportCommand(
             name: t.name,
             url: t.url,
             prompt: t.prompt,
+            description: t.description || '',
           }));
         }
 

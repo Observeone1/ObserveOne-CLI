@@ -1,6 +1,6 @@
 {
   "name": "@observeone/cli",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "type": "module",
   "description": "ObserveOne CLI - AI-powered website monitoring and testing from the command line",
   "main": "dist/index.js",
@@ -20,7 +20,8 @@
     "test:unit": "vitest run",
     "test:e2e": "tsx e2e/run-tests.ts",
     "knip": "knip",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "prepare": "husky"
   },
   "keywords": [
     "observeone",
@@ -50,7 +51,9 @@
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^10.0.3",
+    "husky": "^9.1.7",
     "knip": "^5.86.0",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
@@ -62,5 +65,8 @@
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "lint-staged": {
+    "*.ts": "prettier --write"
+  }
 }
