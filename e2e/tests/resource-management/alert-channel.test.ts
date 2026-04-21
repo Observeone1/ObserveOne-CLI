@@ -1,4 +1,11 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  assertFailure,
+  assertStrictJSON,
+} from '../../lib/test-runner.js';
 
 export async function testAlertChannelLifecycle() {
   const timestamp = Date.now();
@@ -63,5 +70,24 @@ export async function testAlertChannelLifecycle() {
       console.log(`      - [Cleanup] Deleting dangling alert channel ${channelId}...`);
       await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
     }
+  }
+}
+
+export async function testAlertChannelTestBadIdFails() {
+  const result = await runCLI(['alert-channel', 'test', '999999999']);
+  assertFailure(result, 'obs alert-channel test with unknown ID should fail');
+}
+
+export async function testAlertChannelTestInvalidIdFails() {
+  const result = await runCLI(['alert-channel', 'test', 'not-a-number']);
+  assertFailure(result, 'obs alert-channel test with non-numeric ID should fail');
+}
+
+export async function testAlertChannelTestJsonEnvelope() {
+  const result = await runCLI(['alert-channel', 'test', '999999999', '--json']);
+  assertStrictJSON(result.stdout, 'alert-channel test --json must output valid JSON envelope');
+  const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+  if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+    throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
   }
 }

@@ -221,36 +221,63 @@ export class ApiClient implements IApiClient {
   }
 
   // URL Monitors
+  private mapMonitor(raw: Record<string, unknown>): UrlMonitor {
+    const { cron_expression, ...rest } = raw as Record<string, unknown> & {
+      cron_expression?: string;
+    };
+    return { ...rest, interval: cron_expression } as unknown as UrlMonitor;
+  }
+
   async getUrlMonitors(): Promise<UrlMonitor[]> {
     const response = await this.client.get<
-      { monitors?: UrlMonitor[]; data?: UrlMonitor[] } | UrlMonitor[]
+      | Record<string, unknown>[]
+      | { monitors?: Record<string, unknown>[]; data?: Record<string, unknown>[] }
     >('/url-monitors');
-    if (Array.isArray(response.data)) return response.data;
-    return response.data.monitors || response.data.data || [];
+    const raw = Array.isArray(response.data)
+      ? response.data
+      : (
+          response.data as {
+            monitors?: Record<string, unknown>[];
+            data?: Record<string, unknown>[];
+          }
+        ).monitors ||
+        (response.data as { data?: Record<string, unknown>[] }).data ||
+        [];
+    return raw.map((m) => this.mapMonitor(m));
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
-    const response = await this.client.get<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >(`/url-monitors/${id}`);
-    const data = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return data.monitor || data.data || (response.data as UrlMonitor);
+    const response = await this.client.get<Record<string, unknown>>(`/url-monitors/${id}`);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.post<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >('/url-monitors', data);
-    const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return resData.monitor || resData.data || (response.data as UrlMonitor);
+    const { interval, ...rest } = data;
+    const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
+    const response = await this.client.post<Record<string, unknown>>('/url-monitors', payload);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.put<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >(`/url-monitors/${id}`, data);
-    const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return resData.monitor || resData.data || (response.data as UrlMonitor);
+    const { interval, ...rest } = data;
+    const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
+    const response = await this.client.put<Record<string, unknown>>(`/url-monitors/${id}`, payload);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async deleteUrlMonitor(id: number): Promise<void> {
@@ -265,9 +292,7 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async runApiCheck(
-    id: number
-  ): Promise<{
+  async runApiCheck(id: number): Promise<{
     executions: { execution_id: number; region: string; status: string }[];
     message: string;
   }> {
@@ -278,9 +303,7 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async runUrlMonitor(
-    id: number
-  ): Promise<{
+  async runUrlMonitor(id: number): Promise<{
     executions: { execution_id: number; region: string; status: string }[];
     message: string;
   }> {
@@ -407,6 +430,13 @@ export class ApiClient implements IApiClient {
 
   async deleteAlertChannel(id: number): Promise<void> {
     await this.client.delete(`/alert-channels/${id}`);
+  }
+
+  async testAlertChannel(id: number): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success: boolean; message: string }>(
+      `/alert-channels/${id}/test`
+    );
+    return response.data;
   }
 
   // Status Pages
