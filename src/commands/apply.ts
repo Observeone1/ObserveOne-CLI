@@ -39,7 +39,13 @@ interface DryRunEntry {
 }
 
 function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
-  const chalk = { green: (s: string) => `\x1b[32m${s}\x1b[0m`, red: (s: string) => `\x1b[31m${s}\x1b[0m`, yellow: (s: string) => `\x1b[33m${s}\x1b[0m`, bold: (s: string) => `\x1b[1m${s}\x1b[0m`, dim: (s: string) => `\x1b[2m${s}\x1b[0m` };
+  const chalk = {
+    green: (s: string) => `\x1b[32m${s}\x1b[0m`,
+    red: (s: string) => `\x1b[31m${s}\x1b[0m`,
+    yellow: (s: string) => `\x1b[33m${s}\x1b[0m`,
+    bold: (s: string) => `\x1b[1m${s}\x1b[0m`,
+    dim: (s: string) => `\x1b[2m${s}\x1b[0m`,
+  };
 
   if (entries.length === 0) {
     console.log(chalk.dim('  No changes. Everything is up to date.'));
@@ -70,7 +76,9 @@ function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
 
   for (const [label, s] of totals) {
     if (s.created + s.updated + s.unchanged > 0) {
-      console.log(`  ${label}: ${s.created} to create, ${s.updated} to update, ${s.unchanged} unchanged`);
+      console.log(
+        `  ${label}: ${s.created} to create, ${s.updated} to update, ${s.unchanged} unchanged`
+      );
     }
   }
   console.log('');
@@ -213,7 +221,12 @@ export function createApplyCommand(
 
                     summary.monitors.updated++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'update', resource: 'monitor', name: monitorConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      dryRunEntries.push({
+                        type: 'update',
+                        resource: 'monitor',
+                        name: monitorConfig.name,
+                        diff: diffObjects(normalizedRemote, normalizedLocal),
+                      });
                       return;
                     }
                     logProgress(`Updating monitor: ${monitorConfig.name}`);
@@ -231,7 +244,11 @@ export function createApplyCommand(
                   } else {
                     summary.monitors.created++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'create', resource: 'monitor', name: monitorConfig.name! });
+                      dryRunEntries.push({
+                        type: 'create',
+                        resource: 'monitor',
+                        name: monitorConfig.name!,
+                      });
                       return;
                     }
                     logProgress(`Creating monitor: ${monitorConfig.name}`);
@@ -241,7 +258,6 @@ export function createApplyCommand(
                         (monitorConfig as any).interval || monitorConfig.cron_expression,
                       timeout_ms: monitorConfig.timeout_ms || 30000,
                     });
-
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -310,7 +326,12 @@ export function createApplyCommand(
 
                     summary.apiChecks.updated++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'update', resource: 'api-check', name: checkConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      dryRunEntries.push({
+                        type: 'update',
+                        resource: 'api-check',
+                        name: checkConfig.name,
+                        diff: diffObjects(normalizedRemote, normalizedLocal),
+                      });
                       return;
                     }
                     logProgress(`Updating API check: ${checkConfig.name}`);
@@ -325,7 +346,11 @@ export function createApplyCommand(
                   } else {
                     summary.apiChecks.created++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'create', resource: 'api-check', name: checkConfig.name! });
+                      dryRunEntries.push({
+                        type: 'create',
+                        resource: 'api-check',
+                        name: checkConfig.name!,
+                      });
                       return;
                     }
                     logProgress(`Creating API check: ${checkConfig.name}`);
@@ -334,7 +359,6 @@ export function createApplyCommand(
                       timeout_ms: checkConfig.timeout_ms || 30000,
                       method: checkConfig.method?.toUpperCase() || 'GET',
                     });
-
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -401,7 +425,12 @@ export function createApplyCommand(
 
                     summary.heartbeats.updated++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'update', resource: 'heartbeat', name: hbConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      dryRunEntries.push({
+                        type: 'update',
+                        resource: 'heartbeat',
+                        name: hbConfig.name,
+                        diff: diffObjects(normalizedRemote, normalizedLocal),
+                      });
                       return;
                     }
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
@@ -415,7 +444,11 @@ export function createApplyCommand(
                   } else {
                     summary.heartbeats.created++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'create', resource: 'heartbeat', name: hbConfig.name! });
+                      dryRunEntries.push({
+                        type: 'create',
+                        resource: 'heartbeat',
+                        name: hbConfig.name!,
+                      });
                       return;
                     }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
@@ -423,7 +456,6 @@ export function createApplyCommand(
                       name: hbConfig.name,
                       period: hbConfig.period,
                     });
-
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
@@ -490,7 +522,12 @@ export function createApplyCommand(
 
                     summary.aiChecks.updated++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'update', resource: 'ai-check', name: aiConfig.name, diff: diffObjects(normalizedRemote, normalizedLocal) });
+                      dryRunEntries.push({
+                        type: 'update',
+                        resource: 'ai-check',
+                        name: aiConfig.name,
+                        diff: diffObjects(normalizedRemote, normalizedLocal),
+                      });
                       return;
                     }
                     logProgress(`Updating AI check: ${aiConfig.name}`);
@@ -503,7 +540,11 @@ export function createApplyCommand(
                   } else {
                     summary.aiChecks.created++;
                     if (isDryRun) {
-                      dryRunEntries.push({ type: 'create', resource: 'ai-check', name: aiConfig.name! });
+                      dryRunEntries.push({
+                        type: 'create',
+                        resource: 'ai-check',
+                        name: aiConfig.name!,
+                      });
                       return;
                     }
                     logProgress(`Creating AI check: ${aiConfig.name}`);
@@ -513,7 +554,6 @@ export function createApplyCommand(
                       prompt: aiConfig.prompt,
                       description: aiConfig.description || 'Created via CLI',
                     });
-
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {

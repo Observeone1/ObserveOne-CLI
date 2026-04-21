@@ -280,9 +280,16 @@ async function runTests(): Promise<void> {
   const allResults: TestResult[] = [];
   const startTime = Date.now();
 
-  await runWithConcurrency(testFiles, concurrency, testsDir, printEvent, (fileResult) => {
-    allResults.push(...fileResult.results);
-  }, testNameFilter);
+  await runWithConcurrency(
+    testFiles,
+    concurrency,
+    testsDir,
+    printEvent,
+    (fileResult) => {
+      allResults.push(...fileResult.results);
+    },
+    testNameFilter
+  );
 
   const totalTime = Date.now() - startTime;
   const passedTests = allResults.filter((r) => r.passed).length;

@@ -49,7 +49,9 @@ export async function testApplyDryRun() {
 
     // 5. Dry-run after modifying config — should show update diff
     console.log('      - Running dry-run with modification...');
-    const modifiedConfig = { monitors: [{ ...configContent.monitors[0], interval: '*/30 * * * *' }] };
+    const modifiedConfig = {
+      monitors: [{ ...configContent.monitors[0], interval: '*/30 * * * *' }],
+    };
     writeFileSync(testConfigFile, JSON.stringify(modifiedConfig, null, 2));
 
     const dryRunUpdate = await runCLI(['apply', testConfigFile, '--dry-run']);
