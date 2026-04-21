@@ -4,6 +4,7 @@ import {
   assertContains,
   assertJSON,
   assertFailure,
+  assertStrictJSON,
 } from '../../lib/test-runner.js';
 
 export async function testMonitorLifecycle() {
@@ -73,5 +74,24 @@ export async function testMonitorLifecycle() {
       console.log(`      - [Cleanup] Deleting dangling monitor ${monitorId}...`);
       await runCLI(['monitor', 'delete', monitorId.toString(), '-y', '--json']);
     }
+  }
+}
+
+export async function testMonitorRunBadIdFails() {
+  const result = await runCLI(['monitor', 'run', '999999999']);
+  assertFailure(result, 'obs monitor run with unknown ID should fail');
+}
+
+export async function testMonitorRunInvalidIdFails() {
+  const result = await runCLI(['monitor', 'run', 'not-a-number']);
+  assertFailure(result, 'obs monitor run with non-numeric ID should fail');
+}
+
+export async function testMonitorRunJsonEnvelope() {
+  const result = await runCLI(['monitor', 'run', '999999999', '--json']);
+  assertStrictJSON(result.stdout, 'monitor run --json must output valid JSON envelope');
+  const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+  if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+    throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
   }
 }

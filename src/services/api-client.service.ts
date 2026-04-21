@@ -265,6 +265,32 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async runApiCheck(
+    id: number
+  ): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }> {
+    const response = await this.client.post<{
+      executions: { execution_id: number; region: string; status: string }[];
+      message: string;
+    }>(`/api-checks/${id}/execute`);
+    return response.data;
+  }
+
+  async runUrlMonitor(
+    id: number
+  ): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }> {
+    const response = await this.client.post<{
+      executions: { execution_id: number; region: string; status: string }[];
+      message: string;
+    }>(`/url-monitors/${id}/execute`);
+    return response.data;
+  }
+
   // API Checks
   async getApiChecks(): Promise<ApiCheck[]> {
     const response = await this.client.get<{ apiChecks?: ApiCheck[]; data?: ApiCheck[] }>(
@@ -506,6 +532,17 @@ export class ApiClient implements IApiClient {
     allow_form_submit?: boolean;
   }): Promise<Suite> {
     const response = await this.client.post<Suite>('/playwright-autopilot/suites', payload);
+    return response.data;
+  }
+
+  async updateSuite(
+    suiteId: string,
+    payload: { suite_name?: string; target_url?: string }
+  ): Promise<Suite> {
+    const response = await this.client.patch<Suite>(
+      `/playwright-autopilot/suites/${suiteId}`,
+      payload
+    );
     return response.data;
   }
 

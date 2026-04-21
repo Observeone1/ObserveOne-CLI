@@ -1,4 +1,11 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  assertFailure,
+  assertStrictJSON,
+} from '../../lib/test-runner.js';
 
 export async function testApiCheckLifecycle() {
   const timestamp = Date.now();
@@ -53,5 +60,24 @@ export async function testApiCheckLifecycle() {
       console.log(`      - [Cleanup] Deleting dangling API check ${checkId}...`);
       await runCLI(['check', 'delete', checkId.toString(), '-y', '--json']);
     }
+  }
+}
+
+export async function testApiCheckRunBadIdFails() {
+  const result = await runCLI(['check', 'run', '999999999']);
+  assertFailure(result, 'obs check run with unknown ID should fail');
+}
+
+export async function testApiCheckRunInvalidIdFails() {
+  const result = await runCLI(['check', 'run', 'not-a-number']);
+  assertFailure(result, 'obs check run with non-numeric ID should fail');
+}
+
+export async function testApiCheckRunJsonEnvelope() {
+  const result = await runCLI(['check', 'run', '999999999', '--json']);
+  assertStrictJSON(result.stdout, 'check run --json must output valid JSON envelope');
+  const parsed = JSON.parse(result.stdout.trim()) as { status?: string };
+  if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+    throw new Error(`JSON envelope status must be SUCCESS or ERROR, got: ${parsed.status}`);
   }
 }

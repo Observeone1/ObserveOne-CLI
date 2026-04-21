@@ -11,6 +11,7 @@ import { createSuiteWaitCommand } from './wait.js';
 import { createSuiteDeleteCommand } from './delete.js';
 import { createSuiteScheduleCommand } from './schedule.js';
 import { createSuiteSecretsCommand } from './secrets.js';
+import { createSuiteUpdateCommand } from './update.js';
 
 export function createSuiteCommand(
   configService: IConfigService,
@@ -19,6 +20,7 @@ export function createSuiteCommand(
 ): Command {
   const suite = new Command('suite').description('Manage Playwright Autopilot suites');
 
+  suite.addCommand(createSuiteUpdateCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteListCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteGetCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteGenerateCommand(configService, apiClient, outputService));
