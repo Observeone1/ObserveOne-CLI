@@ -3,13 +3,12 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { writeFileSync } from 'fs';
-import { UrlMonitor, ApiCheck, Heartbeat, Test } from '../types/index.js';
+import { UrlMonitor, ApiCheck, Heartbeat } from '../types/index.js';
 
 interface ExportConfig {
   monitors?: Partial<UrlMonitor>[];
   api_checks?: Partial<ApiCheck>[];
   heartbeats?: Partial<Heartbeat>[];
-  ai_checks?: Partial<Test>[];
 }
 
 export function createExportCommand(
@@ -37,11 +36,10 @@ export function createExportCommand(
         outputService.progress('Fetching existing resources from backend...');
 
         // Fetch all resources
-        const [monitors, apiChecks, heartbeats, aiChecks] = await Promise.all([
+        const [monitors, apiChecks, heartbeats] = await Promise.all([
           apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
           apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
           apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
-          apiClient.getTests().catch(() => [] as Test[]),
         ]);
 
         const config: ExportConfig = {};
@@ -78,16 +76,6 @@ export function createExportCommand(
           }));
         }
 
-        // 4. Map AI Checks
-        if (aiChecks.length > 0) {
-          config.ai_checks = aiChecks.map((t) => ({
-            name: t.name,
-            url: t.url,
-            prompt: t.prompt,
-            description: t.description || '',
-          }));
-        }
-
         // Write to file
         const targetFile = options.file as string;
         writeFileSync(targetFile, JSON.stringify(config, null, 2));
@@ -100,7 +88,6 @@ export function createExportCommand(
               monitors: monitors.length,
               apiChecks: apiChecks.length,
               heartbeats: heartbeats.length,
-              aiChecks: aiChecks.length,
             },
           });
         } else {
@@ -109,7 +96,6 @@ export function createExportCommand(
           console.log(`  Monitors:   ${monitors.length}`);
           console.log(`  API Checks: ${apiChecks.length}`);
           console.log(`  Heartbeats: ${heartbeats.length}`);
-          console.log(`  AI Checks:  ${aiChecks.length}`);
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));
