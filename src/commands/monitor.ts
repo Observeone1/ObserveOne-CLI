@@ -89,7 +89,7 @@ export function createMonitorCommand(
       return {
         name,
         url,
-        cron_expression: interval || '*/5 * * * *',
+        interval: interval || '*/5 * * * *',
         alert_on_failure: alerts !== false,
         timeout_ms: 30000,
       };
@@ -110,7 +110,7 @@ export function createMonitorCommand(
         name: name || existing.name,
         url: url || existing.url,
         timeout_ms: existing.timeout_ms || 30000,
-        cron_expression: (interval || existing.cron_expression) as string | undefined,
+        interval: interval || existing.interval,
         alert_on_failure: existing.alert_on_failure ?? true,
       };
     },
