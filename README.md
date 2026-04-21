@@ -71,13 +71,29 @@ obs export -f my-stack.json
 ```
 
 ### `obs apply`
-Sync your local JSON configuration to the ObserveOne backend. The CLI will automatically detect matching resources and perform surgical `create` and `update` API calls.
+Sync your local JSON configuration to the ObserveOne backend. Only changed resources are updated — unchanged ones are skipped.
 ```bash
+# Preview what would change (no writes)
+obs apply --dry-run
+
 # Sync obs.json
 obs apply
 
 # Sync a custom file
 obs apply -f my-stack.json
+```
+
+`--dry-run` fetches remote state, runs the full diff, and prints a git-style preview:
+```
+~ monitor "Production API"
+    - cron_expression: "*/5 * * * *"
+    + cron_expression: "*/10 * * * *"
+
++ monitor "Staging DB"  (new)
+
+  Monitors: 1 to create, 1 to update, 12 unchanged
+
+  Run without --dry-run to apply.
 ```
 
 **Example `obs.json` schema:**
@@ -88,7 +104,7 @@ obs apply -f my-stack.json
       "name": "Production Website",
       "description": "Main landing page monitor",
       "url": "https://example.com",
-      "interval": "*/5 * * * *",
+      "cron_expression": "*/5 * * * *",
       "alert_on_failure": true
     }
   ],
