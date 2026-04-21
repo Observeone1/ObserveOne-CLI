@@ -617,6 +617,20 @@ export class ApiClient implements IApiClient {
     await this.client.delete(`/playwright-autopilot/suites/${id}`);
   }
 
+  async getSuiteScripts(
+    suiteId: string
+  ): Promise<{ suite_id: string; tests: Array<{ id: string; name: string; code: string }> }> {
+    const response = await this.client.get<{
+      suite_id: string;
+      tests: Array<{ id: string; name: string; code: string }>;
+    }>(`/playwright-autopilot/suites/${suiteId}/scripts`);
+    return response.data;
+  }
+
+  async updateTestScript(testId: string, code: string): Promise<void> {
+    await this.client.patch(`/playwright-autopilot/tests/${testId}/script`, { code });
+  }
+
   async generateTest(suiteId: string, plannedFile: string): Promise<{ testId: string }> {
     const response = await this.client.post<{ testId: string }>(
       `/playwright-autopilot/suites/${suiteId}/generate-test`,
