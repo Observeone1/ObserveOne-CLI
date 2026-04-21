@@ -477,7 +477,9 @@ export function createApplyCommand(
 
         // 4. Browser checks are currently disabled
         if (config.ai_checks && Array.isArray(config.ai_checks) && config.ai_checks.length > 0) {
-          outputService.warn('Browser checks are currently disabled. Skipping ai_checks entries.');
+          outputService.warning(
+            'Browser checks are currently disabled. Skipping ai_checks entries.'
+          );
         }
 
         if (spinner) {
