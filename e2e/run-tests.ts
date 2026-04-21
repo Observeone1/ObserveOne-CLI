@@ -103,7 +103,8 @@ function printEvent(ev: TestEvent): void {
 async function runFile(
   file: string,
   testsDir: string,
-  onEvent: (ev: TestEvent) => void
+  onEvent: (ev: TestEvent) => void,
+  testNameFilter?: string
 ): Promise<FileResult> {
   onEvent({ kind: 'file-start', file });
   const results: TestResult[] = [];
@@ -120,9 +121,13 @@ async function runFile(
     };
   }
 
-  const testFunctions = Object.entries(testModule).filter(
+  const allFunctions = Object.entries(testModule).filter(
     ([key]) => key.startsWith('test') && typeof testModule[key] === 'function'
   );
+
+  const testFunctions = testNameFilter
+    ? allFunctions.filter(([key]) => key.toLowerCase().includes(testNameFilter.toLowerCase()))
+    : allFunctions;
 
   for (const [name, testFn] of testFunctions) {
     const start = Date.now();
@@ -150,14 +155,15 @@ async function runWithConcurrency(
   concurrency: number,
   testsDir: string,
   onEvent: (ev: TestEvent) => void,
-  onFileDone: (result: FileResult) => void
+  onFileDone: (result: FileResult) => void,
+  testNameFilter?: string
 ): Promise<void> {
   const queue = [...files];
 
   async function worker() {
     while (queue.length > 0) {
       const file = queue.shift()!;
-      const result = await runFile(file, testsDir, onEvent);
+      const result = await runFile(file, testsDir, onEvent, testNameFilter);
       onFileDone(result);
     }
   }
@@ -169,6 +175,8 @@ async function runTests(): Promise<void> {
   const isList = process.argv.includes('--list');
   const concurrencyArg = process.argv.find((a) => a.startsWith('--concurrency='));
   const concurrency = concurrencyArg ? parseInt(concurrencyArg.split('=')[1], 10) : 4;
+  const testArgIdx = process.argv.indexOf('--test');
+  const testNameFilter = testArgIdx !== -1 ? process.argv[testArgIdx + 1] : undefined;
   const filters = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
   if (isCI) {
@@ -241,7 +249,10 @@ async function runTests(): Promise<void> {
       try {
         const testModule = await import(pathToFileURL(join(testsDir, file)).href);
         const names = Object.keys(testModule).filter(
-          (k) => k.startsWith('test') && typeof testModule[k] === 'function'
+          (k) =>
+            k.startsWith('test') &&
+            typeof testModule[k] === 'function' &&
+            (!testNameFilter || k.toLowerCase().includes(testNameFilter.toLowerCase()))
         );
         for (const name of names) {
           console.log(chalk.gray(`   · ${name}`));
@@ -259,6 +270,9 @@ async function runTests(): Promise<void> {
       chalk.gray(`Filter: ${chalk.white(filters.join(', '))} → ${testFiles.length} file(s)\n`)
     );
   }
+  if (testNameFilter) {
+    console.log(chalk.gray(`Test filter: ${chalk.white(testNameFilter)} (substring match)\n`));
+  }
   if (concurrency > 1 && testFiles.length > 1) {
     console.log(chalk.gray(`Concurrency: ${chalk.white(String(concurrency))} parallel files\n`));
   }
@@ -268,7 +282,7 @@ async function runTests(): Promise<void> {
 
   await runWithConcurrency(testFiles, concurrency, testsDir, printEvent, (fileResult) => {
     allResults.push(...fileResult.results);
-  });
+  }, testNameFilter);
 
   const totalTime = Date.now() - startTime;
   const passedTests = allResults.filter((r) => r.passed).length;
