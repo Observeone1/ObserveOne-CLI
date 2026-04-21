@@ -8,6 +8,28 @@ export async function testSuiteGenerateInvalidUrl() {
   }
 }
 
+export async function testSuiteGeneratePlanOnlyFlag() {
+  // Should fail at auth, not at --plan-only flag parsing
+  const result = await runCLI(['suite', 'generate', 'https://example.com', '--plan-only']);
+  if (result.exitCode !== 0) {
+    const output = result.stderr || result.stdout;
+    if (output.includes('unknown option')) {
+      throw new Error('--plan-only flag should be recognized by the CLI');
+    }
+  }
+}
+
+export async function testSuiteGenerateDeprecatedWaitFlag() {
+  // --wait should be accepted (hidden, deprecated) without error
+  const result = await runCLI(['suite', 'generate', 'https://example.com', '--wait']);
+  if (result.exitCode !== 0) {
+    const output = result.stderr || result.stdout;
+    if (output.includes('unknown option')) {
+      throw new Error('--wait flag should still be accepted (deprecated no-op)');
+    }
+  }
+}
+
 export async function testSuiteGenerateVarParsing() {
   // Should fail at auth, not at --var parsing
   const result = await runCLI([

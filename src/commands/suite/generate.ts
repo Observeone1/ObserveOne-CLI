@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { ApiClient } from '../../services/api-client.service.js';
@@ -7,15 +7,12 @@ import { IOutputService } from '../../interfaces/output.interface.js';
 import { mergeVars } from './vars.js';
 import { suiteStatusColor } from './formatters.js';
 
-const STAGE_LABELS: Record<string, string> = {
-  pending: 'Queuing...',
-  crawling: 'Crawling pages...',
-  planning: 'Planning test scenarios...',
-  generating: 'Generating test scripts...',
-  healing: 'Healing & validating...',
-  scheduled: 'Done',
-  failed: 'Failed',
-};
+function extractPlannedFiles(planMarkdown: string): string[] {
+  const matches = [
+    ...planMarkdown.matchAll(/\*\*File:\*\*\s*`tests\/([^`]+?\.(?:spec|test)\.ts)`/g),
+  ];
+  return [...new Set(matches.map((m) => m[1]).filter((f): f is string => !!f))];
+}
 
 export function createSuiteGenerateCommand(
   _configService: IConfigService,
@@ -36,7 +33,8 @@ export function createSuiteGenerateCommand(
     )
     .option('--var-file <path>', 'Load variables from a .env file')
     .option('--allow-form-submit', 'Allow AI agents to submit non-auth forms')
-    .option('-w, --wait', 'Wait for generation to complete')
+    .option('--plan-only', 'Stop after the planning phase; do not generate test scripts')
+    .addOption(new Option('-w, --wait', 'Deprecated: test generation is now the default').hideHelp())
     .action(
       async (
         url: string,
@@ -47,10 +45,20 @@ export function createSuiteGenerateCommand(
           var: string[];
           varFile?: string;
           allowFormSubmit?: boolean;
+          planOnly?: boolean;
           wait?: boolean;
         }
       ) => {
         const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+
+        if (options.wait) {
+          console.warn(
+            chalk.yellow(
+              ' --wait is deprecated and has no effect. Test generation is now the default.\n'
+            )
+          );
+        }
+
         try {
           const hostname = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
           const suiteName = options.name || hostname;
@@ -76,39 +84,70 @@ export function createSuiteGenerateCommand(
 
           const suite = await apiClient.generateSuite(payload);
 
-          if (!options.wait) {
-            if (isJson) {
-              outputService.formatJsonOutput({ suite });
-            } else {
-              console.log(chalk.bold(`\n Suite created: ${suite.suite_name}`));
-              console.log(chalk.gray(` ID: ${suite.id}`));
-              console.log(chalk.gray(` Status: ${suiteStatusColor(suite.status)}`));
-              console.log(chalk.gray(` Track: obs suite get ${suite.id}\n`));
-            }
-            return;
-          }
-
           if (!isJson) {
             console.log(chalk.bold(`\n Generating suite for ${url}`));
             console.log(chalk.gray('─'.repeat(56)));
           }
 
-          const spinner = ora({ text: 'Queuing...', stream: process.stdout }).start();
           const started = Date.now();
+          const spinner = ora({ text: 'Planning test scenarios...', stream: process.stdout }).start();
 
-          const done = await apiClient.pollSuiteGeneration(suite.id);
+          const planned = await apiClient.pollSuiteGeneration(suite.id);
 
-          const elapsed = ((Date.now() - started) / 1000).toFixed(0);
-
-          if (done.status === 'failed') {
-            spinner.fail(chalk.red(`Generation failed: ${done.error_message || 'unknown error'}`));
-            if (isJson) outputService.formatJsonOutput({ suite: done });
+          if (planned.status === 'failed') {
+            spinner.fail(
+              chalk.red(`Generation failed: ${planned.error_message || 'unknown error'}`)
+            );
+            if (isJson) outputService.formatJsonOutput({ suite: planned });
             process.exit(1);
           }
 
-          spinner.succeed(
-            chalk.green(`Suite ready  (${elapsed}s)  •  ${done.test_count} tests generated`)
-          );
+          const plannedFiles = extractPlannedFiles(planned.plan_markdown ?? '');
+
+          if (options.planOnly) {
+            spinner.succeed(
+              chalk.green(
+                `Plan ready  •  ${plannedFiles.length} test${plannedFiles.length !== 1 ? 's' : ''} planned`
+              )
+            );
+            console.log('');
+            console.log(chalk.gray(` Suite ID:   ${planned.id}`));
+            console.log(chalk.gray(` Status:     ${suiteStatusColor(planned.status)}`));
+            console.log(chalk.gray(` Open the dashboard to generate tests`));
+            console.log('');
+            if (isJson) outputService.formatJsonOutput({ suite: planned });
+            return;
+          }
+
+          if (plannedFiles.length === 0) {
+            spinner.warn(
+              chalk.yellow('Plan complete but no test files found. Check the dashboard.')
+            );
+            if (isJson) outputService.formatJsonOutput({ suite: planned });
+            return;
+          }
+
+          spinner.text = `Generating ${plannedFiles.length} test${plannedFiles.length !== 1 ? 's' : ''}...`;
+          await Promise.all(plannedFiles.map((file) => apiClient.generateTest(planned.id, file)));
+
+          const done = await apiClient.pollSuiteTests(planned.id, plannedFiles.length);
+          const elapsed = ((Date.now() - started) / 1000).toFixed(0);
+          const generated = done.generated_tests.length;
+
+          if (generated >= plannedFiles.length) {
+            spinner.succeed(
+              chalk.green(
+                `Suite ready  (${elapsed}s)  •  ${generated}/${plannedFiles.length} tests generated`
+              )
+            );
+          } else {
+            spinner.warn(
+              chalk.yellow(
+                `Done (${elapsed}s)  •  ${generated}/${plannedFiles.length} tests generated (some may still be processing)`
+              )
+            );
+          }
+
           console.log('');
           console.log(chalk.gray(` Suite ID:  ${done.id}`));
           console.log(chalk.gray(` Run it:    obs suite run ${done.id} --wait`));
