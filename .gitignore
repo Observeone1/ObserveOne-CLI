@@ -45,5 +45,8 @@ results.xml
 tmp/
 temp/
 
+# Pulled suite files
+suites/
+
 
 
