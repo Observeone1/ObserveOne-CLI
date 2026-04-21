@@ -101,7 +101,7 @@ export class OutputService implements IOutputService {
 
       if (verbose) {
         if (monitor.description) console.log(c.muted(`   Desc: ${monitor.description}`));
-        console.log(c.muted(`   Interval: ${monitor.cron_expression || 'Default'}`));
+        console.log(c.muted(`   Interval: ${monitor.interval || 'Default'}`));
         console.log(c.muted(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
       }
       console.log('');
@@ -224,7 +224,9 @@ export class OutputService implements IOutputService {
 
     incidents.forEach((incident, index) => {
       console.log(
-        chalk.bold(`${index + 1}. ${incident.title} [${incident.priority}] (${incident.status})`)
+        chalk.bold(
+          `${index + 1}. ${incident.title} [${incident.priority.charAt(0) + incident.priority.slice(1).toLowerCase()}] (${incident.status})`
+        )
       );
       console.log(c.muted(`   ID: ${incident.id}`));
       if (incident.assigned_to) {

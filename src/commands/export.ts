@@ -49,7 +49,7 @@ export function createExportCommand(
           config.monitors = monitors.map((m) => ({
             name: m.name,
             url: m.url,
-            cron_expression: (m as any).interval || m.cron_expression,
+            interval: m.interval,
             timeout_ms: m.timeout_ms,
             alert_on_failure: m.alert_on_failure,
           })) as any;

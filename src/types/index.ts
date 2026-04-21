@@ -56,7 +56,7 @@ export interface UrlMonitor {
   timeout_ms: number;
   is_active: boolean;
   alert_on_failure: boolean;
-  cron_expression?: string | undefined;
+  interval?: string | undefined;
   assertions: Array<{
     operator: string;
     status_code: number;
