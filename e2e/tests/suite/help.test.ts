@@ -11,5 +11,5 @@ export async function testSuiteGenerateHelp() {
   assertSuccess(result, 'obs suite generate --help should succeed');
   assertContains(result.stdout, 'url', 'Help should show url argument');
   assertContains(result.stdout, '--var', 'Help should show --var option');
-  assertContains(result.stdout, '--wait', 'Help should show --wait option');
+  assertContains(result.stdout, '--plan-only', 'Help should show --plan-only option');
 }

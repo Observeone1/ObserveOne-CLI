@@ -550,6 +550,30 @@ export class ApiClient implements IApiClient {
     await this.client.delete(`/playwright-autopilot/suites/${id}`);
   }
 
+  async generateTest(suiteId: string, plannedFile: string): Promise<{ testId: string }> {
+    const response = await this.client.post<{ testId: string }>(
+      `/playwright-autopilot/suites/${suiteId}/generate-test`,
+      { planned_file: plannedFile }
+    );
+    return response.data;
+  }
+
+  async pollSuiteTests(
+    suiteId: string,
+    expectedCount: number,
+    maxAttempts: number = 360,
+    intervalMs: number = 5000
+  ): Promise<Suite> {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      const suite = await this.getSuite(suiteId);
+      if (suite.generated_tests.length >= expectedCount) return suite;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      attempts++;
+    }
+    return this.getSuite(suiteId);
+  }
+
   async pollSuiteGeneration(
     suiteId: string,
     maxAttempts: number = 120,
