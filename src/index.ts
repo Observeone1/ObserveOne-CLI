@@ -22,6 +22,7 @@ import { createLoginCommand } from './commands/login.js';
 import { createLogoutCommand } from './commands/logout.js';
 import { createInitCommand } from './commands/init.js';
 import { createValidateCommand } from './commands/validate.js';
+import { createAiCheckCommand } from './commands/ai-check/index.js';
 import { createMonitorCommand } from './commands/monitor.js';
 import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
@@ -70,6 +71,7 @@ program.exitOverride((err) => {
 program.addCommand(createLoginCommand(configService, apiClient, outputService));
 program.addCommand(createLogoutCommand(configService, outputService));
 program.addCommand(createInitCommand(configService, outputService));
+program.addCommand(createAiCheckCommand(configService, apiClient, outputService));
 program.addCommand(createMonitorCommand(configService, apiClient, outputService));
 program.addCommand(createCheckCommand(configService, apiClient, outputService));
 program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
