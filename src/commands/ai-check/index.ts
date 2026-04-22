@@ -16,7 +16,7 @@ export function createAiCheckCommand(
   outputService: IOutputService
 ): Command {
   const aiCheck = new Command('ai-check').description('Manage and run AI-powered tests');
-  (aiCheck as any).hidden = true;
+  (aiCheck as Command & { _hidden?: boolean })._hidden = true;
 
   aiCheck.addCommand(createAiCheckRunCommand(configService, apiClient, outputService), {
     isDefault: true,
