@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { UrlMonitor } from '../types/index.js';
 
@@ -14,12 +16,13 @@ export function createMonitorCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<UrlMonitor>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<UrlMonitor>(configService, apiClient, outputService, {
     resourceName: 'monitor',
     pluralName: 'URL monitors',
     description: 'Manage URL monitors',
     apiMethods: {
       list: () => apiClient.getUrlMonitors(),
+      listWithFilters: (query) => apiClient.listUrlMonitors(query),
       get: (id) => apiClient.getUrlMonitor(id),
       create: (data) => apiClient.createUrlMonitor(data),
       update: (id, data) => apiClient.updateUrlMonitor(id, data),
@@ -87,7 +90,7 @@ export function createMonitorCommand(
       return {
         name,
         url,
-        cron_expression: interval || '*/5 * * * *',
+        interval: interval || '*/5 * * * *',
         alert_on_failure: alerts !== false,
         timeout_ms: 30000,
       };
@@ -108,9 +111,48 @@ export function createMonitorCommand(
         name: name || existing.name,
         url: url || existing.url,
         timeout_ms: existing.timeout_ms || 30000,
-        cron_expression: (interval || existing.cron_expression) as string | undefined,
+        interval: interval || existing.interval,
         alert_on_failure: existing.alert_on_failure ?? true,
       };
     },
   });
+
+  cmd
+    .command('run <id>')
+    .description('Trigger a manual check for a monitor')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const monitorId = parseInt(id);
+        if (isNaN(monitorId)) throw new Error('Invalid monitor ID');
+
+        const result = await (apiClient as ApiClient).runUrlMonitor(monitorId);
+
+        if (isJson) {
+          outputService.formatJsonOutput({
+            executions: result.executions,
+            message: result.message,
+          });
+          return;
+        }
+
+        console.log(chalk.bold(`\n ${result.message}`));
+        for (const ex of result.executions) {
+          console.log(
+            chalk.gray(` Region: ${ex.region}  execution: ${ex.execution_id}  status: ${ex.status}`)
+          );
+        }
+        console.log('');
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to run monitor';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  return cmd;
 }

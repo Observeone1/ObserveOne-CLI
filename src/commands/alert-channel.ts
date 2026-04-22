@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { AlertChannel, AlertChannelConfig, AlertChannelType } from '../types/index.js';
 
@@ -74,7 +76,7 @@ export function createAlertChannelCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<AlertChannel>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<AlertChannel>(configService, apiClient, outputService, {
     resourceName: 'alert-channel',
     pluralName: 'alert channels',
     description: 'Manage alert channels',
@@ -194,4 +196,34 @@ export function createAlertChannelCommand(
       };
     },
   });
+
+  cmd
+    .command('test <id>')
+    .description('Send a test notification through an alert channel')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const channelId = parseInt(id);
+        if (isNaN(channelId)) throw new Error('Invalid channel ID');
+
+        const result = await (apiClient as ApiClient).testAlertChannel(channelId);
+
+        if (isJson) {
+          outputService.formatJsonOutput({ success: result.success, message: result.message });
+          return;
+        }
+
+        console.log(chalk.bold(`\n ${result.message}\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to test alert channel';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  return cmd;
 }

@@ -8,6 +8,8 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  ListQueryOptions,
+  PaginatedListResult,
   AlertChannel,
   StatusPage,
   Incident,
@@ -221,36 +223,101 @@ export class ApiClient implements IApiClient {
   }
 
   // URL Monitors
+  private mapMonitor(raw: Record<string, unknown>): UrlMonitor {
+    const { cron_expression, ...rest } = raw as Record<string, unknown> & {
+      cron_expression?: string;
+    };
+    return { ...rest, interval: cron_expression } as unknown as UrlMonitor;
+  }
+
+  private normalizePagination(length: number) {
+    return {
+      page: 1,
+      limit: length,
+      total: length,
+      totalPages: length === 0 ? 0 : 1,
+    };
+  }
+
+  private normalizePaginatedItems<T>(
+    payload: unknown,
+    legacyKeys: string[]
+  ): PaginatedListResult<T> {
+    if (Array.isArray(payload)) {
+      return {
+        items: payload as T[],
+        pagination: this.normalizePagination(payload.length),
+      };
+    }
+
+    const data = payload as Record<string, unknown>;
+    const resolvedItems =
+      (Array.isArray(data.items) ? (data.items as T[]) : undefined) ??
+      legacyKeys.reduce<T[]>((acc, key) => {
+        if (acc.length > 0) return acc;
+        return Array.isArray(data[key]) ? (data[key] as T[]) : acc;
+      }, []);
+
+    const pagination =
+      (data.pagination as PaginatedListResult<T>['pagination'] | undefined) ??
+      this.normalizePagination(resolvedItems.length);
+
+    return {
+      items: resolvedItems,
+      pagination,
+    };
+  }
+
   async getUrlMonitors(): Promise<UrlMonitor[]> {
-    const response = await this.client.get<
-      { monitors?: UrlMonitor[]; data?: UrlMonitor[] } | UrlMonitor[]
-    >('/url-monitors');
-    if (Array.isArray(response.data)) return response.data;
-    return response.data.monitors || response.data.data || [];
+    const result = await this.listUrlMonitors();
+    return result.items;
+  }
+
+  async listUrlMonitors(query: ListQueryOptions = {}): Promise<PaginatedListResult<UrlMonitor>> {
+    const response = await this.client.get('/url-monitors', { params: query });
+    const normalized = this.normalizePaginatedItems<Record<string, unknown>>(response.data, [
+      'items',
+      'monitors',
+      'data',
+    ]);
+    return {
+      items: normalized.items.map((item) => this.mapMonitor(item)),
+      pagination: normalized.pagination,
+    };
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
-    const response = await this.client.get<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >(`/url-monitors/${id}`);
-    const data = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return data.monitor || data.data || (response.data as UrlMonitor);
+    const response = await this.client.get<Record<string, unknown>>(`/url-monitors/${id}`);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.post<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >('/url-monitors', data);
-    const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return resData.monitor || resData.data || (response.data as UrlMonitor);
+    const { interval, ...rest } = data;
+    const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
+    const response = await this.client.post<Record<string, unknown>>('/url-monitors', payload);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
-    const response = await this.client.put<
-      { monitor?: UrlMonitor; data?: UrlMonitor } | UrlMonitor
-    >(`/url-monitors/${id}`, data);
-    const resData = response.data as { monitor?: UrlMonitor; data?: UrlMonitor };
-    return resData.monitor || resData.data || (response.data as UrlMonitor);
+    const { interval, ...rest } = data;
+    const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
+    const response = await this.client.put<Record<string, unknown>>(`/url-monitors/${id}`, payload);
+    const raw =
+      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
+        .monitor ||
+      (response.data as { data?: Record<string, unknown> }).data ||
+      (response.data as Record<string, unknown>);
+    return this.mapMonitor(raw);
   }
 
   async deleteUrlMonitor(id: number): Promise<void> {
@@ -265,12 +332,37 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async runApiCheck(id: number): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }> {
+    const response = await this.client.post<{
+      executions: { execution_id: number; region: string; status: string }[];
+      message: string;
+    }>(`/api-checks/${id}/execute`);
+    return response.data;
+  }
+
+  async runUrlMonitor(id: number): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }> {
+    const response = await this.client.post<{
+      executions: { execution_id: number; region: string; status: string }[];
+      message: string;
+    }>(`/url-monitors/${id}/execute`);
+    return response.data;
+  }
+
   // API Checks
   async getApiChecks(): Promise<ApiCheck[]> {
-    const response = await this.client.get<{ apiChecks?: ApiCheck[]; data?: ApiCheck[] }>(
-      '/api-checks'
-    );
-    return response.data.apiChecks || response.data.data || [];
+    const result = await this.listApiChecks();
+    return result.items;
+  }
+
+  async listApiChecks(query: ListQueryOptions = {}): Promise<PaginatedListResult<ApiCheck>> {
+    const response = await this.client.get('/api-checks', { params: query });
+    return this.normalizePaginatedItems<ApiCheck>(response.data, ['items', 'apiChecks', 'data']);
   }
 
   async getApiCheck(id: number): Promise<ApiCheck> {
@@ -313,10 +405,13 @@ export class ApiClient implements IApiClient {
 
   // Heartbeats
   async getHeartbeats(): Promise<Heartbeat[]> {
-    const response = await this.client.get<{ heartbeats?: Heartbeat[]; data?: Heartbeat[] }>(
-      '/heartbeats'
-    );
-    return response.data.heartbeats || response.data.data || [];
+    const result = await this.listHeartbeats();
+    return result.items;
+  }
+
+  async listHeartbeats(query: ListQueryOptions = {}): Promise<PaginatedListResult<Heartbeat>> {
+    const response = await this.client.get('/heartbeats', { params: query });
+    return this.normalizePaginatedItems<Heartbeat>(response.data, ['items', 'heartbeats', 'data']);
   }
 
   async getHeartbeat(id: number): Promise<Heartbeat> {
@@ -381,6 +476,13 @@ export class ApiClient implements IApiClient {
 
   async deleteAlertChannel(id: number): Promise<void> {
     await this.client.delete(`/alert-channels/${id}`);
+  }
+
+  async testAlertChannel(id: number): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success: boolean; message: string }>(
+      `/alert-channels/${id}/test`
+    );
+    return response.data;
   }
 
   // Status Pages
@@ -509,6 +611,17 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
+  async updateSuite(
+    suiteId: string,
+    payload: { suite_name?: string; target_url?: string }
+  ): Promise<Suite> {
+    const response = await this.client.patch<Suite>(
+      `/playwright-autopilot/suites/${suiteId}`,
+      payload
+    );
+    return response.data;
+  }
+
   async updateSuiteSchedule(
     suiteId: string,
     payload: { schedule_active?: boolean; cron_expression?: string }
@@ -548,6 +661,20 @@ export class ApiClient implements IApiClient {
 
   async deleteSuite(id: string): Promise<void> {
     await this.client.delete(`/playwright-autopilot/suites/${id}`);
+  }
+
+  async getSuiteScripts(
+    suiteId: string
+  ): Promise<{ suite_id: string; tests: Array<{ id: string; name: string; code: string }> }> {
+    const response = await this.client.get<{
+      suite_id: string;
+      tests: Array<{ id: string; name: string; code: string }>;
+    }>(`/playwright-autopilot/suites/${suiteId}/scripts`);
+    return response.data;
+  }
+
+  async updateTestScript(testId: string, code: string): Promise<void> {
+    await this.client.patch(`/playwright-autopilot/tests/${testId}/script`, { code });
   }
 
   async generateTest(suiteId: string, plannedFile: string): Promise<{ testId: string }> {

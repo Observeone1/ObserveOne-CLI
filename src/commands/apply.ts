@@ -195,8 +195,7 @@ export function createApplyCommand(
                         name: monitorConfig.name,
                         url: monitorConfig.url,
                         timeout_ms: monitorConfig.timeout_ms || 30000,
-                        cron_expression:
-                          (monitorConfig as any).interval || monitorConfig.cron_expression,
+                        interval: monitorConfig.interval,
                         alert_on_failure: monitorConfig.alert_on_failure ?? true,
                       },
                       { timeout_ms: 30000, alert_on_failure: true }
@@ -206,7 +205,7 @@ export function createApplyCommand(
                         name: existing.name,
                         url: existing.url,
                         timeout_ms: existing.timeout_ms || 30000,
-                        cron_expression: (existing as any).interval || existing.cron_expression,
+                        interval: existing.interval,
                         alert_on_failure: existing.alert_on_failure ?? true,
                       },
                       { timeout_ms: 30000, alert_on_failure: true }
@@ -234,10 +233,7 @@ export function createApplyCommand(
                       name: monitorConfig.name || existing.name,
                       url: monitorConfig.url || existing.url,
                       timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                      cron_expression:
-                        (monitorConfig as any).interval ||
-                        monitorConfig.cron_expression ||
-                        existing.cron_expression,
+                      interval: monitorConfig.interval || existing.interval,
                       alert_on_failure:
                         monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                     });
@@ -254,8 +250,6 @@ export function createApplyCommand(
                     logProgress(`Creating monitor: ${monitorConfig.name}`);
                     await apiClient.createUrlMonitor({
                       ...monitorConfig,
-                      cron_expression:
-                        (monitorConfig as any).interval || monitorConfig.cron_expression,
                       timeout_ms: monitorConfig.timeout_ms || 30000,
                     });
                   }
@@ -475,102 +469,11 @@ export function createApplyCommand(
           }
         }
 
-        // 4. Process AI Checks
-        if (config.ai_checks && Array.isArray(config.ai_checks)) {
-          logProgress('Fetching existing AI checks...');
-          const existingAiChecks = await apiClient.getTests();
-          const existingByName = new Map<string, Test>(existingAiChecks.map((t) => [t.name, t]));
-
-          const chunks = chunkArray(config.ai_checks, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i]!;
-            await Promise.all(
-              chunk.map(async (aiConfig) => {
-                try {
-                  if (!aiConfig.name || !aiConfig.url || !aiConfig.prompt) {
-                    throw new Error("AI check must have 'name', 'url', and 'prompt'");
-                  }
-
-                  const existing = existingByName.get(aiConfig.name);
-                  if (existing) {
-                    // Normalize both objects for comparison
-                    const normalizedLocal = normalizeResource(
-                      {
-                        name: aiConfig.name,
-                        url: aiConfig.url,
-                        prompt: aiConfig.prompt,
-                        description: aiConfig.description || '',
-                      },
-                      { description: '' }
-                    );
-                    const normalizedRemote = normalizeResource(
-                      {
-                        name: existing.name,
-                        url: existing.url,
-                        prompt: existing.prompt,
-                        description: existing.description || '',
-                      },
-                      { description: '' }
-                    );
-
-                    // Skip update if no changes
-                    if (deepEqual(normalizedLocal, normalizedRemote)) {
-                      logProgress(`AI check unchanged: ${aiConfig.name}`);
-                      summary.aiChecks.unchanged++;
-                      return;
-                    }
-
-                    summary.aiChecks.updated++;
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'update',
-                        resource: 'ai-check',
-                        name: aiConfig.name,
-                        diff: diffObjects(normalizedRemote, normalizedLocal),
-                      });
-                      return;
-                    }
-                    logProgress(`Updating AI check: ${aiConfig.name}`);
-                    await apiClient.updateTest(existing.id, {
-                      name: aiConfig.name || existing.name,
-                      url: aiConfig.url || existing.url,
-                      prompt: aiConfig.prompt || existing.prompt,
-                      description: aiConfig.description || existing.description || '',
-                    });
-                  } else {
-                    summary.aiChecks.created++;
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'create',
-                        resource: 'ai-check',
-                        name: aiConfig.name!,
-                      });
-                      return;
-                    }
-                    logProgress(`Creating AI check: ${aiConfig.name}`);
-                    await apiClient.createTest({
-                      name: aiConfig.name,
-                      url: aiConfig.url,
-                      prompt: aiConfig.prompt,
-                      description: aiConfig.description || 'Created via CLI',
-                    });
-                  }
-                } catch (err: unknown) {
-                  const errorObj = err as {
-                    response?: { data?: { error?: string; message?: string } };
-                    message?: string;
-                  };
-                  const details =
-                    errorObj.response?.data?.error ||
-                    errorObj.response?.data?.message ||
-                    errorObj.message;
-                  errors.push(`AI Check '${aiConfig.name || 'unknown'}': ${details}`);
-                  summary.aiChecks.errors++;
-                }
-              })
-            );
-            if (i < chunks.length - 1) await delay(delayMs);
-          }
+        // 4. Browser checks are currently disabled
+        if (config.ai_checks && Array.isArray(config.ai_checks) && config.ai_checks.length > 0) {
+          outputService.warning(
+            'Browser checks are currently disabled. Skipping ai_checks entries.'
+          );
         }
 
         if (spinner) {

@@ -4,6 +4,12 @@ import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ListQueryOptions, PaginatedListResult } from '../types/index.js';
+import {
+  addListQueryOptions,
+  formatPaginationSummary,
+  resolveListQueryOptions,
+} from '../utils/list-query.js';
 
 export interface ResourceFactoryOptions<T> {
   resourceName: string;
@@ -11,6 +17,7 @@ export interface ResourceFactoryOptions<T> {
   description: string;
   apiMethods: {
     list: () => Promise<T[]>;
+    listWithFilters?: (query: ListQueryOptions) => Promise<PaginatedListResult<T>>;
     get: (id: number) => Promise<T>;
     create: (data: Partial<T>) => Promise<T>;
     update: (id: number, data: Partial<T>) => Promise<T>;
@@ -70,31 +77,44 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   };
 
   // LIST
-  cmd
+  const listCmd = cmd
     .command('list')
     .description(`List all ${pluralName}`)
     .option('-f, --format <format>', 'Output format (table, json)', 'table')
-    .option('-j, --json', 'Output in JSON format')
-    .action(async (cmdOptions: Record<string, unknown>) => {
-      const resolvedOptions = resolveOptions(cmdOptions);
-      setupContext(resolvedOptions);
-      try {
-        outputService.progress(`Fetching ${pluralName}...`);
-        const items = await apiMethods.list();
-        if (
-          process.env.OBS_JSON_OUTPUT === 'true' ||
-          resolvedOptions.format === 'json' ||
-          resolvedOptions.json === true
-        ) {
-          outputService.formatJsonOutput(items);
-        } else {
-          formatters.list(items, process.env.OBS_VERBOSE === 'true');
+    .option('-j, --json', 'Output in JSON format');
+
+  if (apiMethods.listWithFilters) {
+    addListQueryOptions(listCmd);
+  }
+
+  listCmd.action(async (cmdOptions: Record<string, unknown>) => {
+    const resolvedOptions = resolveOptions(cmdOptions);
+    setupContext(resolvedOptions);
+    try {
+      outputService.progress(`Fetching ${pluralName}...`);
+      const paginated = apiMethods.listWithFilters
+        ? await apiMethods.listWithFilters(resolveListQueryOptions(resolvedOptions))
+        : null;
+      const items = paginated?.items ?? (await apiMethods.list());
+      if (
+        process.env.OBS_JSON_OUTPUT === 'true' ||
+        resolvedOptions.format === 'json' ||
+        resolvedOptions.json === true
+      ) {
+        outputService.formatJsonOutput(
+          paginated ? { items: paginated.items, pagination: paginated.pagination } : items
+        );
+      } else {
+        if (paginated) {
+          outputService.info(formatPaginationSummary(paginated.pagination, paginated.items.length));
         }
-      } catch (error: unknown) {
-        outputService.error(outputService.formatError(error));
-        process.exit(1);
+        formatters.list(items, process.env.OBS_VERBOSE === 'true');
       }
-    });
+    } catch (error: unknown) {
+      outputService.error(outputService.formatError(error));
+      process.exit(1);
+    }
+  });
 
   // GET
   cmd

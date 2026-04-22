@@ -93,7 +93,16 @@ export class OutputService implements IOutputService {
     console.log(c.muted('─'.repeat(80)));
 
     monitors.forEach((monitor, index) => {
-      const status = monitor.is_active ? c.success('ACTIVE') : c.warning('PAUSED');
+      const statusText = (monitor.status ?? (monitor.is_active ? 'up' : 'paused')).toUpperCase();
+      const statusColor =
+        statusText === 'UP'
+          ? c.success
+          : statusText === 'DOWN'
+            ? c.error
+            : statusText === 'PAUSED'
+              ? c.warning
+              : c.accent;
+      const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
 
       console.log(c.muted(`   URL: ${monitor.url}`));
@@ -101,7 +110,7 @@ export class OutputService implements IOutputService {
 
       if (verbose) {
         if (monitor.description) console.log(c.muted(`   Desc: ${monitor.description}`));
-        console.log(c.muted(`   Interval: ${monitor.cron_expression || 'Default'}`));
+        console.log(c.muted(`   Interval: ${monitor.interval || 'Default'}`));
         console.log(c.muted(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
       }
       console.log('');
@@ -118,7 +127,16 @@ export class OutputService implements IOutputService {
     console.log(c.muted('─'.repeat(80)));
 
     checks.forEach((check, index) => {
-      const status = check.is_active ? c.success('ACTIVE') : c.warning('PAUSED');
+      const statusText = (check.status ?? (check.is_active ? 'up' : 'paused')).toUpperCase();
+      const statusColor =
+        statusText === 'UP'
+          ? c.success
+          : statusText === 'DOWN'
+            ? c.error
+            : statusText === 'PAUSED'
+              ? c.warning
+              : c.accent;
+      const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${check.name} [${status}]`));
 
       console.log(c.muted(`   Endpoint: ${check.method} ${check.url}`));
@@ -143,11 +161,10 @@ export class OutputService implements IOutputService {
 
     heartbeats.forEach((hb, index) => {
       const statusColor =
-        hb.status === 'UP' ? c.success : hb.status === 'DOWN' ? c.error : c.warning;
-      const status = statusColor(hb.status);
-      const activeStatus = hb.is_active ? '' : c.warning(' (PAUSED)');
+        hb.status === 'up' ? c.success : hb.status === 'down' ? c.error : c.warning;
+      const status = statusColor(hb.status.toUpperCase());
 
-      console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}${activeStatus}`));
+      console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}`));
       console.log(c.muted(`   Key: ${hb.ping_key}`));
       console.log(c.muted(`   ID: ${hb.id}`));
 
@@ -224,7 +241,9 @@ export class OutputService implements IOutputService {
 
     incidents.forEach((incident, index) => {
       console.log(
-        chalk.bold(`${index + 1}. ${incident.title} [${incident.priority}] (${incident.status})`)
+        chalk.bold(
+          `${index + 1}. ${incident.title} [${incident.priority.charAt(0) + incident.priority.slice(1).toLowerCase()}] (${incident.status})`
+        )
       );
       console.log(c.muted(`   ID: ${incident.id}`));
       if (incident.assigned_to) {

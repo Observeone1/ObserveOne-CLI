@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { ApiCheck } from '../types/index.js';
 
@@ -14,12 +16,13 @@ export function createCheckCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<ApiCheck>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<ApiCheck>(configService, apiClient, outputService, {
     resourceName: 'check',
     pluralName: 'API checks',
     description: 'Manage API checks',
     apiMethods: {
       list: () => apiClient.getApiChecks(),
+      listWithFilters: (query) => apiClient.listApiChecks(query),
       get: (id) => apiClient.getApiCheck(id),
       create: (data) => apiClient.createApiCheck(data),
       update: (id, data) => apiClient.updateApiCheck(id, data),
@@ -105,4 +108,43 @@ export function createCheckCommand(
       };
     },
   });
+
+  cmd
+    .command('run <id>')
+    .description('Trigger a manual run for an API check')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const checkId = parseInt(id);
+        if (isNaN(checkId)) throw new Error('Invalid check ID');
+
+        const result = await (apiClient as ApiClient).runApiCheck(checkId);
+
+        if (isJson) {
+          outputService.formatJsonOutput({
+            executions: result.executions,
+            message: result.message,
+          });
+          return;
+        }
+
+        console.log(chalk.bold(`\n ${result.message}`));
+        for (const ex of result.executions) {
+          console.log(
+            chalk.gray(` Region: ${ex.region}  execution: ${ex.execution_id}  status: ${ex.status}`)
+          );
+        }
+        console.log('');
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to run check';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  return cmd;
 }

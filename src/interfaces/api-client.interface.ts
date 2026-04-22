@@ -5,10 +5,11 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  ListQueryOptions,
+  PaginatedListResult,
   AlertChannel,
   StatusPage,
   Incident,
-  IncidentListResponse,
 } from '../types/index.js';
 
 /**
@@ -55,6 +56,7 @@ export interface IApiClient {
 
   // URL Monitors
   getUrlMonitors(): Promise<UrlMonitor[]>;
+  listUrlMonitors(query?: ListQueryOptions): Promise<PaginatedListResult<UrlMonitor>>;
   getUrlMonitor(id: number): Promise<UrlMonitor>;
   createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor>;
   updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
@@ -63,6 +65,7 @@ export interface IApiClient {
 
   // API Checks
   getApiChecks(): Promise<ApiCheck[]>;
+  listApiChecks(query?: ListQueryOptions): Promise<PaginatedListResult<ApiCheck>>;
   getApiCheck(id: number): Promise<ApiCheck>;
   createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck>;
   updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
@@ -71,6 +74,7 @@ export interface IApiClient {
 
   // Heartbeats
   getHeartbeats(): Promise<Heartbeat[]>;
+  listHeartbeats(query?: ListQueryOptions): Promise<PaginatedListResult<Heartbeat>>;
   getHeartbeat(id: number): Promise<Heartbeat>;
   createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat>;
   updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;

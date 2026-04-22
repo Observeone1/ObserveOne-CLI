@@ -54,9 +54,10 @@ export interface UrlMonitor {
   description?: string | undefined;
   url: string;
   timeout_ms: number;
+  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
   is_active: boolean;
   alert_on_failure: boolean;
-  cron_expression?: string | undefined;
+  interval?: string | undefined;
   assertions: Array<{
     operator: string;
     status_code: number;
@@ -71,6 +72,7 @@ export interface ApiCheck {
   description?: string | undefined;
   url: string;
   method: string;
+  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
   headers?: Record<string, string> | undefined;
   body?: string | undefined;
   timeout_ms: number;
@@ -99,9 +101,29 @@ export interface Heartbeat {
   is_active: boolean;
   alert_on_failure: boolean;
   last_ping_at?: string | undefined;
-  status: 'UP' | 'DOWN' | 'PENDING';
+  status: 'up' | 'down' | 'paused' | 'pending' | 'late';
   created_at: string;
   updated_at: string;
+}
+
+export interface ListQueryOptions {
+  search?: string | undefined;
+  status?: string | undefined;
+  is_active?: boolean | undefined;
+  limit?: number | undefined;
+  page?: number | undefined;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedListResult<T> {
+  items: T[];
+  pagination: PaginationMeta;
 }
 
 export interface AlertChannelConfig {

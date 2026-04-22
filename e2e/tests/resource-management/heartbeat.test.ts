@@ -1,4 +1,48 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  assertStrictJSON,
+} from '../../lib/test-runner.js';
+
+function parseListEnvelope(output: string) {
+  assertStrictJSON(output, 'heartbeat list --json must output valid JSON envelope');
+  return JSON.parse(output.trim()) as {
+    data?: {
+      items?: Array<{ id?: number; name?: string; status?: string; is_active?: boolean }>;
+      pagination?: { page?: number; limit?: number; total?: number; totalPages?: number };
+    };
+  };
+}
+
+async function waitForPausedHeartbeat(hbId: number, hbName: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const pausedResult = await runCLI([
+      'heartbeat',
+      'list',
+      '--status',
+      'paused',
+      '--is-active',
+      'false',
+      '--search',
+      hbName,
+      '--json',
+    ]);
+    assertSuccess(pausedResult, 'Paused filtered heartbeat list failed');
+    const pausedEnvelope = parseListEnvelope(pausedResult.stdout);
+    const pausedItems = pausedEnvelope.data?.items || [];
+    const pausedHeartbeat = pausedItems.find((item) => item.id === hbId);
+
+    if (pausedHeartbeat) {
+      return pausedHeartbeat;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error(`Paused heartbeat ${hbId} not found in filtered results`);
+}
 
 export async function testHeartbeatLifecycle() {
   const timestamp = Date.now();
@@ -52,6 +96,63 @@ export async function testHeartbeatLifecycle() {
   } finally {
     if (hbId) {
       console.log(`      - [Cleanup] Deleting dangling heartbeat ${hbId}...`);
+      await runCLI(['heartbeat', 'delete', hbId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+export async function testHeartbeatListFiltersJsonEnvelope() {
+  const timestamp = Date.now();
+  const hbName = `E2E-HB-List-${timestamp}`;
+  let hbId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'heartbeat',
+      'create',
+      '--name',
+      hbName,
+      '--period',
+      '600',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Heartbeat creation failed');
+    const createdHb = JSON.parse(createResult.stdout);
+    hbId = createdHb.id || createdHb.data?.id;
+    if (!hbId) throw new Error('Could not extract heartbeat ID from creation response');
+
+    const searchResult = await runCLI([
+      'heartbeat',
+      'list',
+      '--search',
+      hbName,
+      '--limit',
+      '5',
+      '--page',
+      '1',
+      '--json',
+    ]);
+    assertSuccess(searchResult, 'Filtered heartbeat list failed');
+    const searchEnvelope = parseListEnvelope(searchResult.stdout);
+    const searchItems = searchEnvelope.data?.items || [];
+    const searchPagination = searchEnvelope.data?.pagination;
+
+    if (!searchItems.some((item) => item.id === hbId)) {
+      throw new Error(`Created heartbeat ${hbId} not found in filtered search results`);
+    }
+    if (searchPagination?.page !== 1 || searchPagination?.limit !== 5) {
+      throw new Error(`Unexpected pagination: ${JSON.stringify(searchPagination)}`);
+    }
+
+    const toggleResult = await runCLI(['heartbeat', 'toggle', hbId.toString(), '--json']);
+    assertSuccess(toggleResult, 'Heartbeat toggle failed');
+
+    const pausedHeartbeat = await waitForPausedHeartbeat(hbId, hbName);
+    if (pausedHeartbeat.status !== 'paused' || pausedHeartbeat.is_active !== false) {
+      throw new Error(`Unexpected paused heartbeat state: ${JSON.stringify(pausedHeartbeat)}`);
+    }
+  } finally {
+    if (hbId) {
       await runCLI(['heartbeat', 'delete', hbId.toString(), '-y', '--json']);
     }
   }

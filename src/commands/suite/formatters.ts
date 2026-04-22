@@ -54,13 +54,13 @@ export function printSuiteDetail(suite: Suite): void {
   console.log(` ID:        ${suite.id}`);
   console.log(` Tests:     ${suite.test_count} / ${suite.max_tests} max`);
   console.log(` Schedule:  ${formatCron(suite.cron_expression, suite.schedule_active)}`);
-  if (suite.secret_keys.length > 0) {
+  if (suite.secret_keys?.length > 0) {
     console.log(` Variables: ${suite.secret_keys.map((k) => chalk.yellow(k)).join(', ')}`);
   }
   if (suite.error_message) {
     console.log(` Error:     ${chalk.red(suite.error_message)}`);
   }
-  if (suite.generated_tests.length > 0) {
+  if (suite.generated_tests?.length > 0) {
     console.log(chalk.bold('\n Generated tests:'));
     suite.generated_tests.forEach((t, i) => {
       console.log(chalk.gray(`   ${i + 1}. ${t.name}  (id: ${t.id})`));

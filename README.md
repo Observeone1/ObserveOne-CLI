@@ -135,6 +135,7 @@ You can manually create, read, update, delete, and toggle individual resources d
 ```bash
 obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
 obs monitor list
+obs monitor list --search "Front" --status up --is-active true --limit 10 --page 1 --json
 obs monitor get <id>
 obs monitor update <id> --name "Updated Frontend" --interval "*/10 * * * *"
 obs monitor toggle <id>
@@ -145,6 +146,7 @@ obs monitor delete <id> -y
 ```bash
 obs check create --name "Auth API" --url "https://api.example.com/auth" --method "POST"
 obs check list
+obs check list --search "Auth" --status paused --is-active false --json
 obs check update <id> --method "GET"
 obs check toggle <id>
 obs check delete <id> -y
@@ -154,10 +156,17 @@ obs check delete <id> -y
 ```bash
 obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
 obs heartbeat list
+obs heartbeat list --search "Backup" --status late --limit 5 --json
 obs heartbeat update <id> --period 43200
 obs heartbeat toggle <id>
 obs heartbeat delete <id> -y
 ```
+
+List filtering notes:
+- `--search` matches visible fields server-side.
+- `--status` uses each resource's real status values.
+- `--is-active true|false` filters by activation state separately from status.
+- `--page` and `--limit` enable server-side pagination.
 
 ### Alert Channels
 ```bash
@@ -295,6 +304,25 @@ Append `--json` to **any** command. The CLI will automatically suppress all huma
   "data": { ... },
   "metadata": {
     "timestamp": "2026-03-11T12:00:00.000Z"
+  }
+}
+```
+
+For filtered list commands, the `data` payload is paginated:
+```json
+{
+  "status": "SUCCESS",
+  "data": {
+    "items": [],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 0,
+      "totalPages": 0
+    }
+  },
+  "metadata": {
+    "timestamp": "2026-04-22T12:00:00.000Z"
   }
 }
 ```
