@@ -22,6 +22,7 @@ export function createCheckCommand(
     description: 'Manage API checks',
     apiMethods: {
       list: () => apiClient.getApiChecks(),
+      listWithFilters: (query) => apiClient.listApiChecks(query),
       get: (id) => apiClient.getApiCheck(id),
       create: (data) => apiClient.createApiCheck(data),
       update: (id, data) => apiClient.updateApiCheck(id, data),

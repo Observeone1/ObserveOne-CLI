@@ -20,6 +20,7 @@ export function createHeartbeatCommand(
     description: 'Manage heartbeats',
     apiMethods: {
       list: () => apiClient.getHeartbeats(),
+      listWithFilters: (query) => apiClient.listHeartbeats(query),
       get: (id) => apiClient.getHeartbeat(id),
       create: (data) => apiClient.createHeartbeat(data),
       update: (id, data) => apiClient.updateHeartbeat(id, data),

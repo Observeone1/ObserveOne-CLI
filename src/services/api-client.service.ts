@@ -8,6 +8,8 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  ListQueryOptions,
+  PaginatedListResult,
   AlertChannel,
   StatusPage,
   Incident,
@@ -228,22 +230,60 @@ export class ApiClient implements IApiClient {
     return { ...rest, interval: cron_expression } as unknown as UrlMonitor;
   }
 
+  private normalizePagination(length: number) {
+    return {
+      page: 1,
+      limit: length,
+      total: length,
+      totalPages: length === 0 ? 0 : 1,
+    };
+  }
+
+  private normalizePaginatedItems<T>(
+    payload: unknown,
+    legacyKeys: string[]
+  ): PaginatedListResult<T> {
+    if (Array.isArray(payload)) {
+      return {
+        items: payload as T[],
+        pagination: this.normalizePagination(payload.length),
+      };
+    }
+
+    const data = payload as Record<string, unknown>;
+    const resolvedItems =
+      (Array.isArray(data.items) ? (data.items as T[]) : undefined) ??
+      legacyKeys.reduce<T[]>((acc, key) => {
+        if (acc.length > 0) return acc;
+        return Array.isArray(data[key]) ? (data[key] as T[]) : acc;
+      }, []);
+
+    const pagination =
+      (data.pagination as PaginatedListResult<T>['pagination'] | undefined) ??
+      this.normalizePagination(resolvedItems.length);
+
+    return {
+      items: resolvedItems,
+      pagination,
+    };
+  }
+
   async getUrlMonitors(): Promise<UrlMonitor[]> {
-    const response = await this.client.get<
-      | Record<string, unknown>[]
-      | { monitors?: Record<string, unknown>[]; data?: Record<string, unknown>[] }
-    >('/url-monitors');
-    const raw = Array.isArray(response.data)
-      ? response.data
-      : (
-          response.data as {
-            monitors?: Record<string, unknown>[];
-            data?: Record<string, unknown>[];
-          }
-        ).monitors ||
-        (response.data as { data?: Record<string, unknown>[] }).data ||
-        [];
-    return raw.map((m) => this.mapMonitor(m));
+    const result = await this.listUrlMonitors();
+    return result.items;
+  }
+
+  async listUrlMonitors(query: ListQueryOptions = {}): Promise<PaginatedListResult<UrlMonitor>> {
+    const response = await this.client.get('/url-monitors', { params: query });
+    const normalized = this.normalizePaginatedItems<Record<string, unknown>>(response.data, [
+      'items',
+      'monitors',
+      'data',
+    ]);
+    return {
+      items: normalized.items.map((item) => this.mapMonitor(item)),
+      pagination: normalized.pagination,
+    };
   }
 
   async getUrlMonitor(id: number): Promise<UrlMonitor> {
@@ -316,10 +356,13 @@ export class ApiClient implements IApiClient {
 
   // API Checks
   async getApiChecks(): Promise<ApiCheck[]> {
-    const response = await this.client.get<{ apiChecks?: ApiCheck[]; data?: ApiCheck[] }>(
-      '/api-checks'
-    );
-    return response.data.apiChecks || response.data.data || [];
+    const result = await this.listApiChecks();
+    return result.items;
+  }
+
+  async listApiChecks(query: ListQueryOptions = {}): Promise<PaginatedListResult<ApiCheck>> {
+    const response = await this.client.get('/api-checks', { params: query });
+    return this.normalizePaginatedItems<ApiCheck>(response.data, ['items', 'apiChecks', 'data']);
   }
 
   async getApiCheck(id: number): Promise<ApiCheck> {
@@ -362,10 +405,13 @@ export class ApiClient implements IApiClient {
 
   // Heartbeats
   async getHeartbeats(): Promise<Heartbeat[]> {
-    const response = await this.client.get<{ heartbeats?: Heartbeat[]; data?: Heartbeat[] }>(
-      '/heartbeats'
-    );
-    return response.data.heartbeats || response.data.data || [];
+    const result = await this.listHeartbeats();
+    return result.items;
+  }
+
+  async listHeartbeats(query: ListQueryOptions = {}): Promise<PaginatedListResult<Heartbeat>> {
+    const response = await this.client.get('/heartbeats', { params: query });
+    return this.normalizePaginatedItems<Heartbeat>(response.data, ['items', 'heartbeats', 'data']);
   }
 
   async getHeartbeat(id: number): Promise<Heartbeat> {

@@ -71,6 +71,22 @@ describe('ApiClient', () => {
       expect(monitors).toEqual([{ id: 4, name: 'monitor-data' }]);
     });
 
+    it('normalizes getUrlMonitors returning {items, pagination}', async () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        data: {
+          items: [{ id: 6, name: 'paginated-monitor' }],
+          pagination: { page: 2, limit: 10, total: 11, totalPages: 2 },
+        },
+      });
+      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
+
+      const result = await apiClient.listUrlMonitors({ page: 2, limit: 10 });
+      expect(result).toEqual({
+        items: [{ id: 6, name: 'paginated-monitor' }],
+        pagination: { page: 2, limit: 10, total: 11, totalPages: 2 },
+      });
+    });
+
     it('normalizes getUrlMonitors returning [] directly', async () => {
       const mockGet = vi.fn().mockResolvedValue({ data: [{ id: 5, name: 'direct-monitor' }] });
       (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;

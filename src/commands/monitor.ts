@@ -22,6 +22,7 @@ export function createMonitorCommand(
     description: 'Manage URL monitors',
     apiMethods: {
       list: () => apiClient.getUrlMonitors(),
+      listWithFilters: (query) => apiClient.listUrlMonitors(query),
       get: (id) => apiClient.getUrlMonitor(id),
       create: (data) => apiClient.createUrlMonitor(data),
       update: (id, data) => apiClient.updateUrlMonitor(id, data),
