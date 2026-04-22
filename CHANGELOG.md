@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-04-22
+
+### Changed (Breaking)
+- `obs monitor list`, `obs check list`, and `obs heartbeat list` now return paginated data in `--json` mode as `data: { items, pagination }` instead of a bare array payload.
+
+### Added
+- Server-side list filtering for monitors, checks, and heartbeats via `--search`, `--status`, `--is-active`, `--page`, and `--limit`.
+- Custom E2E coverage for filtered list flows across monitor, check, and heartbeat resource management.
+
 ## [1.11.0] - 2026-04-21
 
 ### Added
