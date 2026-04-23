@@ -160,6 +160,7 @@ obs monitor update <id> --description "Updated copy" --alert-channel-id 47
 obs monitor runs <id> --limit 10         # recent executions
 obs monitor run <id>                      # trigger a manual run
 obs monitor toggle <id>
+obs monitor toggle-muted <id>
 obs monitor delete <id> -y
 ```
 
@@ -183,6 +184,7 @@ obs check update <id> --description "Signup v2" --header "X-Trace=ci-v2"
 obs check runs <id> --limit 10            # recent executions
 obs check run <id>                         # trigger a manual run
 obs check toggle <id>
+obs check toggle-muted <id>
 obs check delete <id> -y
 ```
 
@@ -202,6 +204,8 @@ obs heartbeat list --search "Backup" --status late --limit 5 --json
 obs heartbeat update <id> --period 43200
 obs heartbeat runs <id> --limit 10        # recent pings
 obs heartbeat toggle <id>
+obs heartbeat toggle-muted <id>
+obs heartbeat reset <id>                  # acknowledge missed pings and restart grace window
 obs heartbeat delete <id> -y
 ```
 
@@ -230,6 +234,10 @@ obs status-page list
 obs status-page get <id>
 obs status-page update <id> --description "Updated"
 obs status-page delete <id> -y
+
+# Attach / detach monitors from a status page
+obs status-page add-monitor <sp-id> <resource-id> --type url-monitor --name "API" --order 1
+obs status-page remove-monitor <sp-id> <resource-id>
 ```
 
 ### Incidents
@@ -239,6 +247,30 @@ obs incident list
 obs incident get <id>
 obs incident update <id> --description "Resolved"
 obs incident delete <id> -y
+
+# Comment on an incident
+obs incident comment <id> --message "Investigating upstream provider issue"
+
+# Assign / unassign
+obs incident assign <id> --user <user-id>
+obs incident unassign <id>
+```
+
+### API Keys
+```bash
+obs api-key list
+obs api-key create --name "CI Bot"
+obs api-key revoke <id>
+obs api-key toggle <id>
+```
+
+### Teams
+```bash
+obs team list
+obs team members <team-id>
+obs team invite <team-id>                           # regenerate invite code
+obs team remove-member <team-id> <user-id>
+obs team update-role <team-id> <user-id> --role member
 ```
 
 ---
@@ -301,6 +333,12 @@ obs suite schedule <id> --cron "*/30 * * * *"
 # Update credentials/variables without regenerating (v1.8.0)
 obs suite secrets <id> --var USERNAME=admin --var PASSWORD=secret
 obs suite secrets <id> --var-file .env.test
+
+# Toggle public visibility of a suite
+obs suite toggle-public <id>
+
+# Trigger self-heal on a suite's failing tests
+obs suite heal <id>
 
 # Delete a suite
 obs suite delete <id>
