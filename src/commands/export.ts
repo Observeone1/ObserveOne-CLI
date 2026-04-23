@@ -35,11 +35,36 @@ export function createExportCommand(
 
         outputService.progress('Fetching existing resources from backend...');
 
-        // Fetch all resources
-        const [monitors, apiChecks, heartbeats] = await Promise.all([
+        // Fetch list endpoints first, then hydrate with per-resource detail calls
+        // so we capture fields the list omits (notably `channels` and `interval`
+        // on monitors). List-only export would silently drop those fields.
+        const [monitorList, apiCheckList, heartbeats] = await Promise.all([
           apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
           apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
           apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
+        ]);
+
+        const [monitors, apiChecks] = await Promise.all([
+          Promise.all(
+            monitorList.map((m) =>
+              apiClient
+                .getUrlMonitor(m.id)
+                .then((detail) => ({ ...m, ...(detail as Partial<UrlMonitor>) }))
+                .catch(() => m)
+            )
+          ),
+          Promise.all(
+            apiCheckList.map((c) =>
+              apiClient
+                .getApiCheck(c.id)
+                .then((resp) => {
+                  // getApiCheck returns { apiCheck, ...stats }; merge the nested shape.
+                  const nested = (resp as { apiCheck?: ApiCheck }).apiCheck;
+                  return nested ? { ...c, ...nested } : { ...c, ...(resp as Partial<ApiCheck>) };
+                })
+                .catch(() => c)
+            )
+          ),
         ]);
 
         const config: ExportConfig = {};
