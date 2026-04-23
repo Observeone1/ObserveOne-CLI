@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-04-23
+
+### Fixed
+- `obs export` round-trip is now idempotent. Monitors and API checks exported from the backend now include every field that flag-based CRUD can set — `description`, `channel_ids` (mapped from the populated `channels` GET-response), request `headers`, request `body`, `cron_expression`, and `assertions` (stripped of DB-owned fields). Previously these were silently dropped on every export, so `obs export → obs apply` quietly erased any description, alert-channel attachment, header, or assertion that had been authored through the UI or CLI flags.
+
+### Changed
+- `obs init monitor` template now uses `interval` (the real wire field) instead of the stale `cron_expression` key, matching how monitors are actually sent on create/update.
+- `obs init monitor` and `obs init check` templates now include a `channel_ids: []` placeholder so users scaffolding a resource from the template can see the alert-channel attachment field without guessing.
+
 ## [1.13.0] - 2026-04-23
 
 ### Added
