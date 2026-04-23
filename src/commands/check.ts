@@ -299,7 +299,11 @@ export function createCheckCommand(
         !interval &&
         headers === undefined &&
         assertions === undefined &&
-        channelIds === undefined
+        channelIds === undefined &&
+        options.body === undefined &&
+        options.regions === undefined &&
+        options['retry-count'] === undefined &&
+        options['retry-interval'] === undefined
       ) {
         outputService.error(
           'Please provide at least one field to update (--name, --description, --url, --method, --interval, --header, --assertion, or --alert-channel-id).'
