@@ -34,6 +34,8 @@ import { createIncidentCommand } from './commands/incident.js';
 import { createSuiteCommand } from './commands/suite/index.js';
 import { createSchemaCommand } from './commands/schema.js';
 import { createTemplatesCommand } from './commands/templates.js';
+import { createApiKeyCommand } from './commands/api-key.js';
+import { createTeamCommand } from './commands/team.js';
 
 const packageJson = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8')
@@ -84,6 +86,8 @@ program.addCommand(createValidateCommand(outputService));
 program.addCommand(createSuiteCommand(configService, apiClient, outputService));
 program.addCommand(createSchemaCommand(outputService));
 program.addCommand(createTemplatesCommand(outputService));
+program.addCommand(createApiKeyCommand(configService, apiClient, outputService));
+program.addCommand(createTeamCommand(configService, apiClient, outputService));
 
 // Global options handler
 program.hook('preAction', (thisCommand) => {

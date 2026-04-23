@@ -8,8 +8,12 @@ export async function testListWithoutAuthentication() {
   // Could be "authentication", "Resource not found", or similar
   if (result.exitCode !== 0) {
     const output = result.stderr || result.stdout;
-    // Check for authentication-related errors
-    if (!output.includes('Authentication failed') && !output.includes('obs login')) {
+    // Check for authentication-related errors or disabled resource
+    if (
+      !output.includes('Authentication failed') &&
+      !output.includes('obs login') &&
+      !output.includes('Resource not found')
+    ) {
       throw new Error(`Expected authentication/resource error, got: ${output}`);
     }
   }

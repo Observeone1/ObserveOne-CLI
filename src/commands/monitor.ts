@@ -139,7 +139,7 @@ export function createMonitorCommand(
 
       return {
         name: name || existing.name,
-        description: description ?? existing.description,
+        description: description ?? existing.description ?? '',
         url: url || existing.url,
         timeout_ms: existing.timeout_ms || 30000,
         interval: interval || existing.interval,

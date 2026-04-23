@@ -14,6 +14,8 @@ import { createSuiteSecretsCommand } from './secrets.js';
 import { createSuiteUpdateCommand } from './update.js';
 import { createSuitePullCommand } from './pull.js';
 import { createSuitePushCommand } from './push.js';
+import { createSuiteTogglePublicCommand } from './toggle-public.js';
+import { createSuiteHealCommand } from './heal.js';
 
 export function createSuiteCommand(
   configService: IConfigService,
@@ -34,6 +36,8 @@ export function createSuiteCommand(
   suite.addCommand(createSuiteSecretsCommand(configService, apiClient, outputService));
   suite.addCommand(createSuitePullCommand(configService, apiClient, outputService));
   suite.addCommand(createSuitePushCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteTogglePublicCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteHealCommand(configService, apiClient, outputService));
 
   return suite;
 }

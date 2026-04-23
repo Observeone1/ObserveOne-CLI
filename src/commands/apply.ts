@@ -288,7 +288,7 @@ export function createApplyCommand(
                     logProgress(`Updating monitor: ${monitorConfig.name}`);
                     await apiClient.updateUrlMonitor(existing.id, {
                       name: monitorConfig.name || existing.name,
-                      description: monitorConfig.description ?? existing.description,
+                      description: monitorConfig.description ?? existing.description ?? '',
                       url: monitorConfig.url || existing.url,
                       timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
                       interval: monitorConfig.interval || existing.interval,
@@ -378,7 +378,8 @@ export function createApplyCommand(
                           (checkConfig as { interval?: string }).interval ??
                           null,
                         timeout_ms: checkConfig.timeout_ms || 30000,
-                        alert_on_failure: checkConfig.alert_on_failure ?? true,
+                        alert_on_failure:
+                          checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
                         channel_ids: localChannelIds,
                         assertions: localAssertions,
                       },
@@ -441,7 +442,7 @@ export function createApplyCommand(
                       existing.cron_expression;
                     await apiClient.updateApiCheck(existing.id, {
                       name: checkConfig.name || existing.name,
-                      description: checkConfig.description ?? existing.description,
+                      description: checkConfig.description ?? existing.description ?? '',
                       url: checkConfig.url || existing.url,
                       method: checkConfig.method?.toUpperCase() || existing.method || 'GET',
                       headers: checkConfig.headers ?? existing.headers,

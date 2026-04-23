@@ -12,6 +12,10 @@ import {
   AlertChannel,
   StatusPage,
   Incident,
+  ApiKey,
+  Team,
+  TeamMember,
+  IncidentEvent,
 } from '../types/index.js';
 
 /**
@@ -115,6 +119,27 @@ export interface IApiClient {
   createIncident(data: Partial<Incident>): Promise<Incident>;
   updateIncident(id: number, data: Partial<Incident>): Promise<Incident>;
   deleteIncident(id: number): Promise<void>;
+  addIncidentComment(id: number, message: string): Promise<IncidentEvent>;
+  assignIncident(id: number, userId: string | null): Promise<Incident>;
+
+  // API Keys
+  getApiKeys(): Promise<ApiKey[]>;
+  createApiKey(name: string): Promise<ApiKey>;
+  deleteApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }>;
+  toggleApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }>;
+
+  // Teams
+  getTeams(): Promise<Team[]>;
+  getTeamMembers(teamId: string): Promise<TeamMember[]>;
+  regenerateTeamInvite(teamId: string): Promise<{ message: string; inviteCode: string }>;
+  removeTeamMember(teamId: string, userId: string): Promise<unknown>;
+  updateTeamMemberRole(teamId: string, userId: string, role: string): Promise<unknown>;
+
+  // Suite extras
+  toggleSuitePublic(suiteId: string, isPublic: boolean): Promise<unknown>;
+  healSuite(
+    suiteId: string
+  ): Promise<{ suite_id: string; heals: Array<{ testId: string; healId: string }> }>;
 
   healthCheck(): Promise<{
     status: string;

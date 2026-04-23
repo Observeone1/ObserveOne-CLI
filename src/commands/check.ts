@@ -313,7 +313,7 @@ export function createCheckCommand(
 
       return {
         name: name || existing.name,
-        description: description ?? existing.description,
+        description: description ?? existing.description ?? '',
         url: url || existing.url,
         method: method ? method.toUpperCase() : existing.method || 'GET',
         cron_sequence: interval || existing.cron_expression,
