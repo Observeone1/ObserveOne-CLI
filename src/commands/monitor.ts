@@ -195,5 +195,7 @@ export function createMonitorCommand(
     outputService,
   });
 
+  cmd.name('url-monitor').alias('monitor');
+
   return cmd;
 }
