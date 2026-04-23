@@ -433,11 +433,11 @@ export function createApplyCommand(
                     }
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
                     await apiClient.updateHeartbeat(existing.id, {
+                      ...hbConfig,
                       name: hbConfig.name || existing.name,
                       period: hbConfig.period || existing.period,
-                      description:
-                        hbConfig.description || existing.description || 'Updated via CLI',
-                      grace_period: hbConfig.grace_period || existing.grace_period || 60,
+                      description: hbConfig.description ?? existing.description ?? '',
+                      grace_period: hbConfig.grace_period ?? existing.grace_period ?? 60,
                     });
                   } else {
                     summary.heartbeats.created++;
@@ -451,10 +451,11 @@ export function createApplyCommand(
                     }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
                     await apiClient.createHeartbeat({
+                      ...hbConfig,
                       name: hbConfig.name,
                       period: hbConfig.period,
-                      description: hbConfig.description || 'Created via apply',
-                      grace_period: hbConfig.grace_period || 60,
+                      description: hbConfig.description ?? '',
+                      grace_period: hbConfig.grace_period ?? 60,
                     });
                   }
                 } catch (err: unknown) {

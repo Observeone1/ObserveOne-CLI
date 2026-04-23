@@ -241,9 +241,12 @@ export async function testMonitorListFiltersJsonEnvelope() {
 export async function testMonitorFieldParity() {
   const timestamp = Date.now();
   const channelName = `E2E-Monitor-Channel-${timestamp}`;
+  const channelName2 = `E2E-Monitor-Channel2-${timestamp}`;
   const channelEmail = `monitor-alerts+${timestamp}@example.com`;
+  const channelEmail2 = `monitor-alerts2+${timestamp}@example.com`;
   const monitorName = `E2E-Monitor-Parity-${timestamp}`;
   let channelId: number | undefined;
+  let channelId2: number | undefined;
   let monitorId: number | undefined;
 
   try {
@@ -262,6 +265,22 @@ export async function testMonitorFieldParity() {
     const createdChannel = JSON.parse(createChannel.stdout);
     channelId = createdChannel.id || createdChannel.data?.id;
     if (!channelId) throw new Error('Could not extract alert channel ID');
+
+    const createChannel2 = await runCLI([
+      'alert-channel',
+      'create',
+      '--name',
+      channelName2,
+      '--type',
+      'email',
+      '--email',
+      channelEmail2,
+      '--json',
+    ]);
+    assertSuccess(createChannel2, 'Second alert channel creation failed');
+    const createdChannel2 = JSON.parse(createChannel2.stdout);
+    channelId2 = createdChannel2.id || createdChannel2.data?.id;
+    if (!channelId2) throw new Error('Could not extract second alert channel ID');
 
     const createMonitor = await runCLI([
       'monitor',
@@ -316,12 +335,63 @@ export async function testMonitorFieldParity() {
     if (updatedMonitor.description !== 'Updated from CLI parity test') {
       throw new Error(`Unexpected updated monitor description: ${updatedMonitor.description}`);
     }
+
+    const updateChannelSwap = await runCLI([
+      'monitor',
+      'update',
+      monitorId.toString(),
+      '--alert-channel-id',
+      channelId2.toString(),
+      '--json',
+    ]);
+    assertSuccess(updateChannelSwap, 'Monitor parity update with alert-channel-id failed');
+
+    const getAfterSwap = await runCLI(['monitor', 'get', monitorId.toString(), '--json']);
+    assertSuccess(getAfterSwap, 'Monitor fetch after channel swap failed');
+    const monitorAfterSwap = (JSON.parse(getAfterSwap.stdout).data ||
+      JSON.parse(getAfterSwap.stdout)) as { channels?: Array<{ id: number }> };
+    const swapIds = (monitorAfterSwap.channels ?? []).map((c) => c.id).sort();
+    if (swapIds.length !== 1 || swapIds[0] !== channelId2) {
+      throw new Error(
+        `Expected only channel ${channelId2} after swap update, got ${JSON.stringify(swapIds)}`
+      );
+    }
+
+    const updateMultiChannel = await runCLI([
+      'monitor',
+      'update',
+      monitorId.toString(),
+      '--alert-channel-id',
+      channelId.toString(),
+      '--alert-channel-id',
+      channelId2.toString(),
+      '--json',
+    ]);
+    assertSuccess(
+      updateMultiChannel,
+      'Monitor parity update with repeatable alert-channel-id failed'
+    );
+
+    const getAfterMulti = await runCLI(['monitor', 'get', monitorId.toString(), '--json']);
+    assertSuccess(getAfterMulti, 'Monitor fetch after multi-channel update failed');
+    const monitorAfterMulti = (JSON.parse(getAfterMulti.stdout).data ||
+      JSON.parse(getAfterMulti.stdout)) as { channels?: Array<{ id: number }> };
+    const multiIds = (monitorAfterMulti.channels ?? []).map((c) => c.id).sort();
+    const expected = [channelId, channelId2].sort();
+    if (multiIds.length !== 2 || multiIds[0] !== expected[0] || multiIds[1] !== expected[1]) {
+      throw new Error(
+        `Expected channels ${JSON.stringify(expected)} after repeatable update, got ${JSON.stringify(multiIds)}`
+      );
+    }
   } finally {
     if (monitorId) {
       await runCLI(['monitor', 'delete', monitorId.toString(), '-y', '--json']);
     }
     if (channelId) {
       await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
+    }
+    if (channelId2) {
+      await runCLI(['alert-channel', 'delete', channelId2.toString(), '-y', '--json']);
     }
   }
 }
