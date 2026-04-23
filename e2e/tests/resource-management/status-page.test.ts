@@ -116,13 +116,16 @@ export async function testStatusPageAddRemoveMonitor() {
     ]);
     assertSuccess(addResult, 'status-page add-monitor failed');
     assertJSON(addResult.stdout, 'add-monitor output should be JSON');
-    assertContains(addResult.stdout, '"ok"', 'add-monitor should return ok status');
+    const addData = JSON.parse(addResult.stdout) as { id?: number; data?: { id?: number } };
+    const entryId = addData.id ?? addData.data?.id;
+    if (!entryId)
+      throw new Error(`Expected entry id in add-monitor response, got: ${addResult.stdout}`);
 
     const removeResult = await runCLI([
       'status-page',
       'remove-monitor',
       pageId.toString(),
-      monitorId.toString(),
+      entryId.toString(),
       '--json',
     ]);
     assertSuccess(removeResult, 'status-page remove-monitor failed');

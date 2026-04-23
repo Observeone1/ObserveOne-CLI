@@ -64,7 +64,7 @@ export interface IApiClient {
   updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
   deleteUrlMonitor(id: number): Promise<void>;
   toggleUrlMonitor(id: number): Promise<boolean>;
-  toggleMuteUrlMonitor(id: number): Promise<boolean>;
+  toggleMuteUrlMonitor(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
   getUrlMonitorRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // API Checks
@@ -75,7 +75,7 @@ export interface IApiClient {
   updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
   deleteApiCheck(id: number): Promise<void>;
   toggleApiCheck(id: number): Promise<boolean>;
-  toggleMuteApiCheck(id: number): Promise<boolean>;
+  toggleMuteApiCheck(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
   getApiCheckRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // Heartbeats
@@ -86,8 +86,8 @@ export interface IApiClient {
   updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
   deleteHeartbeat(id: number): Promise<void>;
   toggleHeartbeat(id: number): Promise<boolean>;
-  toggleMuteHeartbeat(id: number): Promise<boolean>;
-  resetHeartbeat(id: number): Promise<void>;
+  toggleMuteHeartbeat(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
+  resetHeartbeat(id: number): Promise<Heartbeat>;
   getHeartbeatRuns(id: number, limit?: number): Promise<HeartbeatPing[]>;
 
   // Alert Channels
@@ -106,7 +106,7 @@ export interface IApiClient {
   addMonitorToStatusPage(
     spId: number,
     data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
-  ): Promise<void>;
+  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }>;
   removeMonitorFromStatusPage(spId: number, monitorId: number): Promise<void>;
 
   // Incidents

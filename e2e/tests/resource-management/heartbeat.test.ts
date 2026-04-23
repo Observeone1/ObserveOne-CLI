@@ -243,10 +243,15 @@ export async function testHeartbeatToggleMuted() {
     const muteResult = await runCLI(['heartbeat', 'toggle-muted', hbId.toString(), '--json']);
     assertSuccess(muteResult, 'heartbeat toggle-muted failed');
     assertJSON(muteResult.stdout, 'toggle-muted output should be JSON');
-    const muteData = JSON.parse(muteResult.stdout);
-    const isMuted = muteData.is_muted ?? muteData.data?.is_muted;
-    if (typeof isMuted !== 'boolean') {
-      throw new Error(`Expected boolean is_muted, got: ${JSON.stringify(muteData)}`);
+    const muteData = JSON.parse(muteResult.stdout) as {
+      message?: string;
+      data?: { message?: string };
+    };
+    const msg = muteData.message ?? muteData.data?.message;
+    if (!msg) {
+      throw new Error(
+        `Expected message in toggle-muted response, got: ${JSON.stringify(muteData)}`
+      );
     }
 
     const unmuteResult = await runCLI(['heartbeat', 'toggle-muted', hbId.toString(), '--json']);
@@ -281,10 +286,15 @@ export async function testHeartbeatReset() {
     const resetResult = await runCLI(['heartbeat', 'reset', hbId.toString(), '--json']);
     assertSuccess(resetResult, 'heartbeat reset failed');
     assertJSON(resetResult.stdout, 'heartbeat reset output should be JSON');
-    const resetData = JSON.parse(resetResult.stdout);
-    const status = resetData.status ?? resetData.data?.status;
-    if (status !== 'reset') {
-      throw new Error(`Expected status "reset", got: ${JSON.stringify(resetData)}`);
+    const resetData = JSON.parse(resetResult.stdout) as {
+      id?: number;
+      data?: { id?: number; heartbeat?: { id?: number } };
+    };
+    const returnedId = resetData.id ?? resetData.data?.id ?? resetData.data?.heartbeat?.id;
+    if (!returnedId) {
+      throw new Error(
+        `Expected heartbeat object in reset response, got: ${JSON.stringify(resetData)}`
+      );
     }
   } finally {
     if (hbId) {

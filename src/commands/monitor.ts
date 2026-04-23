@@ -203,14 +203,16 @@ export function createMonitorCommand(
       try {
         const monitorId = parseInt(id);
         if (isNaN(monitorId)) throw new Error('Invalid monitor ID');
-        const isMuted = await (apiClient as ApiClient).toggleMuteUrlMonitor(monitorId);
+        const result = await (apiClient as ApiClient).toggleMuteUrlMonitor(monitorId);
         if (isJson) {
-          outputService.formatJsonOutput({ id: monitorId, is_muted: isMuted });
+          outputService.formatJsonOutput({
+            id: monitorId,
+            alert_on_failure: result.alert_on_failure,
+            message: result.message,
+          });
           return;
         }
-        console.log(
-          chalk.green(`\n Monitor ${monitorId} is now ${isMuted ? 'muted' : 'unmuted'}.\n`)
-        );
+        console.log(chalk.green(`\n ${result.message}\n`));
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to toggle mute';
         if (isJson) {

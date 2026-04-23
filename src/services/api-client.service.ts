@@ -334,12 +334,11 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteUrlMonitor(id: number): Promise<boolean> {
-    const response = await this.client.patch<{
-      is_muted?: boolean;
-      data?: { is_muted?: boolean };
-    }>(`/url-monitors/${id}/toggle-muted`);
-    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  async toggleMuteUrlMonitor(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+    const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
+      `/url-monitors/${id}/toggle-muted`
+    );
+    return response.data;
   }
 
   async getUrlMonitorRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
@@ -422,12 +421,11 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteApiCheck(id: number): Promise<boolean> {
-    const response = await this.client.patch<{
-      is_muted?: boolean;
-      data?: { is_muted?: boolean };
-    }>(`/api-checks/${id}/toggle-muted`);
-    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  async toggleMuteApiCheck(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+    const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
+      `/api-checks/${id}/toggle-muted`
+    );
+    return response.data;
   }
 
   async getApiCheckRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
@@ -488,16 +486,16 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteHeartbeat(id: number): Promise<boolean> {
-    const response = await this.client.patch<{
-      is_muted?: boolean;
-      data?: { is_muted?: boolean };
-    }>(`/heartbeats/${id}/toggle-muted`);
-    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  async toggleMuteHeartbeat(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+    const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
+      `/heartbeats/${id}/toggle-muted`
+    );
+    return response.data;
   }
 
-  async resetHeartbeat(id: number): Promise<void> {
-    await this.client.post(`/heartbeats/${id}/reset`);
+  async resetHeartbeat(id: number): Promise<Heartbeat> {
+    const response = await this.client.post<Heartbeat>(`/heartbeats/${id}/reset`);
+    return response.data;
   }
 
   async getHeartbeatRuns(id: number, limit: number = 20): Promise<HeartbeatPing[]> {
@@ -571,12 +569,22 @@ export class ApiClient implements IApiClient {
   async addMonitorToStatusPage(
     spId: number,
     data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
-  ): Promise<void> {
-    await this.client.post(`/status-pages/${spId}/monitors`, data);
+  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }> {
+    const response = await this.client.post<{
+      id: number;
+      status_page_id: number;
+      monitor_id: number;
+    }>(`/status-pages/${spId}/monitors`, data);
+    return response.data as {
+      id: number;
+      status_page_id: number;
+      monitor_id: number;
+      [key: string]: unknown;
+    };
   }
 
-  async removeMonitorFromStatusPage(spId: number, monitorId: number): Promise<void> {
-    await this.client.delete(`/status-pages/${spId}/monitors/${monitorId}`);
+  async removeMonitorFromStatusPage(spId: number, entryId: number): Promise<void> {
+    await this.client.delete(`/status-pages/${spId}/monitors/${entryId}`);
   }
 
   // Incidents

@@ -388,12 +388,16 @@ export function createCheckCommand(
       try {
         const checkId = parseInt(id);
         if (isNaN(checkId)) throw new Error('Invalid check ID');
-        const isMuted = await (apiClient as ApiClient).toggleMuteApiCheck(checkId);
+        const result = await (apiClient as ApiClient).toggleMuteApiCheck(checkId);
         if (isJson) {
-          outputService.formatJsonOutput({ id: checkId, is_muted: isMuted });
+          outputService.formatJsonOutput({
+            id: checkId,
+            alert_on_failure: result.alert_on_failure,
+            message: result.message,
+          });
           return;
         }
-        console.log(chalk.green(`\n Check ${checkId} is now ${isMuted ? 'muted' : 'unmuted'}.\n`));
+        console.log(chalk.green(`\n ${result.message}\n`));
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to toggle mute';
         if (isJson) {

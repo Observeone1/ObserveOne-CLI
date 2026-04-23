@@ -173,16 +173,16 @@ export function createStatusPageCommand(
         if (options.order !== undefined) {
           payload.display_order = parseInt(options.order as string);
         }
-        await (apiClient as ApiClient).addMonitorToStatusPage(statusPageId, payload);
+        const entry = await (apiClient as ApiClient).addMonitorToStatusPage(statusPageId, payload);
         if (isJson) {
-          outputService.formatJsonOutput({
-            status: 'ok',
-            status_page_id: statusPageId,
-            monitor_id: monitorId,
-          });
+          outputService.formatJsonOutput(entry);
           return;
         }
-        console.log(chalk.green(`\n Monitor ${monitorId} added to status page ${statusPageId}.\n`));
+        console.log(
+          chalk.green(
+            `\n Monitor ${monitorId} added to status page ${statusPageId}. Entry ID: ${entry.id}\n`
+          )
+        );
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to add monitor';
         if (isJson) {
@@ -195,8 +195,8 @@ export function createStatusPageCommand(
     });
 
   cmd
-    .command('remove-monitor <sp-id> <resource-id>')
-    .description('Remove a monitor from a status page')
+    .command('remove-monitor <sp-id> <entry-id>')
+    .description('Remove a monitor from a status page (entry-id from add-monitor response)')
     .action(async (spId: string, resourceId: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {

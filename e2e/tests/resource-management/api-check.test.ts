@@ -383,10 +383,15 @@ export async function testCheckToggleMuted() {
     const muteResult = await runCLI(['check', 'toggle-muted', checkId.toString(), '--json']);
     assertSuccess(muteResult, 'check toggle-muted failed');
     assertJSON(muteResult.stdout, 'toggle-muted output should be JSON');
-    const muteData = JSON.parse(muteResult.stdout);
-    const isMuted = muteData.is_muted ?? muteData.data?.is_muted;
-    if (typeof isMuted !== 'boolean') {
-      throw new Error(`Expected boolean is_muted, got: ${JSON.stringify(muteData)}`);
+    const muteData = JSON.parse(muteResult.stdout) as {
+      message?: string;
+      data?: { message?: string };
+    };
+    const msg = muteData.message ?? muteData.data?.message;
+    if (!msg) {
+      throw new Error(
+        `Expected message in toggle-muted response, got: ${JSON.stringify(muteData)}`
+      );
     }
 
     const unmuteResult = await runCLI(['check', 'toggle-muted', checkId.toString(), '--json']);
