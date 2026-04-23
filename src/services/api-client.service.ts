@@ -415,10 +415,13 @@ export class ApiClient implements IApiClient {
   }
 
   async getApiCheckRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
-    const response = await this.client.get<ResourceRun[]>(`/api-checks/${id}/executions`, {
-      params: { limit },
-    });
-    return response.data;
+    const response = await this.client.get<{ executions: ResourceRun[] }>(
+      `/api-checks/${id}/executions`,
+      {
+        params: { limit },
+      }
+    );
+    return response.data.executions;
   }
 
   // Heartbeats
