@@ -18,6 +18,10 @@ import {
   IncidentListResponse,
   Suite,
   SuiteExecution,
+  ApiKey,
+  Team,
+  TeamMember,
+  IncidentEvent,
 } from '../types/index.js';
 
 /**
@@ -229,7 +233,10 @@ export class ApiClient implements IApiClient {
     const { cron_expression, ...rest } = raw as Record<string, unknown> & {
       cron_expression?: string;
     };
-    return { ...rest, interval: cron_expression } as unknown as UrlMonitor;
+    return {
+      ...rest,
+      interval: cron_expression ?? (rest.interval as string | undefined),
+    } as unknown as UrlMonitor;
   }
 
   private normalizePagination(length: number) {
@@ -813,6 +820,99 @@ export class ApiClient implements IApiClient {
       }
     }
     throw new Error('Suite execution did not complete within the timeout period');
+  }
+
+  // Incident extras
+  async addIncidentComment(id: number, message: string): Promise<IncidentEvent> {
+    const response = await this.client.post<IncidentEvent>(`/incidents/${id}/comments`, {
+      message,
+    });
+    return response.data;
+  }
+
+  async assignIncident(id: number, userId: string | null): Promise<Incident> {
+    const response = await this.client.post<Incident>(`/incidents/${id}/assign`, {
+      assigned_to: userId,
+    });
+    return response.data;
+  }
+
+  // API Keys
+  async getApiKeys(): Promise<ApiKey[]> {
+    const response = await this.client.get<{ apiKeys: ApiKey[] } | ApiKey[]>('/api-keys');
+    if (Array.isArray(response.data)) return response.data;
+    return (response.data as { apiKeys: ApiKey[] }).apiKeys || [];
+  }
+
+  async createApiKey(name: string): Promise<ApiKey> {
+    const response = await this.client.post<{ apiKey: ApiKey } | ApiKey>('/api-keys', { name });
+    const data = response.data as { apiKey?: ApiKey };
+    return data.apiKey || (response.data as ApiKey);
+  }
+
+  async deleteApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }> {
+    const response = await this.client.delete<{ message: string; apiKey: ApiKey }>(
+      `/api-keys/${id}`
+    );
+    return response.data;
+  }
+
+  async toggleApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }> {
+    const response = await this.client.patch<{ message: string; apiKey: ApiKey }>(
+      `/api-keys/${id}/toggle`
+    );
+    return response.data;
+  }
+
+  // Teams
+  async getTeams(): Promise<Team[]> {
+    const response = await this.client.get<Team[] | { teams?: Team[] }>('/teams');
+    if (Array.isArray(response.data)) return response.data;
+    return (response.data as { teams?: Team[] }).teams || [];
+  }
+
+  async getTeamMembers(teamId: string): Promise<TeamMember[]> {
+    const response = await this.client.get<TeamMember[] | { members?: TeamMember[] }>(
+      `/teams/${teamId}/members`
+    );
+    if (Array.isArray(response.data)) return response.data;
+    return (response.data as { members?: TeamMember[] }).members || [];
+  }
+
+  async regenerateTeamInvite(teamId: string): Promise<{ message: string; inviteCode: string }> {
+    const response = await this.client.post<{ message: string; inviteCode: string }>(
+      `/teams/${teamId}/regenerate-invite`
+    );
+    return response.data;
+  }
+
+  async removeTeamMember(teamId: string, userId: string): Promise<unknown> {
+    const response = await this.client.delete(`/teams/${teamId}/members/${userId}`);
+    return response.data;
+  }
+
+  async updateTeamMemberRole(teamId: string, userId: string, role: string): Promise<unknown> {
+    const response = await this.client.put(`/teams/${teamId}/members/${userId}`, { role });
+    return response.data;
+  }
+
+  // Suite extras
+  async toggleSuitePublic(suiteId: string, isPublic: boolean): Promise<unknown> {
+    const response = await this.client.patch(
+      `/playwright-autopilot/suites/${suiteId}/toggle-public`,
+      { is_public: isPublic }
+    );
+    return response.data;
+  }
+
+  async healSuite(
+    suiteId: string
+  ): Promise<{ suite_id: string; heals: Array<{ testId: string; healId: string }> }> {
+    const response = await this.client.post<{
+      suite_id: string;
+      heals: Array<{ testId: string; healId: string }>;
+    }>(`/playwright-autopilot/suites/${suiteId}/heal`, {});
+    return response.data;
   }
 
   async requestCliAuth(): Promise<{ request_id: string; auth_url: string }> {

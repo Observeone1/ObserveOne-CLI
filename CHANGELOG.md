@@ -5,6 +5,29 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-04-23
+
+### Added
+- `obs api-key list/create/revoke/toggle` — full API key lifecycle management from the CLI. No more going to the dashboard to bootstrap a new key.
+- `obs team list` — list all teams the authenticated user belongs to.
+- `obs team members <team-id>` — list members of a team.
+- `obs team invite <team-id>` — regenerate and print the team invite code.
+- `obs team remove-member <team-id> <user-id>` — remove a team member.
+- `obs team update-role <team-id> <user-id> --role <role>` — update a member's role.
+- `obs incident comment <id> --message <msg>` — add a comment to an incident.
+- `obs incident assign <id> --user <user-id>` — assign an incident to a user.
+- `obs incident unassign <id>` — unassign an incident.
+- `obs suite toggle-public <id>` — toggle public visibility of a suite.
+- `obs suite heal <id>` — trigger self-heal on a suite's failing tests.
+
+## [1.15.1] - 2026-04-23
+
+### Fixed
+- `obs monitor update` / `obs check update` — `description: null` from the backend was being sent back on update, causing a 400 Validation error. Now coerced to `""`.
+- `obs apply` — monitor `interval` field was silently overwritten with `undefined` due to a field-name mismatch in the API client mapper (`cron_expression` vs `interval`). Dry-run always showed a false interval diff; second apply was never idempotent.
+- `obs apply` — api-check `alert_on_failure` was always diffed as changed for checks without a schedule (backend returns `false`, local defaulted to `true`). Apply now uses the remote value as the fallback when the config doesn't set it explicitly.
+- `obs apply` — `description: null` in api-check and monitor update payloads caused 400 errors on the second apply run.
+
 ## [1.15.0] - 2026-04-23
 
 ### Added

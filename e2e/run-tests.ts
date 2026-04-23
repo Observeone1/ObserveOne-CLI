@@ -178,6 +178,11 @@ async function runTests(): Promise<void> {
   const testArgIdx = process.argv.indexOf('--test');
   const testNameFilter = testArgIdx !== -1 ? process.argv[testArgIdx + 1] : undefined;
   const filters = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const skipArgs = process.argv
+    .filter((a) => a.startsWith('--skip='))
+    .map((a) => a.slice('--skip='.length));
+  const skipEnv = process.env.OBS_SKIP_FILES ? process.env.OBS_SKIP_FILES.split(',') : [];
+  const skipPatterns = [...skipArgs, ...skipEnv];
 
   if (isCI) {
     console.log('Running E2E Tests in CI mode...');
@@ -240,8 +245,9 @@ async function runTests(): Promise<void> {
   }
 
   const allFiles = collectTestFiles(testsDir);
-  const testFiles =
-    filters.length > 0 ? allFiles.filter((f) => filters.some((p) => f.includes(p))) : allFiles;
+  const testFiles = (
+    filters.length > 0 ? allFiles.filter((f) => filters.some((p) => f.includes(p))) : allFiles
+  ).filter((f) => !skipPatterns.some((p) => f.includes(p)));
 
   if (isList) {
     for (const file of testFiles) {

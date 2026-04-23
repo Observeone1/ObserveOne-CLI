@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
@@ -19,7 +20,7 @@ export function createIncidentCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<Incident>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<Incident>(configService, apiClient, outputService, {
     resourceName: 'incident',
     pluralName: 'incidents',
     description: 'Manage incidents',
@@ -127,4 +128,102 @@ export function createIncidentCommand(
       return payload;
     },
   });
+
+  // obs incident comment <id> --message <msg> [--json]
+  cmd
+    .command('comment <id>')
+    .description('Add a comment to an incident')
+    .option('-m, --message <message>', 'Comment message')
+    .action(async (id: string, options: { message?: string }) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const incidentId = parseInt(id);
+        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+
+        let message = options.message;
+        if (!message) {
+          const answers = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'message',
+              message: 'Comment message:',
+              validate: (val: string) => (val.trim() ? true : 'Message is required'),
+            },
+          ]);
+          message = answers.message as string;
+        }
+
+        const event = await apiClient.addIncidentComment(incidentId, message!);
+        if (isJson) {
+          outputService.formatJsonOutput({ event });
+          return;
+        }
+        console.log(chalk.green(`\n✓ Comment added to incident ${incidentId}.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to add comment';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n❌ ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  // obs incident assign <id> --user <user-id> [--json]
+  cmd
+    .command('assign <id>')
+    .description('Assign an incident to a user')
+    .requiredOption('--user <user-id>', 'User ID to assign the incident to')
+    .action(async (id: string, options: { user: string }) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const incidentId = parseInt(id);
+        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+
+        const incident = await apiClient.assignIncident(incidentId, options.user);
+        if (isJson) {
+          outputService.formatJsonOutput({ incident });
+          return;
+        }
+        console.log(chalk.green(`\n✓ Incident ${incidentId} assigned to user ${options.user}.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to assign incident';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n❌ ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  // obs incident unassign <id> [--json]
+  cmd
+    .command('unassign <id>')
+    .description('Unassign an incident')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const incidentId = parseInt(id);
+        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+
+        const incident = await apiClient.assignIncident(incidentId, null);
+        if (isJson) {
+          outputService.formatJsonOutput({ incident });
+          return;
+        }
+        console.log(chalk.green(`\n✓ Incident ${incidentId} unassigned.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to unassign incident';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n❌ ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  return cmd;
 }

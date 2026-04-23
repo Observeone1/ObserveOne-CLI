@@ -276,6 +276,42 @@ export interface SuiteExecution {
   updated_at: string;
 }
 
+// API Keys
+export interface ApiKey {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at?: string;
+  last_used_at?: string;
+  [key: string]: unknown;
+}
+
+// Teams
+export interface TeamMember {
+  id: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  invite_code?: string;
+  [key: string]: unknown;
+}
+
+// Incident Events (comments etc.)
+export interface IncidentEvent {
+  id: string | number;
+  incident_id: string | number;
+  type?: string;
+  message?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 export interface JsonEnvelope<T = unknown> {
   status: 'SUCCESS' | 'ERROR';
   data?: T | undefined;
