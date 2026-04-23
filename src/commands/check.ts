@@ -159,6 +159,10 @@ export function createCheckCommand(
         .option('--text-not-contains <text>', 'Assert response does not contain text')
         .option('--header-exists <name>', 'Assert header exists')
         .option('--regex-match <pattern>', 'Assert response matches regex')
+        .option('--body <text>', 'Request body for POST/PUT/PATCH')
+        .option('--regions <region>', 'Regions to run in (repeatable)', collectOptionValues, [])
+        .option('--retry-count <count>', 'Number of retry attempts on failure')
+        .option('--retry-interval <ms>', 'Retry interval in milliseconds')
         .option(
           '--alert-channel-id <id>',
           'Attach an alert channel to this check (repeatable)',
@@ -192,12 +196,17 @@ export function createCheckCommand(
         .option('--text-not-contains <text>', 'Assert response does not contain text')
         .option('--header-exists <name>', 'Assert header exists')
         .option('--regex-match <pattern>', 'Assert response matches regex')
+        .option('--body <text>', 'Request body for POST/PUT/PATCH')
+        .option('--regions <region>', 'Regions to run in (repeatable)', collectOptionValues, [])
+        .option('--retry-count <count>', 'Number of retry attempts on failure')
+        .option('--retry-interval <ms>', 'Retry interval in milliseconds')
         .option(
           '--alert-channel-id <id>',
           'Attach an alert channel to this check (repeatable)',
           collectOptionValues,
           []
-        );
+        )
+        .option('--no-alerts', 'Disable alerts');
     },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
@@ -249,6 +258,14 @@ export function createCheckCommand(
         url,
         method: (method || 'GET').toUpperCase(),
         headers,
+        body: options.body as string | undefined,
+        regions: options.regions as string[] | undefined,
+        retry_count: options['retry-count']
+          ? parseInt(options['retry-count'] as string)
+          : undefined,
+        retry_interval: options['retry-interval']
+          ? parseInt(options['retry-interval'] as string)
+          : undefined,
         assertions,
         cron_expression: interval,
         channel_ids: channelIds,
@@ -295,8 +312,16 @@ export function createCheckCommand(
         description: description ?? existing.description,
         url: url || existing.url,
         method: method ? method.toUpperCase() : existing.method || 'GET',
-        cron_expression: interval || existing.cron_expression,
+        cron_sequence: interval || existing.cron_expression,
         headers: headers ?? existing.headers,
+        body: options.body as string | undefined,
+        regions: options.regions as string[] | undefined,
+        retry_count: options['retry-count']
+          ? parseInt(options['retry-count'] as string)
+          : undefined,
+        retry_interval: options['retry-interval']
+          ? parseInt(options['retry-interval'] as string)
+          : undefined,
         assertions: assertions ?? existing.assertions,
         timeout_ms: existing.timeout_ms || 30000,
         alert_on_failure: existing.alert_on_failure ?? true,

@@ -1,0 +1,601 @@
+{
+  "monitors": [
+    {
+      "name": "Pull-Mon-1776940281",
+      "description": "MONITOR EDITED",
+      "url": "https://example.com/pull-1776940281",
+      "timeout_ms": 30000,
+      "alert_on_failure": true,
+      "channel_ids": [
+        82
+      ]
+    },
+    {
+      "name": "E2E-Monitor-1773238257511-Updated",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "My Manual Monitor 1",
+      "description": null,
+      "url": "https://google.com",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "My Manual Monitor",
+      "description": null,
+      "url": "https://google.com",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "My Manual Monitor",
+      "description": null,
+      "url": "https://google.com",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773229660607",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773229584455",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773229403901",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773229330416",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "Test Monitor",
+      "description": null,
+      "url": "https://example.com",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773229153349",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773228403138",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773228294922",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773228171661",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773228156461",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773228056872",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Monitor-1773227971787",
+      "description": null,
+      "url": "https://example.com/e2e-test",
+      "timeout_ms": 30000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "Legacy Search Index",
+      "description": null,
+      "url": "https://search.legacy.svc/ping",
+      "timeout_ms": 2000,
+      "alert_on_failure": true
+    },
+    {
+      "name": "Billing Service",
+      "description": null,
+      "url": "https://api.observeone.com/billing",
+      "timeout_ms": 5000,
+      "alert_on_failure": true
+    }
+  ],
+  "api_checks": [
+    {
+      "name": "test-final-verify",
+      "description": null,
+      "url": "https://httpbin.org/status/200",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false,
+      "assertions": [
+        {
+          "type": "status_code",
+          "operator": "equals",
+          "value": "200"
+        },
+        {
+          "type": "response_time",
+          "operator": "less_than",
+          "value": "5000"
+        }
+      ]
+    },
+    {
+      "name": "test-file-assert",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-regex",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-header",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-text-not",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-response-over",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-status-not",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-json-path",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-multi-assert",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "test-short-flag",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "Pull-Chk-1776940281",
+      "description": "EDITED VIA CONFIG-AS-CODE v2",
+      "url": "https://api.example.com/pull-1776940281",
+      "method": "POST",
+      "headers": {
+        "X-Trace": "pull-1776940281",
+        "X-Edited-V2": "yes",
+        "Authorization": "Bearer xyz=abc"
+      },
+      "timeout_ms": 30000,
+      "cron_expression": "*/12 * * * *",
+      "alert_on_failure": true,
+      "channel_ids": [
+        82
+      ],
+      "assertions": [
+        {
+          "type": "status_code",
+          "operator": "equals",
+          "value": "200"
+        },
+        {
+          "type": "json_path",
+          "operator": "equals",
+          "value": "true",
+          "path": "$.ok"
+        }
+      ]
+    },
+    {
+      "name": "SC-Fix-1776936963",
+      "description": null,
+      "url": "https://api.example.com/sc/1776936963",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false,
+      "assertions": [
+        {
+          "type": "status_code",
+          "operator": "equals",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "name": "Hdr-Fix-1776936963",
+      "description": null,
+      "url": "https://api.example.com/hdr/1776936963",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false,
+      "assertions": [
+        {
+          "type": "header",
+          "operator": "equals",
+          "value": "application/json",
+          "path": "Content-Type"
+        }
+      ]
+    },
+    {
+      "name": "TC-Fix-1776936963",
+      "description": null,
+      "url": "https://api.example.com/tc/1776936963",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false,
+      "assertions": [
+        {
+          "type": "text_contains",
+          "operator": "contains",
+          "value": "welcome"
+        }
+      ]
+    },
+    {
+      "name": "A-1776934409",
+      "description": null,
+      "url": "https://api.example.com/a/1776934409",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false,
+      "assertions": [
+        {
+          "type": "status_code",
+          "operator": "equals",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "name": "H-1776934409",
+      "description": null,
+      "url": "https://api.example.com/h/1776934409",
+      "method": "GET",
+      "headers": {
+        "X-Test": "v"
+      },
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "M-1776934409",
+      "description": null,
+      "url": "https://api.example.com/1776934409",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "Observ API Check",
+      "description": "",
+      "url": "https://observeone.com",
+      "method": "GET",
+      "headers": {},
+      "body": "",
+      "timeout_ms": 10000,
+      "cron_expression": "0 * * * *",
+      "alert_on_failure": true
+    },
+    {
+      "name": "Observeone API Check",
+      "description": "",
+      "url": "https://observeone.com",
+      "method": "GET",
+      "headers": {},
+      "body": "",
+      "timeout_ms": 10000,
+      "cron_expression": "0 * * * *",
+      "alert_on_failure": true
+    },
+    {
+      "name": "E2E-Check-1773229385313",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773229321985",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "Test Check",
+      "description": null,
+      "url": "https://example.com",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773229145121",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773228394085",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773228286477",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773228157511",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773228146977",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773228047555",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    },
+    {
+      "name": "E2E-Check-1773227967049",
+      "description": null,
+      "url": "https://api.example.com/v1/health",
+      "method": "GET",
+      "headers": {},
+      "timeout_ms": 30000,
+      "cron_expression": null,
+      "alert_on_failure": false
+    }
+  ],
+  "heartbeats": [
+    {
+      "name": "test-reverted-1776947506",
+      "description": "",
+      "period": 120,
+      "grace_period": 60
+    },
+    {
+      "name": "Pull-HB-1776940281",
+      "description": "Created via CLI",
+      "period": 300,
+      "grace_period": 90
+    },
+    {
+      "name": "Type-HB-1776934709",
+      "description": "Created via apply",
+      "period": 300,
+      "grace_period": 60
+    },
+    {
+      "name": "Smoke-HB-1776934702",
+      "description": "Created via apply",
+      "period": 300,
+      "grace_period": 60
+    },
+    {
+      "name": "Temp",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773229326292",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "Test HB",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773229149076",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773228398140",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773228290361",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773228167189",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773228150980",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773228051908",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "E2E-HB-1773227969332",
+      "description": "Created via CLI",
+      "period": 600,
+      "grace_period": 60
+    },
+    {
+      "name": "Email Queue Processor",
+      "description": "Processes email queue every 5 minutes",
+      "period": 300,
+      "grace_period": 120
+    },
+    {
+      "name": "Hourly Report Generator",
+      "description": "Generates analytics reports every hour",
+      "period": 3600,
+      "grace_period": 600
+    },
+    {
+      "name": "Daily Database Backup",
+      "description": "Runs every day at 2am UTC",
+      "period": 86400,
+      "grace_period": 3600
+    }
+  ]
+}
