@@ -8,11 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.14.0] - 2026-04-23
 
 ### Fixed
-- `obs export` round-trip is now idempotent. Monitors and API checks exported from the backend now include every field that flag-based CRUD can set — `description`, `channel_ids` (mapped from the populated `channels` GET-response), request `headers`, request `body`, `cron_expression`, and `assertions` (stripped of DB-owned fields). Previously these were silently dropped on every export, so `obs export → obs apply` quietly erased any description, alert-channel attachment, header, or assertion that had been authored through the UI or CLI flags.
+- **Config-as-code round-trip is now actually idempotent for monitors and API checks.** Three separate gaps were hiding this:
+  - `obs export` only serialized a small subset of fields; descriptions, alert-channel attachments (`channel_ids`), request headers, request body, `cron_expression`, and assertions were silently dropped on every export cycle.
+  - `obs apply` only compared `name`/`url`/`method`/`timeout_ms`/`alert_on_failure` when deciding whether a resource was "unchanged", so edits to description, headers, assertions, channel_ids, etc. quietly no-op'd. The update payload also only forwarded those same five fields.
+  - Both export and apply now detail-hydrate each resource via `getUrlMonitor` / `getApiCheck` so the populated `channels` array is available on the remote side and can be mapped back to `channel_ids` for the comparison. Assertions are compared after stripping DB-owned fields (`id`, `api_check_id`, `created_at`). `body` and `cron_expression` are omitted from the update payload when null to satisfy the backend's zod schema.
+- `obs heartbeat create` no longer silently injects `description: "Created via CLI"` when the user omits `--description`. `obs heartbeat update` no longer injects `"Updated via CLI"` when the user doesn't change the description. Both now default to an empty string, matching the `obs apply` fix from v1.13.0.
+
+### Added
+- `obs heartbeat create` and `obs heartbeat update` accept `-d, --description` and `-g, --grace` (both flags were missing from the update path entirely; create had no way to set description).
 
 ### Changed
-- `obs init monitor` template now uses `interval` (the real wire field) instead of the stale `cron_expression` key, matching how monitors are actually sent on create/update.
+- `obs init monitor` template now uses `interval` (the real wire field) instead of the stale `cron_expression` key.
 - `obs init monitor` and `obs init check` templates now include a `channel_ids: []` placeholder so users scaffolding a resource from the template can see the alert-channel attachment field without guessing.
+
+### Known Limitations
+- Monitor `interval` is not returned by the backend `getUrlMonitor` endpoint, so it cannot round-trip through export → apply. The CLI captures monitor interval correctly on create/update, but cannot read it back from an existing monitor. Tracked as a backend follow-up.
+- List endpoints for api_checks return `alert_on_failure` from the schedule record, producing `false` for checks without a schedule. This can cause spurious "update" diffs when those checks are exported and re-applied. Not a regression; pre-existing behavior.
 
 ## [1.13.0] - 2026-04-23
 

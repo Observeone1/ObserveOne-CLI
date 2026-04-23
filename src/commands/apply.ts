@@ -432,17 +432,24 @@ export function createApplyCommand(
                       return;
                     }
                     logProgress(`Updating API check: ${checkConfig.name}`);
+                    const effectiveBody = checkConfig.body ?? existing.body;
+                    const effectiveCron =
+                      checkConfig.cron_expression ??
+                      (checkConfig as { interval?: string }).interval ??
+                      existing.cron_expression;
                     await apiClient.updateApiCheck(existing.id, {
                       name: checkConfig.name || existing.name,
                       description: checkConfig.description ?? existing.description,
                       url: checkConfig.url || existing.url,
                       method: checkConfig.method?.toUpperCase() || existing.method || 'GET',
                       headers: checkConfig.headers ?? existing.headers,
-                      body: checkConfig.body ?? existing.body,
-                      cron_expression:
-                        checkConfig.cron_expression ??
-                        (checkConfig as { interval?: string }).interval ??
-                        existing.cron_expression,
+                      // Backend zod rejects null for body/cron_expression;
+                      // omit when the value would be null so the schema's
+                      // optional/nullable rules accept the payload.
+                      ...(effectiveBody !== null &&
+                        effectiveBody !== undefined && { body: effectiveBody }),
+                      ...(effectiveCron !== null &&
+                        effectiveCron !== undefined && { cron_expression: effectiveCron }),
                       timeout_ms: checkConfig.timeout_ms || existing.timeout_ms || 30000,
                       alert_on_failure:
                         checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
