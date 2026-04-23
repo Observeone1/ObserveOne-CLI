@@ -6,7 +6,14 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
 import { ApiCheck } from '../types/index.js';
+import {
+  collectOptionValues,
+  parseJsonArrayOption,
+  parseKeyValuePairs,
+  parseNumericIds,
+} from '../utils/cli-input.js';
 
 /**
  * Factory function to create check command (API Checks)
@@ -35,19 +42,62 @@ export function createCheckCommand(
     createCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Check name')
+        .option('-d, --description <description>', 'Check description')
         .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method');
+        .option('-m, --method <method>', 'HTTP Method')
+        .option('-i, --interval <interval>', 'Cron expression interval')
+        .option(
+          '--header <KEY=VALUE>',
+          'HTTP header to send with the request (repeatable)',
+          collectOptionValues,
+          []
+        )
+        .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
+        .option(
+          '--alert-channel-id <id>',
+          'Attach an alert channel to this check (repeatable)',
+          collectOptionValues,
+          []
+        )
+        .option('--no-alerts', 'Disable alerts');
     },
     updateCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Check name')
+        .option('-d, --description <description>', 'Check description')
         .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method');
+        .option('-m, --method <method>', 'HTTP Method')
+        .option('-i, --interval <interval>', 'Cron expression interval')
+        .option(
+          '--header <KEY=VALUE>',
+          'HTTP header to send with the request (repeatable)',
+          collectOptionValues,
+          []
+        )
+        .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
+        .option(
+          '--alert-channel-id <id>',
+          'Attach an alert channel to this check (repeatable)',
+          collectOptionValues,
+          []
+        );
     },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       let url = options.url as string | undefined;
       let method = options.method as string | undefined;
+      const interval = options.interval as string | undefined;
+      const alerts = options.alerts as boolean | undefined;
+      const headers = parseKeyValuePairs(options.header as string[] | string | undefined, 'header');
+      const assertions = parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+        options.assertion as string[] | string | undefined,
+        'assertion'
+      );
+      const channelIds = parseNumericIds(
+        options.alertChannelId as string[] | string | undefined,
+        'alert-channel-id'
+      );
 
       if (!name || !url) {
         const answers = await inquirer.prompt([
@@ -81,30 +131,70 @@ export function createCheckCommand(
 
       return {
         name,
+        description,
         url,
         method: (method || 'GET').toUpperCase(),
+        headers,
+        assertions,
+        cron_expression: interval,
+        channel_ids: channelIds,
         timeout_ms: 30000,
-        alert_on_failure: true,
+        alert_on_failure: alerts !== false,
       };
     },
     updatePrompts: async (id, options, existing) => {
       const name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       const url = options.url as string | undefined;
       const method = options.method as string | undefined;
+      const interval = options.interval as string | undefined;
+      const headerInput = options.header as string[] | string | undefined;
+      const headers = (Array.isArray(headerInput) ? headerInput.length > 0 : Boolean(headerInput))
+        ? parseKeyValuePairs(headerInput, 'header')
+        : undefined;
+      const assertionInput = options.assertion as string[] | string | undefined;
+      const assertions = (
+        Array.isArray(assertionInput) ? assertionInput.length > 0 : Boolean(assertionInput)
+      )
+        ? parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+            assertionInput,
+            'assertion'
+          )
+        : undefined;
+      const alertChannelInput = options.alertChannelId as string[] | string | undefined;
+      const channelIds = (
+        Array.isArray(alertChannelInput) ? alertChannelInput.length > 0 : Boolean(alertChannelInput)
+      )
+        ? parseNumericIds(alertChannelInput, 'alert-channel-id')
+        : undefined;
 
-      if (!name && !url && !method) {
+      if (
+        !name &&
+        description === undefined &&
+        !url &&
+        !method &&
+        !interval &&
+        headers === undefined &&
+        assertions === undefined &&
+        channelIds === undefined
+      ) {
         outputService.error(
-          'Please provide at least one field to update (--name, --url, or --method).'
+          'Please provide at least one field to update (--name, --description, --url, --method, --interval, --header, --assertion, or --alert-channel-id).'
         );
         process.exit(1);
       }
 
       return {
         name: name || existing.name,
+        description: description ?? existing.description,
         url: url || existing.url,
         method: method ? method.toUpperCase() : existing.method || 'GET',
+        cron_expression: interval || existing.cron_expression,
+        headers: headers ?? existing.headers,
+        assertions: assertions ?? existing.assertions,
         timeout_ms: existing.timeout_ms || 30000,
         alert_on_failure: existing.alert_on_failure ?? true,
+        ...(channelIds !== undefined && { channel_ids: channelIds }),
       };
     },
   });
@@ -145,6 +235,15 @@ export function createCheckCommand(
         process.exit(1);
       }
     });
+
+  attachRunsCommand(cmd, {
+    title: 'API Check Runs',
+    emptyMessage: 'No API check runs found.',
+    description: 'List recent API check executions',
+    fetchRuns: (id, limit) => apiClient.getApiCheckRuns(id, limit),
+    formatRuns: printExecutionRuns,
+    outputService,
+  });
 
   return cmd;
 }

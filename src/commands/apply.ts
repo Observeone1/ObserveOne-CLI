@@ -5,7 +5,8 @@ import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora, { Ora } from 'ora';
 import { deepEqual, normalizeResource, diffObjects, FieldDiff } from '../utils/deep-equal.js';
-import { UrlMonitor, ApiCheck, Heartbeat, Test } from '../types/index.js';
+import { UrlMonitor, ApiCheck, Heartbeat } from '../types/index.js';
+import { ApplyConfig, normalizeApplyConfig } from '../utils/apply-config.js';
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const result: T[][] = [];
@@ -85,13 +86,6 @@ function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
   console.log(chalk.dim('  Run without --dry-run to apply.'));
 }
 
-interface ApplyConfig {
-  monitors?: Partial<UrlMonitor>[];
-  api_checks?: Partial<ApiCheck>[];
-  heartbeats?: Partial<Heartbeat>[];
-  ai_checks?: Partial<Test>[];
-}
-
 export function createApplyCommand(
   configService: IConfigService,
   apiClient: IApiClient,
@@ -148,13 +142,23 @@ export function createApplyCommand(
 
         logProgress(`Reading configuration from ${targetFile}...`);
         const fileContent = readFileSync(targetFile, 'utf-8');
+        let rawConfig: unknown;
         let config: ApplyConfig;
         try {
-          config = JSON.parse(fileContent);
+          rawConfig = JSON.parse(fileContent);
         } catch (e: unknown) {
           const err = e as Error;
           if (spinner) spinner.fail('Invalid JSON');
           outputService.error(`Invalid JSON in ${targetFile}: ${err.message}`);
+          process.exit(1);
+        }
+
+        try {
+          config = normalizeApplyConfig(rawConfig);
+        } catch (e: unknown) {
+          const err = e as Error;
+          if (spinner) spinner.fail('Invalid apply config');
+          outputService.error(err.message);
           process.exit(1);
         }
 
@@ -429,11 +433,11 @@ export function createApplyCommand(
                     }
                     logProgress(`Updating heartbeat: ${hbConfig.name}`);
                     await apiClient.updateHeartbeat(existing.id, {
+                      ...hbConfig,
                       name: hbConfig.name || existing.name,
                       period: hbConfig.period || existing.period,
-                      description:
-                        hbConfig.description || existing.description || 'Updated via CLI',
-                      grace_period: hbConfig.grace_period || existing.grace_period || 60,
+                      description: hbConfig.description ?? existing.description ?? '',
+                      grace_period: hbConfig.grace_period ?? existing.grace_period ?? 60,
                     });
                   } else {
                     summary.heartbeats.created++;
@@ -447,8 +451,11 @@ export function createApplyCommand(
                     }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
                     await apiClient.createHeartbeat({
+                      ...hbConfig,
                       name: hbConfig.name,
                       period: hbConfig.period,
+                      description: hbConfig.description ?? '',
+                      grace_period: hbConfig.grace_period ?? 60,
                     });
                   }
                 } catch (err: unknown) {

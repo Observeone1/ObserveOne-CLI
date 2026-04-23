@@ -94,5 +94,29 @@ describe('ApiClient', () => {
       const monitors = await apiClient.getUrlMonitors();
       expect(monitors).toEqual([{ id: 5, name: 'direct-monitor' }]);
     });
+
+    it('normalizes monitor runs returning {executions: []}', async () => {
+      const mockGet = vi.fn().mockResolvedValue({ data: { executions: [{ id: 101 }] } });
+      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
+
+      const runs = await apiClient.getUrlMonitorRuns(1, 5);
+      expect(runs).toEqual([{ id: 101 }]);
+    });
+
+    it('normalizes API check runs returning [] directly', async () => {
+      const mockGet = vi.fn().mockResolvedValue({ data: [{ id: 202 }] });
+      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
+
+      const runs = await apiClient.getApiCheckRuns(1, 5);
+      expect(runs).toEqual([{ id: 202 }]);
+    });
+
+    it('normalizes heartbeat runs returning {pings: []}', async () => {
+      const mockGet = vi.fn().mockResolvedValue({ data: { pings: [{ id: 303 }] } });
+      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
+
+      const runs = await apiClient.getHeartbeatRuns(1, 5);
+      expect(runs).toEqual([{ id: 303 }]);
+    });
   });
 });

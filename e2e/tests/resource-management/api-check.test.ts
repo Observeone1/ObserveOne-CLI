@@ -92,6 +92,63 @@ export async function testApiCheckRunJsonEnvelope() {
   }
 }
 
+export async function testApiCheckRunsJsonEnvelope() {
+  const timestamp = Date.now();
+  const checkName = `E2E-Check-Runs-${timestamp}`;
+  let checkId: number | undefined;
+  let executionId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'check',
+      'create',
+      '--name',
+      checkName,
+      '--url',
+      `https://api.example.com/v1/runs/${timestamp}`,
+      '--method',
+      'GET',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'API check creation failed');
+    const createdCheck = JSON.parse(createResult.stdout);
+    checkId = createdCheck.id || createdCheck.data?.id;
+    if (!checkId) throw new Error('Could not extract API check ID from creation response');
+
+    const runResult = await runCLI(['check', 'run', checkId.toString(), '--json']);
+    assertSuccess(runResult, 'API check run failed');
+    assertStrictJSON(runResult.stdout, 'check run --json must output valid JSON envelope');
+    const parsedRun = JSON.parse(runResult.stdout.trim()) as {
+      data?: { executions?: Array<{ execution_id?: number }> };
+    };
+    executionId = parsedRun.data?.executions?.[0]?.execution_id;
+    if (!executionId) throw new Error('Could not extract API check execution ID');
+
+    const runsResult = await runCLI([
+      'check',
+      'runs',
+      checkId.toString(),
+      '--limit',
+      '5',
+      '--json',
+    ]);
+    assertSuccess(runsResult, 'API check runs failed');
+    assertStrictJSON(runsResult.stdout, 'check runs --json must output valid JSON envelope');
+    const parsedRuns = JSON.parse(runsResult.stdout.trim()) as {
+      data?: { runs?: Array<{ id?: number }> };
+    };
+    const runs = parsedRuns.data?.runs || [];
+
+    if (!runs.some((run) => run.id === executionId)) {
+      throw new Error(`API check execution ${executionId} not found in runs output`);
+    }
+  } finally {
+    if (checkId) {
+      await runCLI(['check', 'delete', checkId.toString(), '-y', '--json']);
+    }
+  }
+}
+
 export async function testApiCheckListFiltersJsonEnvelope() {
   const timestamp = Date.now();
   const checkName = `E2E-Check-List-${timestamp}`;
@@ -159,6 +216,94 @@ export async function testApiCheckListFiltersJsonEnvelope() {
     }
     if (pausedCheck.status !== 'paused' || pausedCheck.is_active !== false) {
       throw new Error(`Unexpected paused API check state: ${JSON.stringify(pausedCheck)}`);
+    }
+  } finally {
+    if (checkId) {
+      await runCLI(['check', 'delete', checkId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+export async function testApiCheckFieldParity() {
+  const timestamp = Date.now();
+  const checkName = `E2E-Check-Parity-${timestamp}`;
+  let checkId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'check',
+      'create',
+      '--name',
+      checkName,
+      '--url',
+      `https://api.example.com/parity/${timestamp}`,
+      '--method',
+      'GET',
+      '--header',
+      'Authorization=Bearer test-token',
+      '--header',
+      'X-Trace-Id=e2e-parity',
+      '--assertion',
+      '{"type":"status_code","operator":"equals","value":"200"}',
+      '--assertion',
+      '{"type":"json_path","operator":"equals","path":"$.status","value":"\\"ok\\""}',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'API check parity create failed');
+    const createdCheck = JSON.parse(createResult.stdout);
+    checkId = createdCheck.id || createdCheck.data?.id;
+    if (!checkId) throw new Error('Could not extract API check ID');
+
+    const getResult = await runCLI(['check', 'get', checkId.toString(), '--json']);
+    assertSuccess(getResult, 'API check parity get failed');
+    const parsedCheck = JSON.parse(getResult.stdout);
+    const check = parsedCheck.data || parsedCheck;
+
+    if (check.headers?.Authorization !== 'Bearer test-token') {
+      throw new Error(
+        `Expected Authorization header to persist, got ${JSON.stringify(check.headers)}`
+      );
+    }
+    if (check.headers?.['X-Trace-Id'] !== 'e2e-parity') {
+      throw new Error(
+        `Expected X-Trace-Id header to persist, got ${JSON.stringify(check.headers)}`
+      );
+    }
+    if (!Array.isArray(check.assertions) || check.assertions.length !== 2) {
+      throw new Error(`Expected 2 API check assertions, got ${JSON.stringify(check.assertions)}`);
+    }
+
+    const updateResult = await runCLI([
+      'check',
+      'update',
+      checkId.toString(),
+      '--header',
+      'Authorization=Bearer updated-token',
+      '--assertion',
+      '{"type":"json_path","operator":"equals","path":"$.status","value":"ok"}',
+      '--json',
+    ]);
+    assertSuccess(updateResult, 'API check parity update failed');
+
+    const getUpdatedResult = await runCLI(['check', 'get', checkId.toString(), '--json']);
+    assertSuccess(getUpdatedResult, 'Updated API check fetch failed');
+    const parsedUpdatedCheck = JSON.parse(getUpdatedResult.stdout);
+    const updatedCheck = parsedUpdatedCheck.data || parsedUpdatedCheck;
+
+    if (updatedCheck.headers?.Authorization !== 'Bearer updated-token') {
+      throw new Error(
+        `Expected updated Authorization header, got ${JSON.stringify(updatedCheck.headers)}`
+      );
+    }
+    if (!Array.isArray(updatedCheck.assertions) || updatedCheck.assertions.length !== 1) {
+      throw new Error(
+        `Expected updated assertions to be replaced, got ${JSON.stringify(updatedCheck.assertions)}`
+      );
+    }
+    if (updatedCheck.assertions[0]?.type !== 'json_path') {
+      throw new Error(
+        `Expected json_path assertion after update, got ${JSON.stringify(updatedCheck.assertions)}`
+      );
     }
   } finally {
     if (checkId) {

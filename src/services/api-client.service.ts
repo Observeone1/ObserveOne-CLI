@@ -8,6 +8,8 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  ResourceRun,
+  HeartbeatPing,
   ListQueryOptions,
   PaginatedListResult,
   AlertChannel,
@@ -332,6 +334,15 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async getUrlMonitorRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
+    const response = await this.client.get<{ executions?: ResourceRun[] } | ResourceRun[]>(
+      `/url-monitors/${id}/executions`,
+      { params: { limit } }
+    );
+    const data = response.data as { executions?: ResourceRun[] };
+    return data.executions || (response.data as ResourceRun[]);
+  }
+
   async runApiCheck(id: number): Promise<{
     executions: { execution_id: number; region: string; status: string }[];
     message: string;
@@ -403,6 +414,13 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async getApiCheckRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
+    const response = await this.client.get<ResourceRun[]>(`/api-checks/${id}/executions`, {
+      params: { limit },
+    });
+    return response.data;
+  }
+
   // Heartbeats
   async getHeartbeats(): Promise<Heartbeat[]> {
     const result = await this.listHeartbeats();
@@ -449,6 +467,15 @@ export class ApiClient implements IApiClient {
       data?: { is_active?: boolean };
     }>(`/heartbeats/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
+  }
+
+  async getHeartbeatRuns(id: number, limit: number = 20): Promise<HeartbeatPing[]> {
+    const response = await this.client.get<{ pings?: HeartbeatPing[] } | HeartbeatPing[]>(
+      `/heartbeats/${id}/pings`,
+      { params: { limit } }
+    );
+    const data = response.data as { pings?: HeartbeatPing[] };
+    return data.pings || (response.data as HeartbeatPing[]);
   }
 
   // Alert Channels

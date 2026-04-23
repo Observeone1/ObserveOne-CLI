@@ -31,7 +31,8 @@ export async function testApplyDryRun() {
     // 2. Verify resource was NOT created (list should not contain it)
     console.log('      - Verifying dry-run made no writes...');
     const listAfterDry = await runCLI(['monitor', 'list', '--json']);
-    const monitors = listAfterDry.exitCode === 0 ? JSON.parse(listAfterDry.stdout).data || [] : [];
+    const monitors =
+      listAfterDry.exitCode === 0 ? (JSON.parse(listAfterDry.stdout).data?.items ?? []) : [];
     const exists = monitors.some((m: any) => m.name === configContent.monitors[0].name);
     if (exists) throw new Error('Dry-run should not have created the monitor');
 
@@ -64,7 +65,7 @@ export async function testApplyDryRun() {
     console.log('      - [Cleanup] Removing dry-run test monitor...');
     const listResult = await runCLI(['monitor', 'list', '--json']);
     if (listResult.exitCode === 0) {
-      const monitors = JSON.parse(listResult.stdout).data || [];
+      const monitors = JSON.parse(listResult.stdout).data?.items || [];
       const m = monitors.find((m: any) => m.name === configContent.monitors[0].name);
       if (m?.id) await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
     }
@@ -174,7 +175,7 @@ export async function testDeclarativeApply() {
     // We have to list them to get IDs since apply doesn't return the raw IDs directly in the summary
     const monitorListResult = await runCLI(['monitor', 'list', '--json']);
     if (monitorListResult.exitCode === 0) {
-      const monitors = JSON.parse(monitorListResult.stdout).data || [];
+      const monitors = JSON.parse(monitorListResult.stdout).data?.items || [];
       const m = monitors.find((m: any) => m.name === configContent.monitors[0].name);
       if (m && m.id) {
         await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
@@ -183,10 +184,73 @@ export async function testDeclarativeApply() {
 
     const checkListResult = await runCLI(['check', 'list', '--json']);
     if (checkListResult.exitCode === 0) {
-      const checks = JSON.parse(checkListResult.stdout).data || [];
+      const checks = JSON.parse(checkListResult.stdout).data?.items || [];
       const c = checks.find((c: any) => c.name === configContent.api_checks[0].name);
       if (c && c.id) {
         await runCLI(['check', 'delete', c.id.toString(), '-y', '--json']);
+      }
+    }
+  }
+}
+
+export async function testApplySingleResourceFile() {
+  const timestamp = Date.now();
+  const bareMonitorFile = join(process.cwd(), `e2e-apply-monitor-${timestamp}.json`);
+  const wrappedHeartbeatFile = join(process.cwd(), `e2e-apply-heartbeat-${timestamp}.json`);
+
+  const bareMonitor = {
+    name: `E2E-Apply-Single-Monitor-${timestamp}`,
+    url: `https://example.com/single-apply-${timestamp}`,
+    interval: '*/20 * * * *',
+    alert_on_failure: true,
+  };
+
+  const wrappedHeartbeat = {
+    heartbeat: {
+      name: `E2E-Apply-Single-Heartbeat-${timestamp}`,
+      period: 600,
+      grace_period: 60,
+    },
+  };
+
+  try {
+    writeFileSync(bareMonitorFile, JSON.stringify(bareMonitor, null, 2));
+    writeFileSync(wrappedHeartbeatFile, JSON.stringify(wrappedHeartbeat, null, 2));
+
+    const applyMonitor = await runCLI(['apply', bareMonitorFile, '--json']);
+    assertSuccess(applyMonitor, 'Single-resource monitor apply failed');
+    assertJSON(applyMonitor.stdout, 'Single-resource monitor apply should output JSON');
+    const parsedMonitorApply = JSON.parse(applyMonitor.stdout);
+    if (parsedMonitorApply.data?.summary?.monitors?.created !== 1) {
+      throw new Error('Expected single monitor apply to create 1 monitor');
+    }
+
+    const applyHeartbeat = await runCLI(['apply', wrappedHeartbeatFile, '--json']);
+    assertSuccess(applyHeartbeat, 'Wrapped heartbeat apply failed');
+    assertJSON(applyHeartbeat.stdout, 'Wrapped heartbeat apply should output JSON');
+    const parsedHeartbeatApply = JSON.parse(applyHeartbeat.stdout);
+    if (parsedHeartbeatApply.data?.summary?.heartbeats?.created !== 1) {
+      throw new Error('Expected wrapped heartbeat apply to create 1 heartbeat');
+    }
+  } finally {
+    if (existsSync(bareMonitorFile)) unlinkSync(bareMonitorFile);
+    if (existsSync(wrappedHeartbeatFile)) unlinkSync(wrappedHeartbeatFile);
+
+    const monitorListResult = await runCLI(['monitor', 'list', '--json']);
+    if (monitorListResult.exitCode === 0) {
+      const monitors = JSON.parse(monitorListResult.stdout).data?.items || [];
+      const monitor = monitors.find((m: any) => m.name === bareMonitor.name);
+      if (monitor?.id) {
+        await runCLI(['monitor', 'delete', monitor.id.toString(), '-y', '--json']);
+      }
+    }
+
+    const heartbeatListResult = await runCLI(['heartbeat', 'list', '--json']);
+    if (heartbeatListResult.exitCode === 0) {
+      const heartbeats = JSON.parse(heartbeatListResult.stdout).data?.items || [];
+      const heartbeat = heartbeats.find((h: any) => h.name === wrappedHeartbeat.heartbeat.name);
+      if (heartbeat?.id) {
+        await runCLI(['heartbeat', 'delete', heartbeat.id.toString(), '-y', '--json']);
       }
     }
   }

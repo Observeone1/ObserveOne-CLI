@@ -125,6 +125,23 @@ obs apply -f my-stack.json
 }
 ```
 
+**Single-resource files (v1.13.0):** `obs apply` also accepts files holding a single resource, in three shapes:
+
+```json
+// Bare — type inferred from fields (url → monitor, url+method → check, period → heartbeat)
+{ "name": "Landing", "url": "https://example.com", "interval": "*/5 * * * *" }
+```
+```json
+// Wrapped — explicit resource key
+{ "monitor": { "name": "Landing", "url": "https://example.com" } }
+```
+```json
+// Explicit type — disambiguates the bare form
+{ "type": "heartbeat", "name": "Daily Backup", "period": 86400 }
+```
+
+Useful for scripting one-off resources without maintaining a full `obs.json`.
+
 ---
 
 ## Resource Management (CRUD)
@@ -133,24 +150,49 @@ You can manually create, read, update, delete, and toggle individual resources d
 
 ### URL Monitors
 ```bash
-obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
+obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *" \
+  --description "Production landing page" \
+  --alert-channel-id 12 --alert-channel-id 47
 obs monitor list
 obs monitor list --search "Front" --status up --is-active true --limit 10 --page 1 --json
 obs monitor get <id>
-obs monitor update <id> --name "Updated Frontend" --interval "*/10 * * * *"
+obs monitor update <id> --description "Updated copy" --alert-channel-id 47
+obs monitor runs <id> --limit 10         # recent executions
+obs monitor run <id>                      # trigger a manual run
 obs monitor toggle <id>
 obs monitor delete <id> -y
 ```
 
+Monitor flags:
+- `-d, --description <text>` — optional description.
+- `--alert-channel-id <id>` — attach an alert channel (repeat for multiple).
+- `--no-alerts` — disable alerting on failure.
+
 ### API Checks
 ```bash
-obs check create --name "Auth API" --url "https://api.example.com/auth" --method "POST"
+obs check create --name "Auth API" --url "https://api.example.com/auth" --method POST \
+  --description "Signup endpoint" \
+  --interval "*/5 * * * *" \
+  --alert-channel-id 12 \
+  --header "Authorization=Bearer test" --header "X-Trace=ci" \
+  --assertion '{"type":"status_code","operator":"equals","value":"200"}' \
+  --assertion '{"type":"json_path","operator":"equals","path":"$.ok","value":"true"}'
 obs check list
 obs check list --search "Auth" --status paused --is-active false --json
-obs check update <id> --method "GET"
+obs check update <id> --description "Signup v2" --header "X-Trace=ci-v2"
+obs check runs <id> --limit 10            # recent executions
+obs check run <id>                         # trigger a manual run
 obs check toggle <id>
 obs check delete <id> -y
 ```
+
+Check flags:
+- `-d, --description <text>` — optional description.
+- `-i, --interval <cron>` — schedule expression (e.g. `*/5 * * * *`).
+- `--alert-channel-id <id>` — attach an alert channel (repeat for multiple).
+- `--no-alerts` — disable alerting on failure.
+- `--header KEY=VALUE` — HTTP header to send (repeatable).
+- `--assertion <json>` — response assertion as a JSON object (repeatable). Supported types: `status_code`, `response_time`, `json_path` (uses `path`), `text_contains`, `header` (uses `path`). Operators: `equals`, `not_equals`, `greater_than`, `less_than`, `contains`, `not_contains`, `exists`, `regex_match`.
 
 ### Heartbeats (Cron Monitoring)
 ```bash
@@ -158,6 +200,7 @@ obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
 obs heartbeat list
 obs heartbeat list --search "Backup" --status late --limit 5 --json
 obs heartbeat update <id> --period 43200
+obs heartbeat runs <id> --limit 10        # recent pings
 obs heartbeat toggle <id>
 obs heartbeat delete <id> -y
 ```
@@ -167,6 +210,9 @@ List filtering notes:
 - `--status` uses each resource's real status values.
 - `--is-active true|false` filters by activation state separately from status.
 - `--page` and `--limit` enable server-side pagination.
+
+Run history (new in v1.13.0):
+- `obs <resource> runs <id>` fetches recent executions/pings. Default limit 20, override with `-l, --limit`.
 
 ### Alert Channels
 ```bash

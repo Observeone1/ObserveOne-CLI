@@ -5,6 +5,8 @@ import {
   UrlMonitor,
   ApiCheck,
   Heartbeat,
+  ResourceRun,
+  HeartbeatPing,
   ListQueryOptions,
   PaginatedListResult,
   AlertChannel,
@@ -62,6 +64,7 @@ export interface IApiClient {
   updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
   deleteUrlMonitor(id: number): Promise<void>;
   toggleUrlMonitor(id: number): Promise<boolean>;
+  getUrlMonitorRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // API Checks
   getApiChecks(): Promise<ApiCheck[]>;
@@ -71,6 +74,7 @@ export interface IApiClient {
   updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
   deleteApiCheck(id: number): Promise<void>;
   toggleApiCheck(id: number): Promise<boolean>;
+  getApiCheckRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // Heartbeats
   getHeartbeats(): Promise<Heartbeat[]>;
@@ -80,6 +84,7 @@ export interface IApiClient {
   updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
   deleteHeartbeat(id: number): Promise<void>;
   toggleHeartbeat(id: number): Promise<boolean>;
+  getHeartbeatRuns(id: number, limit?: number): Promise<HeartbeatPing[]>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;

@@ -5,6 +5,26 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-04-23
+
+### Added
+- Field parity on `obs monitor create/update`: `-d, --description`, `--alert-channel-id <id>` (repeatable).
+- Field parity on `obs check create/update`: `-d, --description`, `--alert-channel-id <id>` (repeatable), `-i, --interval <cron>`, `--no-alerts`, `--header KEY=VALUE` (repeatable), `--assertion <json>` (repeatable).
+- Run history commands: `obs monitor runs <id>`, `obs check runs <id>`, `obs heartbeat runs <id>`. All support `-l, --limit <n>` (default 20) and `--json`.
+- `obs apply` now accepts three file shapes:
+  - Plural config (existing): `{ "monitors": [...], "api_checks": [...] }`
+  - Wrapped single-resource: `{ "monitor": { ... } }`, `{ "heartbeat": { ... } }`, etc.
+  - Bare single-resource: `{ "name": "...", "url": "..." }` (type inferred) or with explicit `"type": "monitor"`.
+- Input validation helpers in `src/utils/cli-input.ts`: `parseKeyValuePairs`, `parseJsonArrayOption`, `parseNumericIds`, `collectOptionValues` — reusable for repeatable/structured flag parsing.
+
+### Fixed
+- `obs apply` for heartbeats no longer drops user-provided fields. Previously, only `name`, `period`, `description`, and `grace_period` were forwarded; any other field in the config was silently discarded. Now spreads the full config.
+- `obs apply` no longer fabricates `description: "Created via apply"` or `description: "Updated via CLI"` when the user omits a description. Empty string is passed instead, letting the real value round-trip cleanly through `obs export → obs apply`.
+
+### Requires Backend
+- Assertion types `text_contains` and `header` now accepted server-side (previously rejected with `400 Validation failed`).
+- `GET /api-checks/:id/executions` now honors `?limit=N` — `obs check runs --limit N` returns the correct count instead of the full history.
+
 ## [1.12.0] - 2026-04-22
 
 ### Changed (Breaking)
