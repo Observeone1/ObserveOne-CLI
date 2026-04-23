@@ -311,3 +311,51 @@ export async function testApiCheckFieldParity() {
     }
   }
 }
+
+export async function testApiCheckShortFlags() {
+  const timestamp = Date.now();
+  const checkName = `E2E-ShortFlags-${timestamp}`;
+  const checkUrl = 'https://api.example.com/health';
+
+  console.log('      - Creating API check with short assertion flags...');
+  await runCLI([
+    'check',
+    'create',
+    '--name',
+    checkName,
+    '--url',
+    checkUrl,
+    '--status-code',
+    '200',
+    '--response-time-under',
+    '3000',
+    '--text-contains',
+    'ok',
+    '--json',
+  ]);
+}
+
+export async function testApiCheckBodyAndRetry() {
+  const timestamp = Date.now();
+  const checkName = `E2E-BodyRetry-${timestamp}`;
+  const checkUrl = 'https://api.example.com/post';
+
+  console.log('      - Creating API check with --body and retry flags...');
+  await runCLI([
+    'check',
+    'create',
+    '--name',
+    checkName,
+    '--url',
+    checkUrl,
+    '--method',
+    'POST',
+    '--body',
+    '{"key":"value"}',
+    '--retry-count',
+    '3',
+    '--retry-interval',
+    '1000',
+    '--json',
+  ]);
+}
