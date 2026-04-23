@@ -334,6 +334,14 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async toggleMuteUrlMonitor(id: number): Promise<boolean> {
+    const response = await this.client.patch<{
+      is_muted?: boolean;
+      data?: { is_muted?: boolean };
+    }>(`/url-monitors/${id}/toggle-muted`);
+    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  }
+
   async getUrlMonitorRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
     const response = await this.client.get<{ executions?: ResourceRun[] } | ResourceRun[]>(
       `/url-monitors/${id}/executions`,
@@ -414,6 +422,14 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
+  async toggleMuteApiCheck(id: number): Promise<boolean> {
+    const response = await this.client.patch<{
+      is_muted?: boolean;
+      data?: { is_muted?: boolean };
+    }>(`/api-checks/${id}/toggle-muted`);
+    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  }
+
   async getApiCheckRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
     const response = await this.client.get<{ executions: ResourceRun[] }>(
       `/api-checks/${id}/executions`,
@@ -470,6 +486,18 @@ export class ApiClient implements IApiClient {
       data?: { is_active?: boolean };
     }>(`/heartbeats/${id}/toggle`);
     return response.data.is_active ?? response.data.data?.is_active ?? false;
+  }
+
+  async toggleMuteHeartbeat(id: number): Promise<boolean> {
+    const response = await this.client.patch<{
+      is_muted?: boolean;
+      data?: { is_muted?: boolean };
+    }>(`/heartbeats/${id}/toggle-muted`);
+    return response.data.is_muted ?? response.data.data?.is_muted ?? false;
+  }
+
+  async resetHeartbeat(id: number): Promise<void> {
+    await this.client.post(`/heartbeats/${id}/reset`);
   }
 
   async getHeartbeatRuns(id: number, limit: number = 20): Promise<HeartbeatPing[]> {
@@ -538,6 +566,17 @@ export class ApiClient implements IApiClient {
 
   async deleteStatusPage(id: number): Promise<void> {
     await this.client.delete(`/status-pages/${id}`);
+  }
+
+  async addMonitorToStatusPage(
+    spId: number,
+    data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
+  ): Promise<void> {
+    await this.client.post(`/status-pages/${spId}/monitors`, data);
+  }
+
+  async removeMonitorFromStatusPage(spId: number, monitorId: number): Promise<void> {
+    await this.client.delete(`/status-pages/${spId}/monitors/${monitorId}`);
   }
 
   // Incidents

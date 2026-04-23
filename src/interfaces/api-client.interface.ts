@@ -64,6 +64,7 @@ export interface IApiClient {
   updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
   deleteUrlMonitor(id: number): Promise<void>;
   toggleUrlMonitor(id: number): Promise<boolean>;
+  toggleMuteUrlMonitor(id: number): Promise<boolean>;
   getUrlMonitorRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // API Checks
@@ -74,6 +75,7 @@ export interface IApiClient {
   updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
   deleteApiCheck(id: number): Promise<void>;
   toggleApiCheck(id: number): Promise<boolean>;
+  toggleMuteApiCheck(id: number): Promise<boolean>;
   getApiCheckRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // Heartbeats
@@ -84,6 +86,8 @@ export interface IApiClient {
   updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
   deleteHeartbeat(id: number): Promise<void>;
   toggleHeartbeat(id: number): Promise<boolean>;
+  toggleMuteHeartbeat(id: number): Promise<boolean>;
+  resetHeartbeat(id: number): Promise<void>;
   getHeartbeatRuns(id: number, limit?: number): Promise<HeartbeatPing[]>;
 
   // Alert Channels
@@ -99,6 +103,11 @@ export interface IApiClient {
   createStatusPage(data: Partial<StatusPage>): Promise<StatusPage>;
   updateStatusPage(id: number, data: Partial<StatusPage>): Promise<StatusPage>;
   deleteStatusPage(id: number): Promise<void>;
+  addMonitorToStatusPage(
+    spId: number,
+    data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
+  ): Promise<void>;
+  removeMonitorFromStatusPage(spId: number, monitorId: number): Promise<void>;
 
   // Incidents
   getIncidents(): Promise<Incident[]>;

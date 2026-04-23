@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-04-23
+
+### Added
+- `obs url-monitor toggle-muted <id>` — toggle the muted state of a URL monitor
+- `obs check toggle-muted <id>` — toggle the muted state of an API check
+- `obs heartbeat toggle-muted <id>` — toggle the muted state of a heartbeat
+- `obs heartbeat reset <id>` — reset a heartbeat timer (acknowledges missed pings and restarts the grace window)
+- `obs status-page add-monitor <sp-id> <resource-id> --type <type> --name <name> [--order <n>]` — attach a monitor to a status page (supports `url-monitor`, `api-check`, `heartbeat`, `browser-check`)
+- `obs status-page remove-monitor <sp-id> <resource-id>` — remove a monitor from a status page
+
 ## [1.14.2] - 2026-04-23
 
 ### Added

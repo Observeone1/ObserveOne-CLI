@@ -1,17 +1,21 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { StatusPage } from '../types/index.js';
+
+const MONITOR_TYPES = ['url-monitor', 'api-check', 'heartbeat', 'browser-check'] as const;
 
 export function createStatusPageCommand(
   configService: IConfigService,
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<StatusPage>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<StatusPage>(configService, apiClient, outputService, {
     resourceName: 'status-page',
     pluralName: 'status pages',
     description: 'Manage status pages',
@@ -138,4 +142,90 @@ export function createStatusPageCommand(
       return payload;
     },
   });
+
+  cmd
+    .command('add-monitor <sp-id> <resource-id>')
+    .description('Attach a monitor to a status page')
+    .requiredOption('--type <type>', `Monitor type (${MONITOR_TYPES.join('|')})`)
+    .requiredOption('--name <name>', 'Display name on the status page')
+    .option('--order <n>', 'Display order (integer)')
+    .action(async (spId: string, resourceId: string, options) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const statusPageId = parseInt(spId);
+        const monitorId = parseInt(resourceId);
+        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
+        if (isNaN(monitorId)) throw new Error('Invalid resource ID');
+        const type = options.type as string;
+        if (!MONITOR_TYPES.includes(type as (typeof MONITOR_TYPES)[number])) {
+          throw new Error(`Invalid type. Must be one of: ${MONITOR_TYPES.join(', ')}`);
+        }
+        const payload: {
+          monitor_type: string;
+          monitor_id: number;
+          display_name: string;
+          display_order?: number;
+        } = {
+          monitor_type: type,
+          monitor_id: monitorId,
+          display_name: options.name as string,
+        };
+        if (options.order !== undefined) {
+          payload.display_order = parseInt(options.order as string);
+        }
+        await (apiClient as ApiClient).addMonitorToStatusPage(statusPageId, payload);
+        if (isJson) {
+          outputService.formatJsonOutput({
+            status: 'ok',
+            status_page_id: statusPageId,
+            monitor_id: monitorId,
+          });
+          return;
+        }
+        console.log(chalk.green(`\n Monitor ${monitorId} added to status page ${statusPageId}.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to add monitor';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  cmd
+    .command('remove-monitor <sp-id> <resource-id>')
+    .description('Remove a monitor from a status page')
+    .action(async (spId: string, resourceId: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const statusPageId = parseInt(spId);
+        const monitorId = parseInt(resourceId);
+        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
+        if (isNaN(monitorId)) throw new Error('Invalid resource ID');
+        await (apiClient as ApiClient).removeMonitorFromStatusPage(statusPageId, monitorId);
+        if (isJson) {
+          outputService.formatJsonOutput({
+            status: 'ok',
+            status_page_id: statusPageId,
+            monitor_id: monitorId,
+          });
+          return;
+        }
+        console.log(
+          chalk.green(`\n Monitor ${monitorId} removed from status page ${statusPageId}.\n`)
+        );
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to remove monitor';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  return cmd;
 }

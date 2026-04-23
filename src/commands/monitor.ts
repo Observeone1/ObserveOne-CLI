@@ -195,6 +195,33 @@ export function createMonitorCommand(
     outputService,
   });
 
+  cmd
+    .command('toggle-muted <id>')
+    .description('Toggle the muted state of a URL monitor')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const monitorId = parseInt(id);
+        if (isNaN(monitorId)) throw new Error('Invalid monitor ID');
+        const isMuted = await (apiClient as ApiClient).toggleMuteUrlMonitor(monitorId);
+        if (isJson) {
+          outputService.formatJsonOutput({ id: monitorId, is_muted: isMuted });
+          return;
+        }
+        console.log(
+          chalk.green(`\n Monitor ${monitorId} is now ${isMuted ? 'muted' : 'unmuted'}.\n`)
+        );
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to toggle mute';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
   cmd.name('url-monitor').alias('monitor');
 
   return cmd;

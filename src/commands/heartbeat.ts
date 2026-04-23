@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printHeartbeatRuns } from './runs-command.js';
 import { Heartbeat } from '../types/index.js';
@@ -122,6 +124,56 @@ export function createHeartbeatCommand(
     formatRuns: printHeartbeatRuns,
     outputService,
   });
+
+  cmd
+    .command('toggle-muted <id>')
+    .description('Toggle the muted state of a heartbeat')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const hbId = parseInt(id);
+        if (isNaN(hbId)) throw new Error('Invalid heartbeat ID');
+        const isMuted = await (apiClient as ApiClient).toggleMuteHeartbeat(hbId);
+        if (isJson) {
+          outputService.formatJsonOutput({ id: hbId, is_muted: isMuted });
+          return;
+        }
+        console.log(chalk.green(`\n Heartbeat ${hbId} is now ${isMuted ? 'muted' : 'unmuted'}.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to toggle mute';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
+  cmd
+    .command('reset <id>')
+    .description('Reset a heartbeat timer (acknowledges missed pings)')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const hbId = parseInt(id);
+        if (isNaN(hbId)) throw new Error('Invalid heartbeat ID');
+        await (apiClient as ApiClient).resetHeartbeat(hbId);
+        if (isJson) {
+          outputService.formatJsonOutput({ id: hbId, status: 'reset' });
+          return;
+        }
+        console.log(chalk.green(`\n Heartbeat ${hbId} has been reset.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to reset heartbeat';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
 
   return cmd;
 }

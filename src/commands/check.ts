@@ -380,5 +380,30 @@ export function createCheckCommand(
     outputService,
   });
 
+  cmd
+    .command('toggle-muted <id>')
+    .description('Toggle the muted state of an API check')
+    .action(async (id: string) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const checkId = parseInt(id);
+        if (isNaN(checkId)) throw new Error('Invalid check ID');
+        const isMuted = await (apiClient as ApiClient).toggleMuteApiCheck(checkId);
+        if (isJson) {
+          outputService.formatJsonOutput({ id: checkId, is_muted: isMuted });
+          return;
+        }
+        console.log(chalk.green(`\n Check ${checkId} is now ${isMuted ? 'muted' : 'unmuted'}.\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to toggle mute';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
   return cmd;
 }
