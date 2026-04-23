@@ -359,3 +359,41 @@ export async function testApiCheckBodyAndRetry() {
     '--json',
   ]);
 }
+
+export async function testCheckToggleMuted() {
+  const timestamp = Date.now();
+  const checkName = `E2E-Check-ToggleMuted-${timestamp}`;
+  let checkId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'check',
+      'create',
+      '--name',
+      checkName,
+      '--url',
+      `https://example.com/e2e-mute-${timestamp}`,
+      '--json',
+    ]);
+    assertSuccess(createResult, 'API check creation failed');
+    const created = JSON.parse(createResult.stdout);
+    checkId = created.id || created.data?.id;
+    if (!checkId) throw new Error('Could not extract check ID');
+
+    const muteResult = await runCLI(['check', 'toggle-muted', checkId.toString(), '--json']);
+    assertSuccess(muteResult, 'check toggle-muted failed');
+    assertJSON(muteResult.stdout, 'toggle-muted output should be JSON');
+    const muteData = JSON.parse(muteResult.stdout);
+    const isMuted = muteData.is_muted ?? muteData.data?.is_muted;
+    if (typeof isMuted !== 'boolean') {
+      throw new Error(`Expected boolean is_muted, got: ${JSON.stringify(muteData)}`);
+    }
+
+    const unmuteResult = await runCLI(['check', 'toggle-muted', checkId.toString(), '--json']);
+    assertSuccess(unmuteResult, 'check toggle-muted (unmute) failed');
+  } finally {
+    if (checkId) {
+      await runCLI(['check', 'delete', checkId.toString(), '-y', '--json']);
+    }
+  }
+}

@@ -395,3 +395,53 @@ export async function testMonitorFieldParity() {
     }
   }
 }
+
+export async function testMonitorToggleMuted() {
+  const timestamp = Date.now();
+  const monitorName = `E2E-Monitor-ToggleMuted-${timestamp}`;
+  let monitorId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'url-monitor',
+      'create',
+      '--name',
+      monitorName,
+      '--url',
+      `https://example.com/e2e-mute-${timestamp}`,
+      '--interval',
+      '*/10 * * * *',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Monitor creation failed');
+    const created = JSON.parse(createResult.stdout);
+    monitorId = created.id || created.data?.id;
+    if (!monitorId) throw new Error('Could not extract monitor ID');
+
+    const muteResult = await runCLI([
+      'url-monitor',
+      'toggle-muted',
+      monitorId.toString(),
+      '--json',
+    ]);
+    assertSuccess(muteResult, 'url-monitor toggle-muted failed');
+    assertJSON(muteResult.stdout, 'toggle-muted output should be JSON');
+    const muteData = JSON.parse(muteResult.stdout);
+    const isMuted = muteData.is_muted ?? muteData.data?.is_muted;
+    if (typeof isMuted !== 'boolean') {
+      throw new Error(`Expected boolean is_muted, got: ${JSON.stringify(muteData)}`);
+    }
+
+    const unmuteResult = await runCLI([
+      'url-monitor',
+      'toggle-muted',
+      monitorId.toString(),
+      '--json',
+    ]);
+    assertSuccess(unmuteResult, 'url-monitor toggle-muted (unmute) failed');
+  } finally {
+    if (monitorId) {
+      await runCLI(['url-monitor', 'delete', monitorId.toString(), '-y', '--json']);
+    }
+  }
+}

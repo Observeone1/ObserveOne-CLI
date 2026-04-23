@@ -219,3 +219,76 @@ export async function testHeartbeatRunsJsonEnvelope() {
     }
   }
 }
+
+export async function testHeartbeatToggleMuted() {
+  const timestamp = Date.now();
+  const hbName = `E2E-HB-ToggleMuted-${timestamp}`;
+  let hbId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'heartbeat',
+      'create',
+      '--name',
+      hbName,
+      '--period',
+      '600',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Heartbeat creation failed');
+    const created = JSON.parse(createResult.stdout);
+    hbId = created.id || created.data?.id;
+    if (!hbId) throw new Error('Could not extract heartbeat ID');
+
+    const muteResult = await runCLI(['heartbeat', 'toggle-muted', hbId.toString(), '--json']);
+    assertSuccess(muteResult, 'heartbeat toggle-muted failed');
+    assertJSON(muteResult.stdout, 'toggle-muted output should be JSON');
+    const muteData = JSON.parse(muteResult.stdout);
+    const isMuted = muteData.is_muted ?? muteData.data?.is_muted;
+    if (typeof isMuted !== 'boolean') {
+      throw new Error(`Expected boolean is_muted, got: ${JSON.stringify(muteData)}`);
+    }
+
+    const unmuteResult = await runCLI(['heartbeat', 'toggle-muted', hbId.toString(), '--json']);
+    assertSuccess(unmuteResult, 'heartbeat toggle-muted (unmute) failed');
+  } finally {
+    if (hbId) {
+      await runCLI(['heartbeat', 'delete', hbId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+export async function testHeartbeatReset() {
+  const timestamp = Date.now();
+  const hbName = `E2E-HB-Reset-${timestamp}`;
+  let hbId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'heartbeat',
+      'create',
+      '--name',
+      hbName,
+      '--period',
+      '600',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Heartbeat creation failed');
+    const created = JSON.parse(createResult.stdout);
+    hbId = created.id || created.data?.id;
+    if (!hbId) throw new Error('Could not extract heartbeat ID');
+
+    const resetResult = await runCLI(['heartbeat', 'reset', hbId.toString(), '--json']);
+    assertSuccess(resetResult, 'heartbeat reset failed');
+    assertJSON(resetResult.stdout, 'heartbeat reset output should be JSON');
+    const resetData = JSON.parse(resetResult.stdout);
+    const status = resetData.status ?? resetData.data?.status;
+    if (status !== 'reset') {
+      throw new Error(`Expected status "reset", got: ${JSON.stringify(resetData)}`);
+    }
+  } finally {
+    if (hbId) {
+      await runCLI(['heartbeat', 'delete', hbId.toString(), '-y', '--json']);
+    }
+  }
+}
