@@ -4,6 +4,7 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { attachRunsCommand, printHeartbeatRuns } from './runs-command.js';
 import { Heartbeat } from '../types/index.js';
 
 /**
@@ -14,7 +15,7 @@ export function createHeartbeatCommand(
   apiClient: IApiClient,
   outputService: IOutputService
 ): Command {
-  return createResourceCommand<Heartbeat>(configService, apiClient, outputService, {
+  const cmd = createResourceCommand<Heartbeat>(configService, apiClient, outputService, {
     resourceName: 'heartbeat',
     pluralName: 'heartbeats',
     description: 'Manage heartbeats',
@@ -100,4 +101,15 @@ export function createHeartbeatCommand(
       };
     },
   });
+
+  attachRunsCommand(cmd, {
+    title: 'Heartbeat Runs',
+    emptyMessage: 'No heartbeat runs found.',
+    description: 'List recent heartbeat pings',
+    fetchRuns: (id, limit) => apiClient.getHeartbeatRuns(id, limit),
+    formatRuns: printHeartbeatRuns,
+    outputService,
+  });
+
+  return cmd;
 }

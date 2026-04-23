@@ -157,3 +157,65 @@ export async function testHeartbeatListFiltersJsonEnvelope() {
     }
   }
 }
+
+export async function testHeartbeatRunsJsonEnvelope() {
+  const timestamp = Date.now();
+  const hbName = `E2E-HB-Runs-${timestamp}`;
+  let hbId: number | undefined;
+  let pingId: number | undefined;
+  let pingKey: string | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'heartbeat',
+      'create',
+      '--name',
+      hbName,
+      '--period',
+      '600',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Heartbeat creation failed');
+    const createdHb = JSON.parse(createResult.stdout);
+    hbId = createdHb.id || createdHb.data?.id;
+    if (!hbId) throw new Error('Could not extract heartbeat ID from creation response');
+
+    const getResult = await runCLI(['heartbeat', 'get', hbId.toString(), '--json']);
+    assertSuccess(getResult, 'Heartbeat get failed');
+    const parsedHeartbeat = JSON.parse(getResult.stdout);
+    const heartbeat = parsedHeartbeat.data || parsedHeartbeat;
+    pingKey = heartbeat.ping_key;
+    if (!pingKey) throw new Error('Could not extract heartbeat ping key');
+
+    const apiUrl = process.env.API_URL || process.env.OBS_API_URL || 'http://localhost:8080/api';
+    const pingUrl = `${apiUrl.replace(/\/api\/?$/, '')}/ping/${pingKey}`;
+    const pingResponse = await fetch(pingUrl, { method: 'POST' });
+    if (!pingResponse.ok) {
+      throw new Error(`Heartbeat ping failed with status ${pingResponse.status}`);
+    }
+
+    const runsResult = await runCLI([
+      'heartbeat',
+      'runs',
+      hbId.toString(),
+      '--limit',
+      '5',
+      '--json',
+    ]);
+    assertSuccess(runsResult, 'Heartbeat runs failed');
+    assertStrictJSON(runsResult.stdout, 'heartbeat runs --json must output valid JSON envelope');
+    const parsedRuns = JSON.parse(runsResult.stdout.trim()) as {
+      data?: { runs?: Array<{ id?: number }> };
+    };
+    const runs = parsedRuns.data?.runs || [];
+    pingId = runs[0]?.id;
+
+    if (!pingId) {
+      throw new Error('Expected at least one heartbeat ping in runs output');
+    }
+  } finally {
+    if (hbId) {
+      await runCLI(['heartbeat', 'delete', hbId.toString(), '-y', '--json']);
+    }
+  }
+}

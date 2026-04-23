@@ -6,7 +6,9 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
 import { UrlMonitor } from '../types/index.js';
+import { collectOptionValues, parseNumericIds } from '../utils/cli-input.js';
 
 /**
  * Factory function to create monitor command using the generic resource factory
@@ -35,21 +37,40 @@ export function createMonitorCommand(
     createCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Monitor name')
+        .option('-d, --description <description>', 'Monitor description')
         .option('-u, --url <url>', 'URL to monitor')
         .option('-i, --interval <interval>', 'Cron expression interval')
+        .option(
+          '--alert-channel-id <id>',
+          'Attach an alert channel to this monitor (repeatable)',
+          collectOptionValues,
+          []
+        )
         .option('--no-alerts', 'Disable alerts');
     },
     updateCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Monitor name')
+        .option('-d, --description <description>', 'Monitor description')
         .option('-u, --url <url>', 'URL to monitor')
-        .option('-i, --interval <interval>', 'Cron expression interval');
+        .option('-i, --interval <interval>', 'Cron expression interval')
+        .option(
+          '--alert-channel-id <id>',
+          'Attach an alert channel to this monitor (repeatable)',
+          collectOptionValues,
+          []
+        );
     },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       let url = options.url as string | undefined;
       let interval = options.interval as string | undefined;
       const alerts = options.alerts as boolean | undefined;
+      const channelIds = parseNumericIds(
+        options.alertChannelId as string[] | string | undefined,
+        'alert-channel-id'
+      );
 
       if (!name || !url) {
         const answers = await inquirer.prompt([
@@ -89,30 +110,41 @@ export function createMonitorCommand(
 
       return {
         name,
+        description,
         url,
         interval: interval || '*/5 * * * *',
         alert_on_failure: alerts !== false,
+        channel_ids: channelIds,
         timeout_ms: 30000,
       };
     },
     updatePrompts: async (id, options, existing) => {
       const name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       const url = options.url as string | undefined;
       const interval = options.interval as string | undefined;
+      const alertChannelInput = options.alertChannelId as string[] | string | undefined;
+      const channelIds = (
+        Array.isArray(alertChannelInput) ? alertChannelInput.length > 0 : Boolean(alertChannelInput)
+      )
+        ? parseNumericIds(alertChannelInput, 'alert-channel-id')
+        : undefined;
 
-      if (!name && !url && !interval) {
+      if (!name && description === undefined && !url && !interval && channelIds === undefined) {
         outputService.error(
-          'Please provide at least one field to update (--name, --url, or --interval).'
+          'Please provide at least one field to update (--name, --description, --url, --interval, or --alert-channel-id).'
         );
         process.exit(1);
       }
 
       return {
         name: name || existing.name,
+        description: description ?? existing.description,
         url: url || existing.url,
         timeout_ms: existing.timeout_ms || 30000,
         interval: interval || existing.interval,
         alert_on_failure: existing.alert_on_failure ?? true,
+        ...(channelIds !== undefined && { channel_ids: channelIds }),
       };
     },
   });
@@ -153,6 +185,15 @@ export function createMonitorCommand(
         process.exit(1);
       }
     });
+
+  attachRunsCommand(cmd, {
+    title: 'Monitor Runs',
+    emptyMessage: 'No monitor runs found.',
+    description: 'List recent monitor executions',
+    fetchRuns: (id, limit) => apiClient.getUrlMonitorRuns(id, limit),
+    formatRuns: printExecutionRuns,
+    outputService,
+  });
 
   return cmd;
 }

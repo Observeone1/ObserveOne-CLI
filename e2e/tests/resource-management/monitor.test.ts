@@ -106,6 +106,63 @@ export async function testMonitorRunJsonEnvelope() {
   }
 }
 
+export async function testMonitorRunsJsonEnvelope() {
+  const timestamp = Date.now();
+  const monitorName = `E2E-Monitor-Runs-${timestamp}`;
+  let monitorId: number | undefined;
+  let executionId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'monitor',
+      'create',
+      '--name',
+      monitorName,
+      '--url',
+      `https://example.com/e2e-runs-${timestamp}`,
+      '--interval',
+      '*/10 * * * *',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Monitor creation failed');
+    const createdMonitor = JSON.parse(createResult.stdout);
+    monitorId = createdMonitor.id || createdMonitor.data?.id;
+    if (!monitorId) throw new Error('Could not extract monitor ID from creation response');
+
+    const runResult = await runCLI(['monitor', 'run', monitorId.toString(), '--json']);
+    assertSuccess(runResult, 'Monitor run failed');
+    assertStrictJSON(runResult.stdout, 'monitor run --json must output valid JSON envelope');
+    const parsedRun = JSON.parse(runResult.stdout.trim()) as {
+      data?: { executions?: Array<{ execution_id?: number }> };
+    };
+    executionId = parsedRun.data?.executions?.[0]?.execution_id;
+    if (!executionId) throw new Error('Could not extract monitor execution ID');
+
+    const runsResult = await runCLI([
+      'monitor',
+      'runs',
+      monitorId.toString(),
+      '--limit',
+      '5',
+      '--json',
+    ]);
+    assertSuccess(runsResult, 'Monitor runs failed');
+    assertStrictJSON(runsResult.stdout, 'monitor runs --json must output valid JSON envelope');
+    const parsedRuns = JSON.parse(runsResult.stdout.trim()) as {
+      data?: { runs?: Array<{ id?: number }> };
+    };
+    const runs = parsedRuns.data?.runs || [];
+
+    if (!runs.some((run) => run.id === executionId)) {
+      throw new Error(`Monitor execution ${executionId} not found in runs output`);
+    }
+  } finally {
+    if (monitorId) {
+      await runCLI(['monitor', 'delete', monitorId.toString(), '-y', '--json']);
+    }
+  }
+}
+
 export async function testMonitorListFiltersJsonEnvelope() {
   const timestamp = Date.now();
   const monitorName = `E2E-Monitor-List-${timestamp}`;
@@ -177,6 +234,94 @@ export async function testMonitorListFiltersJsonEnvelope() {
   } finally {
     if (monitorId) {
       await runCLI(['monitor', 'delete', monitorId.toString(), '-y', '--json']);
+    }
+  }
+}
+
+export async function testMonitorFieldParity() {
+  const timestamp = Date.now();
+  const channelName = `E2E-Monitor-Channel-${timestamp}`;
+  const channelEmail = `monitor-alerts+${timestamp}@example.com`;
+  const monitorName = `E2E-Monitor-Parity-${timestamp}`;
+  let channelId: number | undefined;
+  let monitorId: number | undefined;
+
+  try {
+    const createChannel = await runCLI([
+      'alert-channel',
+      'create',
+      '--name',
+      channelName,
+      '--type',
+      'email',
+      '--email',
+      channelEmail,
+      '--json',
+    ]);
+    assertSuccess(createChannel, 'Alert channel creation failed for monitor parity test');
+    const createdChannel = JSON.parse(createChannel.stdout);
+    channelId = createdChannel.id || createdChannel.data?.id;
+    if (!channelId) throw new Error('Could not extract alert channel ID');
+
+    const createMonitor = await runCLI([
+      'monitor',
+      'create',
+      '--name',
+      monitorName,
+      '--description',
+      'Created from CLI parity test',
+      '--url',
+      `https://example.com/monitor-parity-${timestamp}`,
+      '--interval',
+      '*/15 * * * *',
+      '--alert-channel-id',
+      channelId.toString(),
+      '--json',
+    ]);
+    assertSuccess(createMonitor, 'Monitor parity create failed');
+    const createdMonitor = JSON.parse(createMonitor.stdout);
+    monitorId = createdMonitor.id || createdMonitor.data?.id;
+    if (!monitorId) throw new Error('Could not extract monitor ID');
+
+    const getMonitor = await runCLI(['monitor', 'get', monitorId.toString(), '--json']);
+    assertSuccess(getMonitor, 'Monitor parity get failed');
+    const parsedMonitor = JSON.parse(getMonitor.stdout);
+    const monitor = parsedMonitor.data || parsedMonitor;
+
+    if (monitor.description !== 'Created from CLI parity test') {
+      throw new Error(`Unexpected monitor description: ${monitor.description}`);
+    }
+    if (
+      !Array.isArray(monitor.channels) ||
+      !monitor.channels.some((c: { id?: number }) => c.id === channelId)
+    ) {
+      throw new Error(`Expected monitor ${monitorId} to include alert channel ${channelId}`);
+    }
+
+    const updateMonitor = await runCLI([
+      'monitor',
+      'update',
+      monitorId.toString(),
+      '--description',
+      'Updated from CLI parity test',
+      '--json',
+    ]);
+    assertSuccess(updateMonitor, 'Monitor parity update failed');
+
+    const getUpdatedMonitor = await runCLI(['monitor', 'get', monitorId.toString(), '--json']);
+    assertSuccess(getUpdatedMonitor, 'Updated monitor fetch failed');
+    const updatedParsed = JSON.parse(getUpdatedMonitor.stdout);
+    const updatedMonitor = updatedParsed.data || updatedParsed;
+
+    if (updatedMonitor.description !== 'Updated from CLI parity test') {
+      throw new Error(`Unexpected updated monitor description: ${updatedMonitor.description}`);
+    }
+  } finally {
+    if (monitorId) {
+      await runCLI(['monitor', 'delete', monitorId.toString(), '-y', '--json']);
+    }
+    if (channelId) {
+      await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
     }
   }
 }

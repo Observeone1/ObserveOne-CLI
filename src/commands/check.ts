@@ -6,7 +6,13 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
 import { ApiCheck } from '../types/index.js';
+import {
+  collectOptionValues,
+  parseJsonArrayOption,
+  parseKeyValuePairs,
+} from '../utils/cli-input.js';
 
 /**
  * Factory function to create check command (API Checks)
@@ -36,18 +42,47 @@ export function createCheckCommand(
       cmd
         .option('-n, --name <name>', 'Check name')
         .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method');
+        .option('-m, --method <method>', 'HTTP Method')
+        .option(
+          '--header <KEY=VALUE>',
+          'HTTP header to send with the request (repeatable)',
+          collectOptionValues,
+          []
+        )
+        .option(
+          '--assertion <json>',
+          'Assertion JSON object (repeatable)',
+          collectOptionValues,
+          []
+        );
     },
     updateCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Check name')
         .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method');
+        .option('-m, --method <method>', 'HTTP Method')
+        .option(
+          '--header <KEY=VALUE>',
+          'HTTP header to send with the request (repeatable)',
+          collectOptionValues,
+          []
+        )
+        .option(
+          '--assertion <json>',
+          'Assertion JSON object (repeatable)',
+          collectOptionValues,
+          []
+        );
     },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
       let url = options.url as string | undefined;
       let method = options.method as string | undefined;
+      const headers = parseKeyValuePairs(options.header as string[] | string | undefined, 'header');
+      const assertions = parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+        options.assertion as string[] | string | undefined,
+        'assertion'
+      );
 
       if (!name || !url) {
         const answers = await inquirer.prompt([
@@ -83,6 +118,8 @@ export function createCheckCommand(
         name,
         url,
         method: (method || 'GET').toUpperCase(),
+        headers,
+        assertions,
         timeout_ms: 30000,
         alert_on_failure: true,
       };
@@ -91,10 +128,23 @@ export function createCheckCommand(
       const name = options.name as string | undefined;
       const url = options.url as string | undefined;
       const method = options.method as string | undefined;
+      const headerInput = options.header as string[] | string | undefined;
+      const headers = (Array.isArray(headerInput) ? headerInput.length > 0 : Boolean(headerInput))
+        ? parseKeyValuePairs(headerInput, 'header')
+        : undefined;
+      const assertionInput = options.assertion as string[] | string | undefined;
+      const assertions = (
+        Array.isArray(assertionInput) ? assertionInput.length > 0 : Boolean(assertionInput)
+      )
+        ? parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+            assertionInput,
+            'assertion'
+          )
+        : undefined;
 
-      if (!name && !url && !method) {
+      if (!name && !url && !method && headers === undefined && assertions === undefined) {
         outputService.error(
-          'Please provide at least one field to update (--name, --url, or --method).'
+          'Please provide at least one field to update (--name, --url, --method, --header, or --assertion).'
         );
         process.exit(1);
       }
@@ -103,6 +153,8 @@ export function createCheckCommand(
         name: name || existing.name,
         url: url || existing.url,
         method: method ? method.toUpperCase() : existing.method || 'GET',
+        headers: headers ?? existing.headers,
+        assertions: assertions ?? existing.assertions,
         timeout_ms: existing.timeout_ms || 30000,
         alert_on_failure: existing.alert_on_failure ?? true,
       };
@@ -145,6 +197,15 @@ export function createCheckCommand(
         process.exit(1);
       }
     });
+
+  attachRunsCommand(cmd, {
+    title: 'API Check Runs',
+    emptyMessage: 'No API check runs found.',
+    description: 'List recent API check executions',
+    fetchRuns: (id, limit) => apiClient.getApiCheckRuns(id, limit),
+    formatRuns: printExecutionRuns,
+    outputService,
+  });
 
   return cmd;
 }
