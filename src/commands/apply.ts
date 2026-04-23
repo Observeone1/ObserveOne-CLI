@@ -567,7 +567,13 @@ export function createApplyCommand(
                       return;
                     }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
-                    await apiClient.createHeartbeat(hbConfig);
+                    await apiClient.createHeartbeat({
+                      ...hbConfig,
+                      name: hbConfig.name,
+                      period: hbConfig.period,
+                      description: hbConfig.description ?? '',
+                      grace_period: hbConfig.grace_period ?? 60,
+                    });
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {
