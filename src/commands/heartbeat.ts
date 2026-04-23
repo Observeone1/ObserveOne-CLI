@@ -34,16 +34,20 @@ export function createHeartbeatCommand(
     createCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Heartbeat name')
+        .option('-d, --description <description>', 'Heartbeat description')
         .option('-p, --period <seconds>', 'Expected period in seconds')
         .option('-g, --grace <seconds>', 'Grace period in seconds');
     },
     updateCommandSetup: (cmd) => {
       cmd
         .option('-n, --name <name>', 'Heartbeat name')
-        .option('-p, --period <seconds>', 'Expected period in seconds');
+        .option('-d, --description <description>', 'Heartbeat description')
+        .option('-p, --period <seconds>', 'Expected period in seconds')
+        .option('-g, --grace <seconds>', 'Grace period in seconds');
     },
     createPrompts: async (options) => {
       let name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       let period = options.period as string | number | undefined;
       let grace = options.grace as string | number | undefined;
 
@@ -77,15 +81,19 @@ export function createHeartbeatCommand(
         name,
         period: typeof period === 'string' ? parseInt(period) : (period as number) || 300,
         grace_period: typeof grace === 'string' ? parseInt(grace) : (grace as number) || 60,
-        description: 'Created via CLI',
+        description: description ?? '',
       };
     },
     updatePrompts: async (id, options, existing) => {
       const name = options.name as string | undefined;
+      const description = options.description as string | undefined;
       const period = options.period as string | number | undefined;
+      const grace = options.grace as string | number | undefined;
 
-      if (!name && !period) {
-        outputService.error('Please provide at least one field to update (--name or --period).');
+      if (!name && description === undefined && !period && !grace) {
+        outputService.error(
+          'Please provide at least one field to update (--name, --description, --period, or --grace).'
+        );
         process.exit(1);
       }
 
@@ -96,8 +104,12 @@ export function createHeartbeatCommand(
             ? parseInt(period)
             : (period as number)
           : existing.period,
-        description: existing.description || 'Updated via CLI',
-        grace_period: existing.grace_period || 60,
+        description: description ?? existing.description ?? '',
+        grace_period: grace
+          ? typeof grace === 'string'
+            ? parseInt(grace)
+            : (grace as number)
+          : (existing.grace_period ?? 60),
       };
     },
   });

@@ -11,10 +11,11 @@ export const schemas: Record<string, ResourceSchema> = {
     template: {
       name: 'My Monitor',
       url: 'https://example.com',
-      cron_expression: '*/5 * * * *',
+      interval: '*/5 * * * *',
       timeout_ms: 30000,
       alert_on_failure: true,
       description: '',
+      channel_ids: [],
     },
   },
   check: {
@@ -31,6 +32,7 @@ export const schemas: Record<string, ResourceSchema> = {
       body: '',
       assertions: [],
       description: '',
+      channel_ids: [],
     },
   },
   heartbeat: {
