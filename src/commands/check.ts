@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { readFileSync } from 'fs';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
@@ -14,6 +15,100 @@ import {
   parseKeyValuePairs,
   parseNumericIds,
 } from '../utils/cli-input.js';
+
+/**
+ * Build assertions from short flags, --assertion-file, and --assertion
+ */
+function buildAssertions(
+  options: Record<string, unknown>
+): NonNullable<ApiCheck['assertions']> | undefined {
+  const assertions: NonNullable<ApiCheck['assertions']> = [];
+
+  // From --assertion-file
+  const assertionFile = options['assertion-file'] as string | undefined;
+  if (assertionFile) {
+    try {
+      const fileContent = readFileSync(assertionFile, 'utf-8');
+      const fileAssertions = JSON.parse(fileContent);
+      if (Array.isArray(fileAssertions)) {
+        assertions.push(...fileAssertions);
+      }
+    } catch (err) {
+      throw new Error(`Failed to read assertion-file: ${err}`);
+    }
+  }
+
+  // From --assertion (raw JSON)
+  const rawAssertions = parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+    options.assertion as string[] | string | undefined,
+    'assertion'
+  );
+  if (rawAssertions) assertions.push(...rawAssertions);
+
+  // From short flags
+  const statusCode = options['status-code'] as string | undefined;
+  if (statusCode) {
+    assertions.push({ type: 'status_code', operator: 'equals', value: statusCode });
+  }
+
+  const statusCodeNot = options['status-code-not'] as string | undefined;
+  if (statusCodeNot) {
+    assertions.push({ type: 'status_code', operator: 'not_equals', value: statusCodeNot });
+  }
+
+  const responseTimeUnder = options['response-time-under'] as string | undefined;
+  if (responseTimeUnder) {
+    assertions.push({
+      type: 'response_time',
+      operator: 'less_than',
+      value: String(parseInt(responseTimeUnder)),
+    });
+  }
+
+  const responseTimeOver = options['response-time-over'] as string | undefined;
+  if (responseTimeOver) {
+    assertions.push({
+      type: 'response_time',
+      operator: 'greater_than',
+      value: String(parseInt(responseTimeOver)),
+    });
+  }
+
+  const jsonPath = options['json-path'] as string | undefined;
+  const jsonPathValue = options['json-path-value'] as string | undefined;
+  if (jsonPath && jsonPathValue) {
+    assertions.push({
+      type: 'json_path',
+      operator: 'equals',
+      path: jsonPath,
+      value: jsonPathValue,
+    });
+  } else if (jsonPath) {
+    assertions.push({ type: 'json_path', operator: 'exists', path: jsonPath, value: '' });
+  }
+
+  const textContains = options['text-contains'] as string | undefined;
+  if (textContains) {
+    assertions.push({ type: 'text_contains', operator: 'contains', value: textContains });
+  }
+
+  const textNotContains = options['text-not-contains'] as string | undefined;
+  if (textNotContains) {
+    assertions.push({ type: 'text_contains', operator: 'not_contains', value: textNotContains });
+  }
+
+  const headerExists = options['header-exists'] as string | undefined;
+  if (headerExists) {
+    assertions.push({ type: 'header', operator: 'exists', path: headerExists, value: '' });
+  }
+
+  const regexMatch = options['regex-match'] as string | undefined;
+  if (regexMatch) {
+    assertions.push({ type: 'text_contains', operator: 'regex_match', value: regexMatch });
+  }
+
+  return assertions.length > 0 ? assertions : undefined;
+}
 
 /**
  * Factory function to create check command (API Checks)
@@ -53,6 +148,17 @@ export function createCheckCommand(
           []
         )
         .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
+        .option('--assertion-file <path>', 'File containing assertions JSON array')
+        .option('--status-code <value>', 'Assert status code equals value')
+        .option('--status-code-not <value>', 'Assert status code not equals value')
+        .option('--response-time-under <ms>', 'Assert response time less than value (ms)')
+        .option('--response-time-over <ms>', 'Assert response time greater than value (ms)')
+        .option('--json-path <path>', 'JSON path to assert (use with --json-path-value)')
+        .option('--json-path-value <value>', 'Expected value for --json-path')
+        .option('--text-contains <text>', 'Assert response contains text')
+        .option('--text-not-contains <text>', 'Assert response does not contain text')
+        .option('--header-exists <name>', 'Assert header exists')
+        .option('--regex-match <pattern>', 'Assert response matches regex')
         .option(
           '--alert-channel-id <id>',
           'Attach an alert channel to this check (repeatable)',
@@ -75,6 +181,17 @@ export function createCheckCommand(
           []
         )
         .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
+        .option('--assertion-file <path>', 'File containing assertions JSON array')
+        .option('--status-code <value>', 'Assert status code equals value')
+        .option('--status-code-not <value>', 'Assert status code not equals value')
+        .option('--response-time-under <ms>', 'Assert response time less than value (ms)')
+        .option('--response-time-over <ms>', 'Assert response time greater than value (ms)')
+        .option('--json-path <path>', 'JSON path to assert (use with --json-path-value)')
+        .option('--json-path-value <value>', 'Expected value for --json-path')
+        .option('--text-contains <text>', 'Assert response contains text')
+        .option('--text-not-contains <text>', 'Assert response does not contain text')
+        .option('--header-exists <name>', 'Assert header exists')
+        .option('--regex-match <pattern>', 'Assert response matches regex')
         .option(
           '--alert-channel-id <id>',
           'Attach an alert channel to this check (repeatable)',
@@ -90,10 +207,7 @@ export function createCheckCommand(
       const interval = options.interval as string | undefined;
       const alerts = options.alerts as boolean | undefined;
       const headers = parseKeyValuePairs(options.header as string[] | string | undefined, 'header');
-      const assertions = parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
-        options.assertion as string[] | string | undefined,
-        'assertion'
-      );
+      const assertions = buildAssertions(options);
       const channelIds = parseNumericIds(
         options.alertChannelId as string[] | string | undefined,
         'alert-channel-id'
@@ -152,15 +266,7 @@ export function createCheckCommand(
       const headers = (Array.isArray(headerInput) ? headerInput.length > 0 : Boolean(headerInput))
         ? parseKeyValuePairs(headerInput, 'header')
         : undefined;
-      const assertionInput = options.assertion as string[] | string | undefined;
-      const assertions = (
-        Array.isArray(assertionInput) ? assertionInput.length > 0 : Boolean(assertionInput)
-      )
-        ? parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
-            assertionInput,
-            'assertion'
-          )
-        : undefined;
+      const assertions = buildAssertions(options);
       const alertChannelInput = options.alertChannelId as string[] | string | undefined;
       const channelIds = (
         Array.isArray(alertChannelInput) ? alertChannelInput.length > 0 : Boolean(alertChannelInput)
