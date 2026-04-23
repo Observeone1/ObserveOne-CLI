@@ -128,7 +128,9 @@ export function createApplyCommand(
   outputService: IOutputService
 ): Command {
   const apply = new Command('apply')
-    .description('Apply configuration from a JSON file (declarative workflow)')
+    .description(
+      'Apply configuration from a JSON file. Supports: obs.json (plural), {"monitor": {...}} (wrapped), {"type": "monitor", ...} (explicit), or bare monitor/check/heartbeat object.'
+    )
     .argument('[file]', 'Path to the JSON configuration file')
     .option('-f, --file <path>', 'Path to the JSON configuration file')
     .option('-j, --json', 'Output in JSON format')
@@ -565,13 +567,7 @@ export function createApplyCommand(
                       return;
                     }
                     logProgress(`Creating heartbeat: ${hbConfig.name}`);
-                    await apiClient.createHeartbeat({
-                      ...hbConfig,
-                      name: hbConfig.name,
-                      period: hbConfig.period,
-                      description: hbConfig.description ?? '',
-                      grace_period: hbConfig.grace_period ?? 60,
-                    });
+                    await apiClient.createHeartbeat(hbConfig);
                   }
                 } catch (err: unknown) {
                   const errorObj = err as {

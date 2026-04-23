@@ -45,7 +45,7 @@ export function normalizeApplyConfig(raw: unknown): ApplyConfig {
   }
 
   throw new Error(
-    'Unsupported apply file shape. Use obs.json, {"monitor": {...}}, or a bare monitor/check/heartbeat object.'
+    'Unsupported apply file shape. Use obs.json, {"monitor": {...}}, {"type": "monitor", ...}, or a bare monitor/check/heartbeat object.'
   );
 }
 
