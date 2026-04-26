@@ -32,7 +32,7 @@ export function createAiCheckGetCommand(
         outputService.progress(`Fetching AI check ${testId}...`);
         const testData = await apiClient.getTest(testId);
 
-        if (process.env.OBS_JSON_OUTPUT === 'true') {
+        if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
           outputService.formatJsonOutput(testData);
         } else {
           outputService.formatTestList([testData], true);

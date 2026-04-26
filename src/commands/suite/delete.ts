@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { ApiClient } from '../../services/api-client.service.js';
 import { IConfigService } from '../../interfaces/config.interface.js';
 import { IOutputService } from '../../interfaces/output.interface.js';
+import { requireConfirmation } from '../../utils/confirm.js';
 
 export function createSuiteDeleteCommand(
   _configService: IConfigService,
@@ -12,9 +13,22 @@ export function createSuiteDeleteCommand(
   return new Command('delete')
     .description('Delete a suite')
     .argument('<id>', 'Suite ID')
-    .action(async (id: string) => {
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (id: string, options: { yes?: boolean }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
+        const confirmed = await requireConfirmation(
+          `Are you sure you want to delete suite ${id}?`,
+          {
+            yes: options.yes,
+            isJson,
+            outputError: (msg) => outputService.error(msg),
+          }
+        );
+        if (!confirmed) {
+          console.log(chalk.gray(' Deletion cancelled.'));
+          return;
+        }
         const suite = await apiClient.getSuite(id);
         await apiClient.deleteSuite(id);
         if (isJson) {

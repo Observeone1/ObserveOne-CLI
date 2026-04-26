@@ -5,6 +5,13 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.1] - 2026-04-26
+
+### Fixed
+- `obs suite delete <id>` now requires `-y/--yes` confirmation and fails fast in non-TTY contexts without it (was silently deleting with no guard).
+- `obs ai-check list -f json` renamed to `-o, --output json` to match the rest of the CLI (`-f` is reserved for `--file`).
+- `obs ai-check get <id> --json` now correctly uses JSON output when passed as a flag (was only checking `OBS_JSON_OUTPUT` env var).
+
 ## [1.18.0] - 2026-04-26
 
 ### Added
