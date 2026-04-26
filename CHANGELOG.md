@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.2] - 2026-04-26
+
+### Fixed
+- `--help` grammar: vowel-starting resource names now use "an" (e.g. "Get details of an alert-channel", "Delete an incident") instead of the ungrammatical "a alert-channel" / "a incident".
+
 ## [1.18.1] - 2026-04-26
 
 ### Fixed

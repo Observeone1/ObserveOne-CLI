@@ -49,6 +49,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
 ): Command {
   const { resourceName, pluralName, description, apiMethods, formatters } = options;
   const cmd = new Command(resourceName).description(description);
+  const article = /^[aeiou]/i.test(resourceName) ? 'an' : 'a';
 
   const resolveOptions = (
     cmdOptions: Record<string, unknown> | Command
@@ -119,7 +120,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   // GET
   cmd
     .command('get <id>')
-    .description(`Get details of a ${resourceName}`)
+    .description(`Get details of ${article} ${resourceName}`)
     .option('-j, --json', 'Output in JSON format')
     .action(async (id: string, cmdOptions: Record<string, unknown>) => {
       const resolvedOptions = resolveOptions(cmdOptions);
@@ -201,7 +202,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   // UPDATE
   const updateCmd = cmd
     .command('update <id>')
-    .description(`Update a ${resourceName}`)
+    .description(`Update ${article} ${resourceName}`)
     .option('-j, --json', 'Output in JSON format');
 
   if (options.updateCommandSetup) {
@@ -243,7 +244,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   // DELETE
   cmd
     .command('delete <id>')
-    .description(`Delete a ${resourceName}`)
+    .description(`Delete ${article} ${resourceName}`)
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('-j, --json', 'Output in JSON format')
     .action(async (id: string, cmdOptions: Record<string, unknown>) => {
@@ -289,7 +290,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   if (apiMethods.toggle) {
     cmd
       .command('toggle <id>')
-      .description(`Pause or resume a ${resourceName}`)
+      .description(`Pause or resume ${article} ${resourceName}`)
       .option('-j, --json', 'Output in JSON format')
       .action(async (id: string, cmdOptions: Record<string, unknown>) => {
         const resolvedOptions = resolveOptions(cmdOptions);
