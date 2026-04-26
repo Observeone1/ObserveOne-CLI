@@ -17,6 +17,7 @@ import {
   TeamMember,
   IncidentEvent,
   Suite,
+  SuiteCiIntegration,
 } from '../types/index.js';
 
 /**
@@ -149,6 +150,12 @@ export interface IApiClient {
   healSuite(
     suiteId: string
   ): Promise<{ suite_id: string; heals: Array<{ testId: string; healId: string }> }>;
+
+  // Suite CI integration (headless: status / token-rotation / disconnect only;
+  // install + repo selection stays in the web UI)
+  getSuiteCiIntegration(suiteId: string): Promise<SuiteCiIntegration | null>;
+  generateSuiteCiWebhookToken(suiteId: string): Promise<{ token: string }>;
+  deleteSuiteCiIntegration(suiteId: string): Promise<void>;
 
   healthCheck(): Promise<{
     status: string;

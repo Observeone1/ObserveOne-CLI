@@ -380,6 +380,26 @@ obs suite heal <id>
 obs suite delete <id>
 ```
 
+### CI Integration (v1.19.0)
+
+Headless management of a suite's GitHub App / CI binding. Install + repo selection still happens in the web UI; these commands cover post-install ops that scripts and CI bootstraps actually need.
+
+```bash
+# Show current binding (provider, repo, branch, hooks, masked token)
+obs suite ci status <id>
+
+# Generate or rotate the inbound webhook token (each call invalidates the previous one)
+obs suite ci webhook-token <id> -y
+
+# Pipe the new token into a secret store
+TOKEN=$(obs suite ci webhook-token <id> -y --json | jq -r '.data.token')
+
+# Tear down the integration (invalidates the token, unbinds the repo)
+obs suite ci disconnect <id> -y
+```
+
+The webhook token is what your CI pipeline `POST`s to `/webhook/playwright?token=<token>` to trigger a suite run. `status` shows it as `••••<last4>` for safety; `webhook-token` returns the full value.
+
 ---
 
 ## Resource Discovery (v1.9.0)
