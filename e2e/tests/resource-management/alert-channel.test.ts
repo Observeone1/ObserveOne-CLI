@@ -73,6 +73,47 @@ export async function testAlertChannelLifecycle() {
   }
 }
 
+export async function testAlertChannelTestSucceeds() {
+  const timestamp = Date.now();
+  const channelName = `e2e-test-webhook-${timestamp}`;
+  let channelId: number | undefined;
+
+  try {
+    const createResult = await runCLI([
+      'alert-channel',
+      'create',
+      '--name',
+      channelName,
+      '--type',
+      'webhook',
+      '--webhook-url',
+      'https://example.invalid/sink',
+      '--json',
+    ]);
+    assertSuccess(createResult, 'Alert channel creation failed');
+    const payload = JSON.parse(createResult.stdout);
+    channelId = payload?.alert_channel?.id ?? payload?.data?.id ?? payload?.id;
+
+    if (!channelId) {
+      throw new Error(`Could not parse channel id from: ${createResult.stdout}`);
+    }
+
+    const testResult = await runCLI(['alert-channel', 'test', channelId.toString(), '--json']);
+    assertStrictJSON(testResult.stdout, 'alert-channel test --json must output valid JSON');
+    const parsed = JSON.parse(testResult.stdout.trim()) as { status?: string };
+    if (parsed.status !== 'SUCCESS' && parsed.status !== 'ERROR') {
+      throw new Error(`Expected SUCCESS or ERROR envelope, got: ${parsed.status}`);
+    }
+    // We accept either outcome — webhook to invalid URL may fail delivery
+    // but the command itself must complete and return a valid envelope.
+    console.log(`      - alert-channel test returned status: ${parsed.status}`);
+  } finally {
+    if (channelId) {
+      await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
+    }
+  }
+}
+
 export async function testAlertChannelTestBadIdFails() {
   const result = await runCLI(['alert-channel', 'test', '999999999']);
   assertFailure(result, 'obs alert-channel test with unknown ID should fail');

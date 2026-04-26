@@ -38,13 +38,13 @@ export function createSuiteRunCommand(
           console.log(chalk.gray('─'.repeat(56)));
         }
 
-        const spinner = ora({ text: 'Running...', stream: process.stdout }).start();
+        const spinner = isJson ? null : ora({ text: 'Running...', stream: process.stdout }).start();
         const started = Date.now();
 
         const done = await apiClient.pollSuiteExecution(id, execution_id);
         const elapsed = ((Date.now() - started) / 1000).toFixed(0);
 
-        spinner.stop();
+        spinner?.stop();
 
         if (isJson) {
           outputService.formatJsonOutput({ execution: done });

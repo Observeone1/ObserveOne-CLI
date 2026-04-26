@@ -3,12 +3,24 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { writeFileSync } from 'fs';
-import { UrlMonitor, ApiCheck, Heartbeat } from '../types/index.js';
+import {
+  UrlMonitor,
+  ApiCheck,
+  Heartbeat,
+  AlertChannel,
+  StatusPage,
+  Incident,
+  Suite,
+} from '../types/index.js';
 
 interface ExportConfig {
   monitors?: Partial<UrlMonitor>[];
   api_checks?: Partial<ApiCheck>[];
   heartbeats?: Partial<Heartbeat>[];
+  alert_channels?: Partial<AlertChannel>[];
+  status_pages?: Array<Partial<StatusPage> & { monitors?: unknown[] }>;
+  incidents?: Partial<Incident>[];
+  suites?: Array<Partial<Suite>>;
 }
 
 export function createExportCommand(
@@ -20,6 +32,15 @@ export function createExportCommand(
     .description('Export existing remote resources into a declarative JSON file')
     .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ obs export                         # saves all resources to obs.json
+  $ obs export -f my-stack.json        # saves to a custom file name
+  $ obs export --json                  # outputs the config JSON to stdout
+`
+    )
     .action(async (options: Record<string, unknown>) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
       if (isJson) {
@@ -38,11 +59,33 @@ export function createExportCommand(
         // Fetch list endpoints first, then hydrate with per-resource detail calls
         // so we capture fields the list omits (notably `channels` and `interval`
         // on monitors). List-only export would silently drop those fields.
-        const [monitorList, apiCheckList, heartbeats] = await Promise.all([
+        const [
+          monitorList,
+          apiCheckList,
+          heartbeats,
+          alertChannels,
+          statusPageList,
+          incidents,
+          suites,
+        ] = await Promise.all([
           apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
           apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
           apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
+          apiClient.getAlertChannels().catch(() => [] as AlertChannel[]),
+          apiClient.getStatusPages().catch(() => [] as StatusPage[]),
+          apiClient.getIncidents().catch(() => [] as Incident[]),
+          apiClient.listSuites().catch(() => [] as Suite[]),
         ]);
+
+        // Status pages need hydration: list endpoint omits attached monitors.
+        const statusPages = await Promise.all(
+          statusPageList.map((sp) =>
+            apiClient
+              .getStatusPage(sp.id)
+              .then((detail) => ({ ...sp, ...(detail as Partial<StatusPage>) }))
+              .catch(() => sp)
+          )
+        );
 
         const [monitors, apiChecks] = await Promise.all([
           Promise.all(
@@ -158,6 +201,85 @@ export function createExportCommand(
           }));
         }
 
+        // 4. Map Alert Channels
+        if (alertChannels.length > 0) {
+          config.alert_channels = alertChannels.map((c) => ({
+            name: c.name,
+            type: c.type,
+            config: c.config,
+          }));
+        }
+
+        // 5. Map Status Pages (with attached monitors)
+        if (statusPages.length > 0) {
+          config.status_pages = statusPages.map((sp) => {
+            const extended = sp as StatusPage & {
+              monitors?: Array<{
+                monitor_type?: string;
+                monitor_id?: number;
+                display_name?: string;
+                display_order?: number;
+              }>;
+            };
+            const monitorEntries =
+              Array.isArray(extended.monitors) && extended.monitors.length > 0
+                ? extended.monitors.map((m) => ({
+                    monitor_type: m.monitor_type,
+                    monitor_id: m.monitor_id,
+                    display_name: m.display_name,
+                    ...(m.display_order !== undefined && { display_order: m.display_order }),
+                  }))
+                : undefined;
+            return {
+              slug: sp.slug,
+              name: sp.name,
+              ...(sp.description !== undefined && { description: sp.description }),
+              ...(sp.logo_url !== undefined && { logo_url: sp.logo_url }),
+              ...(sp.custom_domain !== undefined && { custom_domain: sp.custom_domain }),
+              is_public: sp.is_public,
+              show_incident_history: sp.show_incident_history,
+              show_uptime_percentage: sp.show_uptime_percentage,
+              ...(sp.theme_primary_color !== undefined && {
+                theme_primary_color: sp.theme_primary_color,
+              }),
+              ...(sp.theme_background_color !== undefined && {
+                theme_background_color: sp.theme_background_color,
+              }),
+              ...(monitorEntries !== undefined && { monitors: monitorEntries }),
+            };
+          });
+        }
+
+        // 6. Map Incidents
+        // Incidents are runtime state, not config; included as a backup/audit
+        // artifact. `obs apply` does not currently re-create incidents.
+        if (incidents.length > 0) {
+          config.incidents = incidents.map((i) => ({
+            title: i.title,
+            ...(i.description !== undefined && { description: i.description }),
+            status: i.status,
+            priority: i.priority,
+            ...(i.assigned_to !== undefined &&
+              i.assigned_to !== null && { assigned_to: i.assigned_to }),
+            ...(i.team_id !== undefined && { team_id: i.team_id }),
+          }));
+        }
+
+        // 7. Map Suites
+        if (suites.length > 0) {
+          config.suites = suites.map((s) => ({
+            suite_name: s.suite_name,
+            target_url: s.target_url,
+            cron_expression: s.cron_expression,
+            schedule_active: s.schedule_active,
+            max_tests: s.max_tests,
+            is_public: s.is_public,
+            allow_form_submit: s.allow_form_submit,
+            ...(Array.isArray(s.secret_keys) &&
+              s.secret_keys.length > 0 && { secret_keys: s.secret_keys }),
+          }));
+        }
+
         // Write to file
         const targetFile = options.file as string;
         writeFileSync(targetFile, JSON.stringify(config, null, 2));
@@ -170,14 +292,22 @@ export function createExportCommand(
               monitors: monitors.length,
               apiChecks: apiChecks.length,
               heartbeats: heartbeats.length,
+              alertChannels: alertChannels.length,
+              statusPages: statusPages.length,
+              incidents: incidents.length,
+              suites: suites.length,
             },
           });
         } else {
           outputService.success(`Exported existing resources to ${targetFile}`);
           console.log('');
-          console.log(`  Monitors:   ${monitors.length}`);
-          console.log(`  API Checks: ${apiChecks.length}`);
-          console.log(`  Heartbeats: ${heartbeats.length}`);
+          console.log(`  Monitors:       ${monitors.length}`);
+          console.log(`  API Checks:     ${apiChecks.length}`);
+          console.log(`  Heartbeats:     ${heartbeats.length}`);
+          console.log(`  Alert Channels: ${alertChannels.length}`);
+          console.log(`  Status Pages:   ${statusPages.length}`);
+          console.log(`  Incidents:      ${incidents.length}`);
+          console.log(`  Suites:         ${suites.length}`);
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));

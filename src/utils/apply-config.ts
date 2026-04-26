@@ -1,10 +1,23 @@
-import { ApiCheck, Heartbeat, Test, UrlMonitor } from '../types/index.js';
+import {
+  ApiCheck,
+  AlertChannel,
+  Heartbeat,
+  Incident,
+  StatusPage,
+  Suite,
+  Test,
+  UrlMonitor,
+} from '../types/index.js';
 
 export interface ApplyConfig {
   monitors?: Partial<UrlMonitor>[] | undefined;
   api_checks?: Partial<ApiCheck>[] | undefined;
   heartbeats?: Partial<Heartbeat>[] | undefined;
   ai_checks?: Partial<Test>[] | undefined;
+  alert_channels?: Partial<AlertChannel>[] | undefined;
+  status_pages?: Partial<StatusPage>[] | undefined;
+  suites?: Partial<Suite>[] | undefined;
+  incidents?: Partial<Incident>[] | undefined;
 }
 
 type ApplyConfigKey = keyof ApplyConfig;
@@ -21,9 +34,24 @@ const singularResourceKeys: Record<string, ApplyConfigKey> = {
   ai_check: 'ai_checks',
   'browser-check': 'ai_checks',
   browser_check: 'ai_checks',
+  'alert-channel': 'alert_channels',
+  alert_channel: 'alert_channels',
+  'status-page': 'status_pages',
+  status_page: 'status_pages',
+  suite: 'suites',
+  incident: 'incidents',
 };
 
-const pluralResourceKeys: ApplyConfigKey[] = ['monitors', 'api_checks', 'heartbeats', 'ai_checks'];
+const pluralResourceKeys: ApplyConfigKey[] = [
+  'monitors',
+  'api_checks',
+  'heartbeats',
+  'ai_checks',
+  'alert_channels',
+  'status_pages',
+  'suites',
+  'incidents',
+];
 
 export function normalizeApplyConfig(raw: unknown): ApplyConfig {
   if (!isRecord(raw)) {

@@ -85,3 +85,121 @@ export async function testDeclarativeExport() {
     }
   }
 }
+
+/**
+ * E2E: export must include alert-channels, status-pages, incidents, suites
+ * (the four resource types added in v1.17.0). Verifies the round-trip surface
+ * is complete — anyone with these resources can snapshot config-as-code.
+ */
+export async function testDeclarativeExportExtendedCoverage() {
+  const timestamp = Date.now();
+  const testExportFile = join(process.cwd(), `e2e-export-extended-${timestamp}.json`);
+  const channelName = `e2e-export-channel-${timestamp}`;
+  const statusPageSlug = `e2e-export-sp-${timestamp}`;
+  const statusPageName = `E2E Export SP ${timestamp}`;
+  const incidentTitle = `E2E Export Incident ${timestamp}`;
+
+  let channelId: number | undefined;
+  let statusPageId: number | undefined;
+  let incidentId: number | undefined;
+
+  try {
+    // 1. Create alert channel (webhook — no real delivery)
+    const createChannelResult = await runCLI([
+      'alert-channel',
+      'create',
+      '--name',
+      channelName,
+      '--type',
+      'webhook',
+      '--config',
+      JSON.stringify({ url: 'https://example.invalid/sink' }),
+      '--json',
+    ]);
+    const channelPayload = JSON.parse(createChannelResult.stdout);
+    channelId = channelPayload?.alert_channel?.id ?? channelPayload?.data?.id ?? channelPayload?.id;
+
+    // 2. Create status page
+    const createSPResult = await runCLI([
+      'status-page',
+      'create',
+      '--slug',
+      statusPageSlug,
+      '--name',
+      statusPageName,
+      '--public',
+      '--json',
+    ]);
+    const spPayload = JSON.parse(createSPResult.stdout);
+    statusPageId = spPayload?.status_page?.id ?? spPayload?.data?.id ?? spPayload?.id;
+
+    // 3. Create incident
+    const createIncResult = await runCLI([
+      'incident',
+      'create',
+      '--title',
+      incidentTitle,
+      '--priority',
+      'LOW',
+      '--json',
+    ]);
+    const incPayload = JSON.parse(createIncResult.stdout);
+    incidentId = incPayload?.incident?.id ?? incPayload?.data?.id ?? incPayload?.id;
+
+    // 4. Run export
+    console.log('      - Running export (extended coverage)...');
+    const exportResult = await runCLI(['export', '-f', testExportFile, '--json']);
+    assertSuccess(exportResult, 'Export failed');
+    assertJSON(exportResult.stdout, 'Export output should be JSON');
+
+    if (!existsSync(testExportFile)) {
+      throw new Error(`Export file ${testExportFile} was not created`);
+    }
+    const data = JSON.parse(readFileSync(testExportFile, 'utf-8'));
+
+    // 5. Assert each new top-level key is present and contains our test resource
+    if (!Array.isArray(data.alert_channels)) {
+      throw new Error('Expected `alert_channels` array in export');
+    }
+    if (!data.alert_channels.find((c: any) => c.name === channelName)) {
+      throw new Error('Created alert channel missing from export');
+    }
+    // Strip-DB-fields sanity check
+    const ac = data.alert_channels.find((c: any) => c.name === channelName);
+    if ('id' in ac || 'created_at' in ac) {
+      throw new Error('Alert channel export should strip DB-owned fields (id, created_at)');
+    }
+
+    if (!Array.isArray(data.status_pages)) {
+      throw new Error('Expected `status_pages` array in export');
+    }
+    if (!data.status_pages.find((s: any) => s.slug === statusPageSlug)) {
+      throw new Error('Created status page missing from export');
+    }
+
+    if (!Array.isArray(data.incidents)) {
+      throw new Error('Expected `incidents` array in export');
+    }
+    if (!data.incidents.find((i: any) => i.title === incidentTitle)) {
+      throw new Error('Created incident missing from export');
+    }
+
+    if (!Array.isArray(data.suites)) {
+      throw new Error('Expected `suites` array in export (may be empty)');
+    }
+  } finally {
+    if (existsSync(testExportFile)) {
+      unlinkSync(testExportFile);
+    }
+    console.log('      - [Cleanup] Removing extended export test resources...');
+    if (incidentId) {
+      await runCLI(['incident', 'delete', incidentId.toString(), '-y', '--json']);
+    }
+    if (statusPageId) {
+      await runCLI(['status-page', 'delete', statusPageId.toString(), '-y', '--json']);
+    }
+    if (channelId) {
+      await runCLI(['alert-channel', 'delete', channelId.toString(), '-y', '--json']);
+    }
+  }
+}

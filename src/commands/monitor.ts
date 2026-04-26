@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
+import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
@@ -73,6 +74,7 @@ export function createMonitorCommand(
       );
 
       if (!name || !url) {
+        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
         const answers = await inquirer.prompt([
           {
             type: 'input',
@@ -225,6 +227,28 @@ export function createMonitorCommand(
     });
 
   cmd.name('url-monitor').alias('monitor');
+
+  cmd.commands
+    .find((c) => c.name() === 'create')
+    ?.addHelpText(
+      'after',
+      `
+Examples:
+  $ obs monitor create --name "Frontend" --url https://example.com --interval "*/5 * * * *"
+  $ obs monitor create --file monitor.json
+`
+    );
+
+  cmd.commands
+    .find((c) => c.name() === 'update')
+    ?.addHelpText(
+      'after',
+      `
+Examples:
+  $ obs monitor update 42 --interval "*/10 * * * *"
+  $ obs monitor update 42 --name "Frontend v2" --url https://v2.example.com
+`
+    );
 
   return cmd;
 }

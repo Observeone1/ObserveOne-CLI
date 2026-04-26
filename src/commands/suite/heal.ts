@@ -17,7 +17,7 @@ export function createSuiteHealCommand(
       try {
         const result = await apiClient.healSuite(id);
         if (isJson) {
-          outputService.formatJsonOutput(result);
+          outputService.formatJsonOutput({ heals: result.heals });
           return;
         }
         console.log(chalk.bold(`\n✓ Heal triggered for suite ${id}`));
