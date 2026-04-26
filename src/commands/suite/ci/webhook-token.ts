@@ -47,7 +47,7 @@ export function createSuiteCiWebhookTokenCommand(
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to generate webhook token';
         if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+          outputService.error(msg);
         } else {
           console.error(chalk.red(`\n❌ ${msg}\n`));
         }

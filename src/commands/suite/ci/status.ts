@@ -55,7 +55,7 @@ export function createSuiteCiStatusCommand(
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to get CI integration';
         if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+          outputService.error(msg);
         } else {
           console.error(chalk.red(`\n❌ ${msg}\n`));
         }

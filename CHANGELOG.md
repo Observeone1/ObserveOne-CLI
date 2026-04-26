@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.1] - 2026-04-26
+
+### Fixed
+- `obs suite ci status/webhook-token/disconnect` — error catch blocks were calling `formatJsonOutput({ status: 'ERROR', ... })` instead of `outputService.error(msg)`, producing a malformed nested envelope `{ status: "SUCCESS", data: { status: "ERROR" } }` instead of the correct top-level `{ status: "ERROR" }` shape. All three CI commands fixed.
+
 ## [1.19.0] - 2026-04-26
 
 ### Added
