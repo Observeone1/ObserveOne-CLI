@@ -1,4 +1,5 @@
 import { runCLI, assertSuccess, assertContains, assertJSON } from '../lib/test-runner.js';
+import { ResourcePreview } from '../lib/types.js';
 import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -33,7 +34,7 @@ export async function testApplyDryRun() {
     const listAfterDry = await runCLI(['monitor', 'list', '--json']);
     const monitors =
       listAfterDry.exitCode === 0 ? (JSON.parse(listAfterDry.stdout).data?.items ?? []) : [];
-    const exists = monitors.some((m: any) => m.name === configContent.monitors[0].name);
+    const exists = monitors.some((m: ResourcePreview) => m.name === configContent.monitors[0].name);
     if (exists) throw new Error('Dry-run should not have created the monitor');
 
     // 3. Real apply to create
@@ -66,7 +67,7 @@ export async function testApplyDryRun() {
     const listResult = await runCLI(['monitor', 'list', '--json']);
     if (listResult.exitCode === 0) {
       const monitors = JSON.parse(listResult.stdout).data?.items || [];
-      const m = monitors.find((m: any) => m.name === configContent.monitors[0].name);
+      const m = monitors.find((m: ResourcePreview) => m.name === configContent.monitors[0].name);
       if (m?.id) await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
     }
   }
@@ -176,7 +177,7 @@ export async function testDeclarativeApply() {
     const monitorListResult = await runCLI(['monitor', 'list', '--json']);
     if (monitorListResult.exitCode === 0) {
       const monitors = JSON.parse(monitorListResult.stdout).data?.items || [];
-      const m = monitors.find((m: any) => m.name === configContent.monitors[0].name);
+      const m = monitors.find((m: ResourcePreview) => m.name === configContent.monitors[0].name);
       if (m && m.id) {
         await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
       }
@@ -185,7 +186,7 @@ export async function testDeclarativeApply() {
     const checkListResult = await runCLI(['check', 'list', '--json']);
     if (checkListResult.exitCode === 0) {
       const checks = JSON.parse(checkListResult.stdout).data?.items || [];
-      const c = checks.find((c: any) => c.name === configContent.api_checks[0].name);
+      const c = checks.find((c: ResourcePreview) => c.name === configContent.api_checks[0].name);
       if (c && c.id) {
         await runCLI(['check', 'delete', c.id.toString(), '-y', '--json']);
       }
@@ -239,7 +240,7 @@ export async function testApplySingleResourceFile() {
     const monitorListResult = await runCLI(['monitor', 'list', '--json']);
     if (monitorListResult.exitCode === 0) {
       const monitors = JSON.parse(monitorListResult.stdout).data?.items || [];
-      const monitor = monitors.find((m: any) => m.name === bareMonitor.name);
+      const monitor = monitors.find((m: ResourcePreview) => m.name === bareMonitor.name);
       if (monitor?.id) {
         await runCLI(['monitor', 'delete', monitor.id.toString(), '-y', '--json']);
       }
@@ -248,7 +249,9 @@ export async function testApplySingleResourceFile() {
     const heartbeatListResult = await runCLI(['heartbeat', 'list', '--json']);
     if (heartbeatListResult.exitCode === 0) {
       const heartbeats = JSON.parse(heartbeatListResult.stdout).data?.items || [];
-      const heartbeat = heartbeats.find((h: any) => h.name === wrappedHeartbeat.heartbeat.name);
+      const heartbeat = heartbeats.find(
+        (h: ResourcePreview) => h.name === wrappedHeartbeat.heartbeat.name
+      );
       if (heartbeat?.id) {
         await runCLI(['heartbeat', 'delete', heartbeat.id.toString(), '-y', '--json']);
       }

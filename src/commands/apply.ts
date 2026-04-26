@@ -18,26 +18,42 @@ import { ApplyConfig, normalizeApplyConfig } from '../utils/apply-config.js';
 // Resources returned by the GET endpoints carry alert channels as a
 // populated `channels` array; the create/update wire format expects
 // `channel_ids` (array of numeric IDs). Normalize both sides to
-// channel_ids for diff + update payloads.
-const extractChannelIds = (r: {
-  channels?: Array<{ id: number }> | undefined;
-  channel_ids?: number[] | undefined;
-}): number[] => {
-  if (Array.isArray(r.channels) && r.channels.length > 0) {
-    return r.channels.map((c) => c.id).sort((a, b) => a - b);
+// channel_ids for diff + update payloads. Input is `unknown` because
+// the local-config and backend-response types declare different
+// subsets of these fields (backend returns `channels`, local config
+// uses `channel_ids`); we narrow at runtime.
+const extractChannelIds = (r: unknown): number[] => {
+  if (typeof r !== 'object' || r === null) return [];
+  const obj = r as { channels?: unknown; channel_ids?: unknown };
+  if (Array.isArray(obj.channels) && obj.channels.length > 0) {
+    return obj.channels
+      .filter(
+        (c): c is { id: number } =>
+          typeof c === 'object' && c !== null && typeof (c as { id?: unknown }).id === 'number'
+      )
+      .map((c) => c.id)
+      .sort((a, b) => a - b);
   }
-  if (Array.isArray(r.channel_ids)) {
-    return [...r.channel_ids].sort((a, b) => a - b);
+  if (Array.isArray(obj.channel_ids)) {
+    return obj.channel_ids
+      .filter((id): id is number => typeof id === 'number')
+      .sort((a, b) => a - b);
   }
   return [];
 };
 
 // GET responses include DB-owned fields (id, created_at, api_check_id)
 // on assertions; for diff purposes, compare only the authored shape.
+// Accepts both local-config (`path?: string | undefined`) and backend
+// (`path?: string | null`) shapes — both coerce to optional `path`.
+type AssertionInput = {
+  type: string;
+  operator: string;
+  path?: string | null | undefined;
+  value: string;
+};
 const normalizeAssertions = (
-  assertions:
-    | Array<{ type: string; operator: string; path?: string | null; value: string }>
-    | undefined
+  assertions: ReadonlyArray<AssertionInput> | undefined
 ): Array<{ type: string; operator: string; path?: string; value: string }> => {
   if (!Array.isArray(assertions)) return [];
   return assertions.map((a) => {
@@ -266,8 +282,8 @@ Examples:
 
                   const existing = existingByName.get(monitorConfig.name);
                   if (existing) {
-                    const localChannelIds = extractChannelIds(monitorConfig as any);
-                    const remoteChannelIds = extractChannelIds(existing as any);
+                    const localChannelIds = extractChannelIds(monitorConfig);
+                    const remoteChannelIds = extractChannelIds(existing);
                     // Normalize both objects for comparison
                     const normalizedLocal = normalizeResource(
                       {
@@ -386,10 +402,10 @@ Examples:
 
                   const existing = existingByName.get(checkConfig.name);
                   if (existing) {
-                    const localChannelIds = extractChannelIds(checkConfig as any);
-                    const remoteChannelIds = extractChannelIds(existing as any);
-                    const localAssertions = normalizeAssertions(checkConfig.assertions as any);
-                    const remoteAssertions = normalizeAssertions(existing.assertions as any);
+                    const localChannelIds = extractChannelIds(checkConfig);
+                    const remoteChannelIds = extractChannelIds(existing);
+                    const localAssertions = normalizeAssertions(checkConfig.assertions);
+                    const remoteAssertions = normalizeAssertions(existing.assertions);
                     // Normalize both objects for comparison
                     const normalizedLocal = normalizeResource(
                       {

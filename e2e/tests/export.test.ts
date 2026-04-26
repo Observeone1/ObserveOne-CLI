@@ -1,4 +1,5 @@
 import { runCLI, assertSuccess, assertJSON } from '../lib/test-runner.js';
+import { ResourcePreview } from '../lib/types.js';
 import { unlinkSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -57,7 +58,9 @@ export async function testDeclarativeExport() {
     const exportedData = JSON.parse(readFileSync(testExportFile, 'utf-8'));
 
     // Check if our test resources made it into the exported config
-    const foundMonitor = exportedData.monitors?.find((m: any) => m.name === monitorName);
+    const foundMonitor = exportedData.monitors?.find(
+      (m: ResourcePreview) => m.name === monitorName
+    );
     if (!foundMonitor) {
       throw new Error('Created test monitor was not found in exported file');
     }
@@ -65,7 +68,7 @@ export async function testDeclarativeExport() {
       throw new Error('Exported monitor URL mismatch');
     }
 
-    const foundCheck = exportedData.api_checks?.find((c: any) => c.name === checkName);
+    const foundCheck = exportedData.api_checks?.find((c: ResourcePreview) => c.name === checkName);
     if (!foundCheck) {
       throw new Error('Created test API check was not found in exported file');
     }
@@ -161,11 +164,11 @@ export async function testDeclarativeExportExtendedCoverage() {
     if (!Array.isArray(data.alert_channels)) {
       throw new Error('Expected `alert_channels` array in export');
     }
-    if (!data.alert_channels.find((c: any) => c.name === channelName)) {
+    if (!data.alert_channels.find((c: ResourcePreview) => c.name === channelName)) {
       throw new Error('Created alert channel missing from export');
     }
     // Strip-DB-fields sanity check
-    const ac = data.alert_channels.find((c: any) => c.name === channelName);
+    const ac = data.alert_channels.find((c: ResourcePreview) => c.name === channelName);
     if ('id' in ac || 'created_at' in ac) {
       throw new Error('Alert channel export should strip DB-owned fields (id, created_at)');
     }
@@ -173,14 +176,14 @@ export async function testDeclarativeExportExtendedCoverage() {
     if (!Array.isArray(data.status_pages)) {
       throw new Error('Expected `status_pages` array in export');
     }
-    if (!data.status_pages.find((s: any) => s.slug === statusPageSlug)) {
+    if (!data.status_pages.find((s: ResourcePreview) => s.slug === statusPageSlug)) {
       throw new Error('Created status page missing from export');
     }
 
     if (!Array.isArray(data.incidents)) {
       throw new Error('Expected `incidents` array in export');
     }
-    if (!data.incidents.find((i: any) => i.title === incidentTitle)) {
+    if (!data.incidents.find((i: ResourcePreview) => i.title === incidentTitle)) {
       throw new Error('Created incident missing from export');
     }
 
