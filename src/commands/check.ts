@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { readFileSync } from 'fs';
 import { IConfigService } from '../interfaces/config.interface.js';
+import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
@@ -223,6 +224,7 @@ export function createCheckCommand(
       );
 
       if (!name || !url) {
+        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
         const answers = await inquirer.prompt([
           {
             type: 'input',
@@ -408,6 +410,28 @@ export function createCheckCommand(
         process.exit(1);
       }
     });
+
+  cmd.commands
+    .find((c) => c.name() === 'create')
+    ?.addHelpText(
+      'after',
+      `
+Examples:
+  $ obs check create --name "Health API" --url https://api.example.com/health --method GET
+  $ obs check create --file check.json
+`
+    );
+
+  cmd.commands
+    .find((c) => c.name() === 'update')
+    ?.addHelpText(
+      'after',
+      `
+Examples:
+  $ obs check update 42 --method POST --interval "*/10 * * * *"
+  $ obs check update 42 --name "Health API v2"
+`
+    );
 
   return cmd;
 }

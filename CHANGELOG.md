@@ -5,6 +5,47 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-04-26
+
+### Added
+- `--help` now shows usage examples for `monitor create/update`, `check create/update`, `heartbeat create`, `apply`, `export`, and `suite generate`.
+- `obs api-key delete <id>` now works as an alias for `obs api-key revoke <id>`.
+
+### Fixed
+- `obs suite run --json --wait` — spinner ANSI escape codes no longer corrupt JSON output when stdout is a TTY.
+- All `delete`-style commands (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`, `team remove-member`, `api-key revoke`) now fail fast with exit code 1 in non-interactive (non-TTY or `--json`) contexts when `--yes` is missing, instead of hanging on stdin.
+- Interactive `create` prompts (`monitor create`, `check create`, `heartbeat create`) now fail fast in non-TTY contexts with a clear message directing users to pass required flags.
+- `obs apply --help` description updated to reflect all 7 supported resource types.
+
+### Breaking changes
+- `-f, --format` short flag on all list commands renamed to `-o, --output`. Use `obs monitor list -o json` instead of `obs monitor list -f json`.
+- `-f, --force` short flag on `obs login` removed. Use `obs login --force`.
+
+## [1.17.0] - 2026-04-26
+
+### Added
+- `obs export` now captures all 7 resource types: monitors, API checks, heartbeats, alert channels, status pages, incidents, and suites. Previously only monitors, checks, and heartbeats were exported. Status pages are detail-hydrated to include attached monitors. All new types strip DB-owned fields (`id`, `created_at`, `updated_at`) on export.
+- `obs apply` now upserts alert channels (identity: `name`), status pages (identity: `slug`), and suites (identity: `suite_name`). Incidents in the config emit a warning and are skipped — they are runtime state and cannot be re-created from config.
+- `testDeclarativeExportExtendedCoverage` e2e test — creates alert channel + status page + incident, runs export, asserts all new top-level keys are present and DB fields are stripped, then cleans up.
+- `testAlertChannelTestSucceeds` e2e test — happy-path coverage for `obs alert-channel test`. Previously only failure paths were covered.
+- 8 new unit tests for `normalizeApplyConfig` covering all new resource types and mixed configs.
+
+### Fixed
+- `obs suite heal --json` returned the raw backend response instead of a typed envelope. Now returns `{ heals: [...] }` consistent with all other suite commands.
+- `obs status-page add-monitor --json` returned the raw entry object. Now returns `{ status_page_monitor: { ... } }`.
+- `obs status-page remove-monitor --json` returned `{ status: 'ok', status_page_id, monitor_id }`. Now returns `{ status_page_monitor: { status_page_id, monitor_id, deleted: true } }`.
+- `obs incident unassign` — added an inline comment clarifying that `null` assignee is the unassign mechanism (no dedicated backend route exists).
+
+### Notes
+- **Suite apply**: `obs apply` updates suite metadata (name, target URL) for existing suites. New suites cannot be created via apply — they require AI generation via `obs suite generate`. Apply will warn and skip any suite not already present.
+- **Status-page monitors**: attached monitors are exported but not applied. Manage them via `obs status-page add-monitor / remove-monitor`.
+- **Incidents**: included in export as a backup/audit artifact. Apply warns and skips any `incidents` block.
+
+### Breaking changes (JSON output shape)
+- `obs suite heal --json`: `data` key was `{ suite_id, heals }`, now `{ heals }`.
+- `obs status-page add-monitor --json`: was raw entry, now `{ status_page_monitor: { ... } }`.
+- `obs status-page remove-monitor --json`: was `{ status: 'ok', status_page_id, monitor_id }`, now `{ status_page_monitor: { status_page_id, monitor_id, deleted: true } }`.
+
 ## [1.16.0] - 2026-04-23
 
 ### Added
@@ -65,7 +106,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `obs init monitor` and `obs init check` templates now include a `channel_ids: []` placeholder so users scaffolding a resource from the template can see the alert-channel attachment field without guessing.
 
 ### Known Limitations
-- Monitor `interval` is not returned by the backend `getUrlMonitor` endpoint, so it cannot round-trip through export → apply. The CLI captures monitor interval correctly on create/update, but cannot read it back from an existing monitor. Tracked as a backend follow-up.
 - List endpoints for api_checks return `alert_on_failure` from the schedule record, producing `false` for checks without a schedule. This can cause spurious "update" diffs when those checks are exported and re-applied. Not a regression; pre-existing behavior.
 
 ## [1.13.0] - 2026-04-23

@@ -104,7 +104,7 @@ obs apply -f my-stack.json
       "name": "Production Website",
       "description": "Main landing page monitor",
       "url": "https://example.com",
-      "cron_expression": "*/5 * * * *",
+      "interval": "*/5 * * * *",
       "alert_on_failure": true
     }
   ],
@@ -121,9 +121,45 @@ obs apply -f my-stack.json
       "period": 86400,
       "grace_period": 3600
     }
+  ],
+  "alert_channels": [
+    {
+      "name": "Slack Alerts",
+      "type": "slack",
+      "config": { "webhook_url": "https://hooks.slack.com/..." }
+    }
+  ],
+  "status_pages": [
+    {
+      "slug": "status",
+      "name": "System Status",
+      "is_public": true,
+      "show_incident_history": true,
+      "show_uptime_percentage": true
+    }
+  ],
+  "suites": [
+    {
+      "suite_name": "Smoke Tests",
+      "target_url": "https://example.com",
+      "cron_expression": "0 */6 * * *",
+      "schedule_active": true
+    }
+  ],
+  "incidents": [
+    {
+      "title": "API Degradation",
+      "status": "OPEN",
+      "priority": "HIGH"
+    }
   ]
 }
 ```
+
+> **Notes:**
+> - `incidents` — included in export as a backup/audit artifact. `obs apply` warns and skips this block; incidents cannot be re-created from config.
+> - `suites` — `obs apply` updates metadata for existing suites only. New suites require AI generation via `obs suite generate`.
+> - Status-page attached monitors are exported but not applied. Manage them via `obs status-page add-monitor / remove-monitor`.
 
 **Single-resource files (v1.13.0):** `obs apply` also accepts files holding a single resource, in three shapes:
 
@@ -260,7 +296,7 @@ obs incident unassign <id>
 ```bash
 obs api-key list
 obs api-key create --name "CI Bot"
-obs api-key revoke <id>
+obs api-key revoke <id>        # also: obs api-key delete <id>
 obs api-key toggle <id>
 ```
 

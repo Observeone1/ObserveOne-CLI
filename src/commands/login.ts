@@ -17,7 +17,7 @@ export function createLoginCommand(
   const cmd = new Command('login')
     .description('Authenticate with ObserveOne platform')
     .option('-k, --api-key <key>', 'API key to use for authentication')
-    .option('-f, --force', 'Force a new login session even if already authenticated')
+    .option('--force', 'Force a new login session even if already authenticated')
     .option('--api-url <url>', 'Override API URL')
     .option('--skip-setup', 'Skip project configuration setup')
     .option(

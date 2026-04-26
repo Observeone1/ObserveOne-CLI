@@ -37,6 +37,15 @@ export function createSuiteGenerateCommand(
     .addOption(
       new Option('-w, --wait', 'Deprecated: test generation is now the default').hideHelp()
     )
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ obs suite generate https://example.com
+  $ obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
+  $ obs suite generate https://example.com --cron "0 */6 * * *"
+`
+    )
     .action(
       async (
         url: string,

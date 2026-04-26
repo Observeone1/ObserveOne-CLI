@@ -175,6 +175,70 @@ describe('normalizeApplyConfig', () => {
     });
   });
 
+  describe('new resource types (v1.17.0)', () => {
+    it('should parse alert_channels array', () => {
+      const result = normalizeApplyConfig({
+        alert_channels: [
+          { name: 'ch1', type: 'webhook', config: { webhook_url: 'https://x.com' } },
+        ],
+      });
+      expect(result.alert_channels).toHaveLength(1);
+    });
+
+    it('should parse {"alert-channel": {...}}', () => {
+      const result = normalizeApplyConfig({
+        'alert-channel': { name: 'ch1', type: 'webhook' },
+      });
+      expect(result.alert_channels).toHaveLength(1);
+    });
+
+    it('should parse status_pages array', () => {
+      const result = normalizeApplyConfig({
+        status_pages: [{ slug: 'my-sp', name: 'My SP' }],
+      });
+      expect(result.status_pages).toHaveLength(1);
+    });
+
+    it('should parse {"status-page": {...}}', () => {
+      const result = normalizeApplyConfig({
+        'status-page': { slug: 'my-sp', name: 'My SP' },
+      });
+      expect(result.status_pages).toHaveLength(1);
+    });
+
+    it('should parse suites array', () => {
+      const result = normalizeApplyConfig({
+        suites: [{ suite_name: 'suite1', target_url: 'https://example.com' }],
+      });
+      expect(result.suites).toHaveLength(1);
+    });
+
+    it('should parse {"suite": {...}}', () => {
+      const result = normalizeApplyConfig({
+        suite: { suite_name: 'suite1', target_url: 'https://example.com' },
+      });
+      expect(result.suites).toHaveLength(1);
+    });
+
+    it('should parse incidents array', () => {
+      const result = normalizeApplyConfig({
+        incidents: [{ title: 'inc1', priority: 'LOW' }],
+      });
+      expect(result.incidents).toHaveLength(1);
+    });
+
+    it('should handle mixed new + existing types in one config', () => {
+      const result = normalizeApplyConfig({
+        monitors: [{ name: 'm1', url: 'https://example.com' }],
+        alert_channels: [{ name: 'ch1', type: 'webhook' }],
+        status_pages: [{ slug: 'sp1', name: 'SP 1' }],
+      });
+      expect(result.monitors).toHaveLength(1);
+      expect(result.alert_channels).toHaveLength(1);
+      expect(result.status_pages).toHaveLength(1);
+    });
+  });
+
   describe('metadata key stripping', () => {
     it('should strip type from payload', () => {
       const result = normalizeApplyConfig({

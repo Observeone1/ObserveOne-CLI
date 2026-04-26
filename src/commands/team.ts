@@ -1,9 +1,9 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { requireConfirmation } from '../utils/confirm.js';
 
 export function createTeamCommand(
   _configService: IConfigService,
@@ -110,19 +110,14 @@ export function createTeamCommand(
     .action(async (teamId: string, userId: string, options: { yes?: boolean }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        if (!options.yes) {
-          const { confirm } = await inquirer.prompt([
-            {
-              type: 'confirm',
-              name: 'confirm',
-              message: `Remove user ${userId} from team ${teamId}?`,
-              default: false,
-            },
-          ]);
-          if (!confirm) {
-            console.log(chalk.gray(' Remove cancelled.'));
-            return;
-          }
+        const confirmed = await requireConfirmation(`Remove user ${userId} from team ${teamId}?`, {
+          yes: options.yes,
+          isJson,
+          outputError: (msg) => outputService.error(msg),
+        });
+        if (!confirmed) {
+          console.log(chalk.gray(' Remove cancelled.'));
+          return;
         }
         const result = await apiClient.removeTeamMember(teamId, userId);
         if (isJson) {

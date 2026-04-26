@@ -175,7 +175,7 @@ export function createStatusPageCommand(
         }
         const entry = await (apiClient as ApiClient).addMonitorToStatusPage(statusPageId, payload);
         if (isJson) {
-          outputService.formatJsonOutput(entry);
+          outputService.formatJsonOutput({ status_page_monitor: entry });
           return;
         }
         console.log(
@@ -207,9 +207,11 @@ export function createStatusPageCommand(
         await (apiClient as ApiClient).removeMonitorFromStatusPage(statusPageId, monitorId);
         if (isJson) {
           outputService.formatJsonOutput({
-            status: 'ok',
-            status_page_id: statusPageId,
-            monitor_id: monitorId,
+            status_page_monitor: {
+              status_page_id: statusPageId,
+              monitor_id: monitorId,
+              deleted: true,
+            },
           });
           return;
         }

@@ -208,6 +208,7 @@ export function createIncidentCommand(
         const incidentId = parseInt(id);
         if (isNaN(incidentId)) throw new Error('Invalid incident ID');
 
+        // No dedicated unassign route; backend treats null userId as unassign.
         const incident = await apiClient.assignIncident(incidentId, null);
         if (isJson) {
           outputService.formatJsonOutput({ incident });

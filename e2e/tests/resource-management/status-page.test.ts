@@ -116,8 +116,11 @@ export async function testStatusPageAddRemoveMonitor() {
     ]);
     assertSuccess(addResult, 'status-page add-monitor failed');
     assertJSON(addResult.stdout, 'add-monitor output should be JSON');
-    const addData = JSON.parse(addResult.stdout) as { id?: number; data?: { id?: number } };
-    const entryId = addData.id ?? addData.data?.id;
+    const addData = JSON.parse(addResult.stdout) as {
+      id?: number;
+      data?: { id?: number; status_page_monitor?: { id?: number } };
+    };
+    const entryId = addData.data?.status_page_monitor?.id ?? addData.data?.id ?? addData.id;
     if (!entryId)
       throw new Error(`Expected entry id in add-monitor response, got: ${addResult.stdout}`);
 

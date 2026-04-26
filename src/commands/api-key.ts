@@ -4,6 +4,7 @@ import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { requireConfirmation } from '../utils/confirm.js';
 
 export function createApiKeyCommand(
   _configService: IConfigService,
@@ -82,27 +83,26 @@ export function createApiKeyCommand(
       }
     });
 
-  // obs api-key revoke <id> [-y] [--json]
+  // obs api-key revoke <id> [-y] [--json]  (also works as: obs api-key delete <id>)
   cmd
     .command('revoke <id>')
+    .alias('delete')
     .description('Revoke (delete) an API key')
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id: string, options: { yes?: boolean }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        if (!options.yes) {
-          const { confirm } = await inquirer.prompt([
-            {
-              type: 'confirm',
-              name: 'confirm',
-              message: `Are you sure you want to revoke API key ${id}?`,
-              default: false,
-            },
-          ]);
-          if (!confirm) {
-            console.log(chalk.gray(' Revoke cancelled.'));
-            return;
+        const confirmed = await requireConfirmation(
+          `Are you sure you want to revoke API key ${id}?`,
+          {
+            yes: options.yes,
+            isJson,
+            outputError: (msg) => outputService.error(msg),
           }
+        );
+        if (!confirmed) {
+          console.log(chalk.gray(' Revoke cancelled.'));
+          return;
         }
         const result = await apiClient.deleteApiKey(id);
         if (isJson) {

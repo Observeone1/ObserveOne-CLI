@@ -16,6 +16,7 @@ import {
   Team,
   TeamMember,
   IncidentEvent,
+  Suite,
 } from '../types/index.js';
 
 /**
@@ -134,6 +135,14 @@ export interface IApiClient {
   regenerateTeamInvite(teamId: string): Promise<{ message: string; inviteCode: string }>;
   removeTeamMember(teamId: string, userId: string): Promise<unknown>;
   updateTeamMemberRole(teamId: string, userId: string, role: string): Promise<unknown>;
+
+  // Suites
+  listSuites(): Promise<Suite[]>;
+  getSuite(suiteId: string): Promise<Suite>;
+  updateSuite(
+    suiteId: string,
+    payload: { suite_name?: string; target_url?: string }
+  ): Promise<Suite>;
 
   // Suite extras
   toggleSuitePublic(suiteId: string, isPublic: boolean): Promise<unknown>;

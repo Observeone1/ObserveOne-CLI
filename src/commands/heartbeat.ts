@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
+import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
@@ -54,6 +55,7 @@ export function createHeartbeatCommand(
       let grace = options.grace as string | number | undefined;
 
       if (!name) {
+        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
         const answers = await inquirer.prompt([
           {
             type: 'input',
@@ -178,6 +180,17 @@ export function createHeartbeatCommand(
         process.exit(1);
       }
     });
+
+  cmd.commands
+    .find((c) => c.name() === 'create')
+    ?.addHelpText(
+      'after',
+      `
+Examples:
+  $ obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
+  $ obs heartbeat create --file heartbeat.json
+`
+    );
 
   return cmd;
 }

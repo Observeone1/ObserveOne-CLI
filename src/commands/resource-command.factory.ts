@@ -1,10 +1,10 @@
 import { Command } from 'commander';
 import { readFileSync, existsSync } from 'fs';
-import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ListQueryOptions, PaginatedListResult } from '../types/index.js';
+import { requireConfirmation } from '../utils/confirm.js';
 import {
   addListQueryOptions,
   formatPaginationSummary,
@@ -64,7 +64,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
     const isJson =
       process.env.OBS_JSON_OUTPUT === 'true' ||
       cmdOptions.json === true ||
-      cmdOptions.format === 'json';
+      cmdOptions.output === 'json';
     if (isJson) {
       outputService.enableJsonMode();
     }
@@ -80,7 +80,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
   const listCmd = cmd
     .command('list')
     .description(`List all ${pluralName}`)
-    .option('-f, --format <format>', 'Output format (table, json)', 'table')
+    .option('-o, --output <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format');
 
   if (apiMethods.listWithFilters) {
@@ -98,7 +98,7 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
       const items = paginated?.items ?? (await apiMethods.list());
       if (
         process.env.OBS_JSON_OUTPUT === 'true' ||
-        resolvedOptions.format === 'json' ||
+        resolvedOptions.output === 'json' ||
         resolvedOptions.json === true
       ) {
         outputService.formatJsonOutput(
@@ -256,19 +256,17 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
           process.exit(1);
         }
 
-        if (!resolvedOptions.yes) {
-          const { confirm } = await inquirer.prompt([
-            {
-              type: 'confirm',
-              name: 'confirm',
-              message: `Are you sure you want to delete ${resourceName} ${resourceId}?`,
-              default: false,
-            },
-          ]);
-          if (!confirm) {
-            outputService.info('Deletion cancelled.');
-            return;
+        const confirmed = await requireConfirmation(
+          `Are you sure you want to delete ${resourceName} ${resourceId}?`,
+          {
+            yes: resolvedOptions.yes as boolean | undefined,
+            isJson: resolvedOptions.json === true || process.env.OBS_JSON_OUTPUT === 'true',
+            outputError: (msg) => outputService.error(msg),
           }
+        );
+        if (!confirmed) {
+          outputService.info('Deletion cancelled.');
+          return;
         }
 
         outputService.progress(`Deleting ${resourceName} ${resourceId}...`);
