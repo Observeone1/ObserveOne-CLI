@@ -5,6 +5,18 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-04-26
+
+### Added
+- `obs suite ci status <id>` — show the CI integration for a suite (provider, repo, branch, hooks, masked webhook token, last-fired timestamp). Returns `null` envelope when the suite has no integration.
+- `obs suite ci webhook-token <id>` — generate (rotate) the inbound webhook token for a suite. Each call invalidates the previous token. Requires `-y/--yes` to skip the rotation confirmation; same TTY guard as other destructive commands.
+- `obs suite ci disconnect <id>` — remove the CI integration for a suite. Invalidates the webhook token and unbinds the repo. Same TTY guard as other delete-style commands.
+
+### Notes
+- Install / repo selection / branch picking still happens in the web UI — those flows require GitHub App OAuth which doesn't fit a headless CLI. These three subcommands cover the post-install ops that headless agents (CI bootstrap, Terraform/Pulumi pipelines, secret rotation) actually need.
+- The `status` command shows the webhook token as `••••<last4>`. Use `webhook-token` to get (and rotate) the full value.
+- 5 new e2e tests in `e2e/tests/suite/ci.test.ts` (help, TTY guards, error envelope on invalid suite).
+
 ## [1.18.2] - 2026-04-26
 
 ### Fixed

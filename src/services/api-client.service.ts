@@ -17,6 +17,7 @@ import {
   Incident,
   IncidentListResponse,
   Suite,
+  SuiteCiIntegration,
   SuiteExecution,
   ApiKey,
   Team,
@@ -746,6 +747,45 @@ export class ApiClient implements IApiClient {
 
   async deleteSuite(id: string): Promise<void> {
     await this.client.delete(`/playwright-autopilot/suites/${id}`);
+  }
+
+  // ── Suite CI integration (headless ops; install/connect stays in web UI) ──
+
+  async getSuiteCiIntegration(suiteId: string): Promise<SuiteCiIntegration | null> {
+    const response = await this.client.get<unknown>(`/playwright-autopilot/suites/${suiteId}/ci`);
+    if (!response.data || typeof response.data !== 'object') return null;
+    const raw = response.data as Record<string, unknown>;
+    // Backend returns the full row including sensitive fields. Strip them
+    // and reduce the inbound webhook token to its last 4 chars.
+    const token = typeof raw.inbound_webhook_token === 'string' ? raw.inbound_webhook_token : null;
+    return {
+      id: Number(raw.id),
+      suite_id: String(raw.suite_id),
+      provider: String(raw.provider ?? ''),
+      repo_identifier: String(raw.repo_identifier ?? ''),
+      branch: String(raw.branch ?? ''),
+      comment_on_pr: Boolean(raw.comment_on_pr),
+      set_status_check: Boolean(raw.set_status_check),
+      check_name: String(raw.check_name ?? ''),
+      wait_for_ci: Boolean(raw.wait_for_ci),
+      inbound_webhook_token_last4: token ? token.slice(-4) : null,
+      github_installation_id:
+        typeof raw.github_installation_id === 'number' ? raw.github_installation_id : null,
+      last_triggered_at: typeof raw.last_triggered_at === 'string' ? raw.last_triggered_at : null,
+      created_at: String(raw.created_at ?? ''),
+      updated_at: String(raw.updated_at ?? ''),
+    };
+  }
+
+  async generateSuiteCiWebhookToken(suiteId: string): Promise<{ token: string }> {
+    const response = await this.client.post<{ token: string }>(
+      `/playwright-autopilot/suites/${suiteId}/ci/generate-token`
+    );
+    return { token: response.data.token };
+  }
+
+  async deleteSuiteCiIntegration(suiteId: string): Promise<void> {
+    await this.client.delete(`/playwright-autopilot/suites/${suiteId}/ci`);
   }
 
   async getSuiteScripts(

@@ -16,6 +16,7 @@ import { createSuitePullCommand } from './pull.js';
 import { createSuitePushCommand } from './push.js';
 import { createSuiteTogglePublicCommand } from './toggle-public.js';
 import { createSuiteHealCommand } from './heal.js';
+import { createSuiteCiCommand } from './ci/index.js';
 
 export function createSuiteCommand(
   configService: IConfigService,
@@ -38,6 +39,7 @@ export function createSuiteCommand(
   suite.addCommand(createSuitePushCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteTogglePublicCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteHealCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteCiCommand(configService, apiClient, outputService));
 
   return suite;
 }

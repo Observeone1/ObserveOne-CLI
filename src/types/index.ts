@@ -261,6 +261,23 @@ export interface Suite {
   updated_at: string;
 }
 
+export interface SuiteCiIntegration {
+  id: number;
+  suite_id: string;
+  provider: string;
+  repo_identifier: string;
+  branch: string;
+  comment_on_pr: boolean;
+  set_status_check: boolean;
+  check_name: string;
+  wait_for_ci: boolean;
+  inbound_webhook_token_last4: string | null;
+  github_installation_id: number | null;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SuiteExecution {
   id: string;
   suite_id: string;
