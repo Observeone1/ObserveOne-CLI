@@ -10,12 +10,12 @@ export function createAiCheckListCommand(
 ): Command {
   return new Command('list')
     .description('List all AI browser checks')
-    .option('-f, --format <format>', 'Output format (table, json)', 'table')
+    .option('-o, --output <format>', 'Output format (table, json)', 'table')
     .option('-j, --json', 'Output in JSON format')
     .action(async (options: Record<string, unknown>) => {
       if (
         process.env.OBS_JSON_OUTPUT === 'true' ||
-        options.format === 'json' ||
+        options.output === 'json' ||
         options.json === true
       ) {
         outputService.enableJsonMode();
@@ -32,7 +32,7 @@ export function createAiCheckListCommand(
 
         if (
           process.env.OBS_JSON_OUTPUT === 'true' ||
-          options.format === 'json' ||
+          options.output === 'json' ||
           options.json === true
         ) {
           outputService.formatJsonOutput(tests);
