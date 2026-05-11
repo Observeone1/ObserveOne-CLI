@@ -5,7 +5,7 @@ description: Architecture overview and design patterns
 
 # Implementation Summary
 
-The ObserveOne command-line interface (CLI) has evolved from a simple test-runner into a complete Infrastructure-as-Code control plane. 
+This document is for contributors. It walks through how the CLI is laid out and the patterns the codebase relies on.
 
 ## 📦 Package Structure
 
@@ -31,7 +31,7 @@ cli/
 ## 🎯 Design Patterns
 
 ### 1. Agent-First JSON Envelope
-A core architectural tenet of the CLI is its ability to interface with artificial intelligence (AI) coding agents (Claude, Cursor, GitHub Copilot). To ensure predictable machine-to-machine communication, the `OutputService` completely silences all spinners, chalk colors, and standard logs when the `--json` flag is provided for JavaScript Object Notation (JSON) output.
+The CLI is designed to be driven by AI coding agents (Claude, Cursor, GitHub Copilot) as well as humans. When `--json` is passed, the `OutputService` silences spinners, chalk colors, and human-readable logs so the only thing on stdout is a machine-parseable envelope.
 
 Instead, every single command is guaranteed to return a strict `JsonEnvelope` payload:
 `{ status: "SUCCESS" | "ERROR", data: {...} }`
@@ -40,6 +40,4 @@ Instead, every single command is guaranteed to return a strict `JsonEnvelope` pa
 All services (like `ApiClient`, `ConfigService`, and `OutputService`) are instantiated at the root entrypoint and injected into command factory functions. This keeps dependencies explicit and testable without a container.
 
 ### 3. Batched Execution (Rate Limiting)
-Commands that process large datasets (like `obs apply` against an `obs.json` file with 100 monitors) utilize a specialized chunking algorithm. 
-
-Resources are broken into concurrent batches of 5 and processed via `Promise.all`, followed by a strict 1000ms delay. This prevents the CLI from triggering `429 Too Many Requests` responses from the backend's strict 100 req/minute rate limit.
+Commands that process large payloads (e.g. `obs apply` against an `obs.json` with dozens of monitors) chunk work into concurrent batches of 5 via `Promise.all`, with a 1000ms delay between batches. This stays under the backend's 100 req/minute rate limit and avoids `429` responses.

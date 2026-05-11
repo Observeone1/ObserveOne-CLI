@@ -1,8 +1,13 @@
 # ObserveOne CLI
 
-Artificial intelligence (AI)-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
+[![npm version](https://img.shields.io/npm/v/@observeone/cli.svg)](https://www.npmjs.com/package/@observeone/cli)
+[![CI](https://github.com/Observeone1/ObserveOne-CLI/actions/workflows/ci.yml/badge.svg)](https://github.com/Observeone1/ObserveOne-CLI/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/node/v/@observeone/cli.svg)](package.json)
 
-The `obs` command-line interface (CLI) allows developers and artificial intelligence (AI) agents to manage URL Monitors, Application Programming Interface (API) Checks, Heartbeats, and AI Browser tests using simple commands or declarative JavaScript Object Notation (JSON) configuration files.
+AI-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
+
+The `obs` CLI lets developers and AI coding agents manage URL monitors, API checks, heartbeats, and AI browser tests — either through individual commands or a single declarative JSON config.
 
 ## Installation
 
@@ -36,7 +41,7 @@ npm install -g @observeone/cli
    obs export
    ```
 
-4. **Manage a monitor**
+5. **Manage a monitor**
    ```bash
    obs monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
    obs monitor list
@@ -492,8 +497,28 @@ The CLI includes a non-blocking background update service that checks for newer 
 - `--version` - Show version number
 - `--help` - Show help
 
-## License
-MIT
-
 ---
-**Happy Testing!**
+
+## Documentation
+
+Deeper docs live in the [`docs/`](docs/) folder:
+
+- **Guides**
+  - [Getting started](docs/guides/getting-started.md) — install, login, headless agent auth
+  - [Config-as-code](docs/guides/config-as-code.md) — `obs apply` / `obs export` IaC workflow
+  - [AI agent integration](docs/guides/ai-agent-integration.md) — JSON envelope, agent recipes
+- **Reference**
+  - [CLI command reference](docs/reference/cli-commands.md)
+  - [Environment variables](docs/reference/environment-variables.md)
+  - [JSON schema](docs/reference/json-schema.md)
+- **Architecture** (for contributors)
+  - [Implementation summary](docs/architecture/implementation-summary.md)
+  - [E2E testing framework](docs/architecture/e2e-testing.md)
+
+## Contributing
+
+Contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for dev setup, test commands, and the PR workflow.
+
+## License
+
+Released under the [MIT License](LICENSE).

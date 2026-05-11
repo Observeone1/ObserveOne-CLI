@@ -115,8 +115,8 @@ export async function testDeclarativeExportExtendedCoverage() {
       channelName,
       '--type',
       'webhook',
-      '--config',
-      JSON.stringify({ url: 'https://example.invalid/sink' }),
+      '--webhook-url',
+      'https://example.invalid/sink',
       '--json',
     ]);
     const channelPayload = JSON.parse(createChannelResult.stdout);
@@ -130,7 +130,6 @@ export async function testDeclarativeExportExtendedCoverage() {
       statusPageSlug,
       '--name',
       statusPageName,
-      '--public',
       '--json',
     ]);
     const spPayload = JSON.parse(createSPResult.stdout);
