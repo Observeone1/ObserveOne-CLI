@@ -5,6 +5,21 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-05-11
+
+### Added
+- Open-sourced under the MIT license.
+- Top-level `LICENSE` file (MIT).
+- `CONTRIBUTING.md` covering dev setup, test commands, quality gates, and PR workflow.
+
+### Changed
+- `README.md` — added badges, fixed Quick Start numbering, added Documentation and Contributing sections linking into `docs/`.
+- `docs/architecture/implementation-summary.md` — reframed for contributors; tightened phrasing.
+- `package.json` — added `repository`, `homepage`, `bugs` fields for npm metadata; removed stale `start`/`start:dev` scripts.
+
+### Fixed
+- `e2e/tests/export.test.ts` `testDeclarativeExportExtendedCoverage` — replaced stale `--config <json>` flag with `--webhook-url`, removed unsupported `--public` flag on `status-page create`.
+
 ## [1.19.1] - 2026-04-26
 
 ### Fixed

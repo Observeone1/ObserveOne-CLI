@@ -1,15 +1,21 @@
 {
   "name": "@observeone/cli",
-  "version": "1.19.1",
+  "version": "1.20.0",
   "type": "module",
   "description": "ObserveOne CLI - AI-powered website monitoring and testing from the command line",
   "main": "dist/index.js",
   "bin": {
     "obs": "dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Observeone1/ObserveOne-CLI.git"
+  },
+  "homepage": "https://www.observeone.com/cli",
+  "bugs": {
+    "url": "https://github.com/Observeone1/ObserveOne-CLI/issues"
+  },
   "scripts": {
-    "start": "node server.js",
-    "start:dev": "tsx src/index.ts",
     "build": "node scripts/build.js",
     "dev": "tsx src/index.ts",
     "check": "tsc --noEmit",
