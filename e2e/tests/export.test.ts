@@ -205,3 +205,50 @@ export async function testDeclarativeExportExtendedCoverage() {
     }
   }
 }
+
+/**
+ * E2E: --include-scripts inlines suite Playwright scripts under suites[].tests.
+ * Verifies the flag is accepted, JSON is well-formed, and any suite with
+ * test_count > 0 surfaces inlined tests. Skips the inline-content assertion
+ * when no suites with tests exist (test env may have none).
+ */
+export async function testExportIncludeScripts() {
+  const timestamp = Date.now();
+  const testExportFile = join(process.cwd(), `e2e-export-scripts-${timestamp}.json`);
+
+  try {
+    const result = await runCLI(['export', '-f', testExportFile, '--include-scripts', '--json']);
+    assertSuccess(result, 'export --include-scripts failed');
+    assertJSON(result.stdout, 'export --include-scripts output should be JSON');
+
+    if (!existsSync(testExportFile)) {
+      throw new Error(`Export file ${testExportFile} was not created`);
+    }
+    const exported = JSON.parse(readFileSync(testExportFile, 'utf-8'));
+    if (!Array.isArray(exported.suites)) {
+      throw new Error('Expected suites array in --include-scripts export');
+    }
+
+    const suitesWithTests = exported.suites.filter(
+      (s: { tests?: unknown[] }) => Array.isArray(s.tests) && s.tests.length > 0
+    );
+    if (suitesWithTests.length > 0) {
+      for (const s of suitesWithTests) {
+        for (const t of s.tests) {
+          if (typeof t.name !== 'string' || typeof t.script !== 'string' || !t.script.length) {
+            throw new Error(
+              `Inlined suite test missing name/script: ${JSON.stringify(t).slice(0, 200)}`
+            );
+          }
+        }
+      }
+      console.log(`      - ${suitesWithTests.length} suite(s) with inlined scripts ✓`);
+    } else {
+      console.log('      - no suites with tests in this env; flag-shape only assertion');
+    }
+  } finally {
+    if (existsSync(testExportFile)) {
+      unlinkSync(testExportFile);
+    }
+  }
+}

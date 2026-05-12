@@ -193,7 +193,8 @@ obs suite delete <id>
 ## Config-as-Code
 Manage your infrastructure declaratively.
 ```bash
-obs export               # Export all remote resources to obs.json
-obs apply                # Synchronize local obs.json with the backend
-obs apply -f custom.json # Use a specific configuration file
+obs export                  # Export all remote resources to obs.json
+obs export --include-scripts # Inline suite Playwright scripts under suites[].tests
+obs apply                   # Synchronize local obs.json with the backend
+obs apply -f custom.json    # Use a specific configuration file
 ```

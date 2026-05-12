@@ -19,7 +19,13 @@ obs export
 
 # Save to a custom file name
 obs export -f my-stack.json
+
+# Inline each suite's generated Playwright scripts under suites[].tests
+# (useful for self-host migrations, offline backups, or portable archives)
+obs export --include-scripts
 ```
+
+By default `obs export` writes suite metadata only (name, URL, cron, secret keys). Pass `--include-scripts` to also fetch each suite's generated Playwright scripts and embed them inline under `suites[].tests[]` as `{ name, script }`. Suites with `test_count: 0` are unaffected.
 
 ## Synchronizing Changes
 

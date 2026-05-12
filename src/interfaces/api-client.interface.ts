@@ -140,6 +140,9 @@ export interface IApiClient {
   // Suites
   listSuites(): Promise<Suite[]>;
   getSuite(suiteId: string): Promise<Suite>;
+  getSuiteScripts(
+    suiteId: string
+  ): Promise<{ suite_id: string; tests: Array<{ id: string; name: string; code: string }> }>;
   updateSuite(
     suiteId: string,
     payload: { suite_name?: string; target_url?: string }

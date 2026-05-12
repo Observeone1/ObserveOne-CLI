@@ -20,7 +20,7 @@ interface ExportConfig {
   alert_channels?: Partial<AlertChannel>[];
   status_pages?: Array<Partial<StatusPage> & { monitors?: unknown[] }>;
   incidents?: Partial<Incident>[];
-  suites?: Array<Partial<Suite>>;
+  suites?: Array<Partial<Suite> & { tests?: Array<{ name: string; script: string }> }>;
 }
 
 export function createExportCommand(
@@ -32,6 +32,10 @@ export function createExportCommand(
     .description('Export existing remote resources into a declarative JSON file')
     .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
+    .option(
+      '--include-scripts',
+      "Inline each suite's generated Playwright test scripts under suites[].tests"
+    )
     .addHelpText(
       'after',
       `
@@ -39,6 +43,7 @@ Examples:
   $ obs export                         # saves all resources to obs.json
   $ obs export -f my-stack.json        # saves to a custom file name
   $ obs export --json                  # outputs the config JSON to stdout
+  $ obs export --include-scripts       # inline suite Playwright scripts for portability
 `
     )
     .action(async (options: Record<string, unknown>) => {
@@ -267,6 +272,25 @@ Examples:
 
         // 7. Map Suites
         if (suites.length > 0) {
+          const includeScripts = options.includeScripts === true;
+          const scriptsBySuiteId: Record<string, Array<{ name: string; script: string }>> = {};
+          if (includeScripts) {
+            await Promise.all(
+              suites
+                .filter((s) => s.test_count > 0)
+                .map(async (s) => {
+                  try {
+                    const resp = await apiClient.getSuiteScripts(s.id);
+                    scriptsBySuiteId[s.id] = resp.tests.map((t) => ({
+                      name: t.name,
+                      script: t.code,
+                    }));
+                  } catch {
+                    scriptsBySuiteId[s.id] = [];
+                  }
+                })
+            );
+          }
           config.suites = suites.map((s) => ({
             suite_name: s.suite_name,
             target_url: s.target_url,
@@ -277,6 +301,8 @@ Examples:
             allow_form_submit: s.allow_form_submit,
             ...(Array.isArray(s.secret_keys) &&
               s.secret_keys.length > 0 && { secret_keys: s.secret_keys }),
+            ...(includeScripts &&
+              scriptsBySuiteId[s.id]?.length && { tests: scriptsBySuiteId[s.id] }),
           }));
         }
 
