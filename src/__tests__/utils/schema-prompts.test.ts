@@ -188,16 +188,21 @@ describe('buildDefaultUpdatePrompts', () => {
 });
 
 describe('schema consistency', () => {
-  it('every name in `required` has fieldMetadata with requiredOnCreate: true', () => {
+  it('every name in `required` has fieldMetadata that guarantees a payload value', () => {
+    // "Required" means the field must end up in the create payload. That's
+    // satisfied either by forcing user input (requiredOnCreate) OR by
+    // having a default (e.g. check.method silently falls back to "GET").
     for (const [resourceName, schema] of Object.entries(schemas)) {
       const meta = schema.fieldMetadata;
       if (!meta) continue;
       for (const requiredField of schema.required) {
         const fieldMeta = meta[requiredField];
         expect(fieldMeta, `${resourceName}.fieldMetadata.${requiredField} missing`).toBeDefined();
+        const hasGuarantee =
+          fieldMeta!.requiredOnCreate === true || fieldMeta!.default !== undefined;
         expect(
-          fieldMeta!.requiredOnCreate,
-          `${resourceName}.${requiredField} should have requiredOnCreate: true`
+          hasGuarantee,
+          `${resourceName}.${requiredField} must have requiredOnCreate: true OR a default`
         ).toBe(true);
       }
     }

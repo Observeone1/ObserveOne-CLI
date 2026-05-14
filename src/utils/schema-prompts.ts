@@ -113,7 +113,9 @@ export function buildDefaultUpdatePrompts<T>(
       if (raw !== undefined) {
         value = meta.transformer ? meta.transformer(raw) : raw;
         assertChoice(field, meta, value);
-      } else if (existingRecord[field] !== undefined) {
+      } else if (existingRecord[field] != null) {
+        // `!= null` matches the existing `??`-chain semantics used across the
+        // hand-rolled commands — both undefined and null fall through to default.
         value = existingRecord[field];
       } else if (meta.default !== undefined) {
         value = meta.default;

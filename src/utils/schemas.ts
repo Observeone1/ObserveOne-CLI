@@ -122,7 +122,7 @@ export const schemas: Record<string, ResourceSchema> = {
         label: 'Cron interval (default: Every 5 mins):',
         default: '*/5 * * * *',
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
       // `--no-alerts` flag → options.alerts === false on commander; absence
       // is undefined, so the default fires and alert_on_failure stays true.
       alert_on_failure: { flagName: 'alerts', default: true },
@@ -171,12 +171,14 @@ export const schemas: Record<string, ResourceSchema> = {
         flagName: 'method',
         inquirerType: 'list',
         label: 'HTTP Method:',
-        requiredOnCreate: true,
+        // Not requiredOnCreate — mirrors old behavior where method silently
+        // defaults to GET when the flag is missing. Still gets prompted as
+        // part of the batch when name or url are missing.
         choices: HTTP_METHODS,
         default: 'GET',
         transformer: toUpper,
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
       body: { flagName: 'body' },
       cron_expression: { flagName: 'interval' },
       headers: {
@@ -229,7 +231,7 @@ export const schemas: Record<string, ResourceSchema> = {
         default: 60,
         transformer: toInt,
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
     },
   },
   'alert-channel': {
@@ -296,7 +298,7 @@ export const schemas: Record<string, ResourceSchema> = {
         requiredOnCreate: true,
         validate: trimNonEmpty('Name'),
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
       logo_url: { flagName: 'logoUrl' },
       theme_primary_color: { flagName: 'themePrimaryColor' },
       theme_background_color: { flagName: 'themeBackgroundColor' },
@@ -341,7 +343,7 @@ export const schemas: Record<string, ResourceSchema> = {
         choices: INCIDENT_PRIORITIES,
         transformer: toUpper,
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
       assigned_to: { flagName: 'assignedTo' },
       team_id: { flagName: 'teamId', transformer: toInt },
     },
@@ -377,7 +379,7 @@ export const schemas: Record<string, ResourceSchema> = {
         requiredOnCreate: true,
         validate: trimNonEmpty('Prompt'),
       },
-      description: { flagName: 'description' },
+      description: { flagName: 'description', default: '' },
     },
   },
 };
