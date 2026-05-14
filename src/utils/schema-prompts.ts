@@ -105,6 +105,7 @@ export function buildDefaultUpdatePrompts<T>(
       process.exit(1);
     }
 
+    // `existing` is a generic `T` so we cast to a row to index by API field name.
     const existingRecord = (existing ?? {}) as Record<string, unknown>;
     const payload: Payload = {};
     for (const [field, meta] of updatableEntries) {
@@ -113,6 +114,7 @@ export function buildDefaultUpdatePrompts<T>(
       let value: unknown;
       if (raw !== undefined) {
         value = meta.transformer ? meta.transformer(raw) : raw;
+        assertChoice(field, meta, value);
       } else if (existingRecord[field] !== undefined) {
         value = existingRecord[field];
       } else if (meta.default !== undefined) {
@@ -155,9 +157,24 @@ function resolveValue(
   const fromAnswers = field in answers ? answers[field] : undefined;
   const raw = fromOptions !== undefined ? fromOptions : fromAnswers;
   if (raw !== undefined) {
-    return meta.transformer ? meta.transformer(raw) : raw;
+    const transformed = meta.transformer ? meta.transformer(raw) : raw;
+    assertChoice(field, meta, transformed);
+    return transformed;
   }
   return meta.default;
+}
+
+/**
+ * Reject CLI/prompt input that's not a member of `meta.choices`. Skipped when
+ * `meta.choices` is undefined or the value comes from `existing[field]` (which
+ * is presumed valid because it came from the backend).
+ */
+function assertChoice(field: string, meta: FieldSchema, value: unknown): void {
+  if (!meta.choices) return;
+  if (meta.choices.includes(value as string)) return;
+  throw new Error(
+    `Invalid ${field}: '${String(value)}'. Must be one of: ${meta.choices.join(', ')}`
+  );
 }
 
 /** camelCase → kebab-case for help-message rendering of flag names. */

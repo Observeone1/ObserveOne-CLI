@@ -54,6 +54,8 @@ const toInt = (val: unknown): unknown => (typeof val === 'string' ? parseInt(val
 
 const toUpper = (val: unknown): unknown => (typeof val === 'string' ? val.toUpperCase() : val);
 
+const negateBool = (val: unknown): unknown => !val;
+
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const;
 const INCIDENT_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
 const ALERT_CHANNEL_TYPES = [
@@ -236,6 +238,23 @@ export const schemas: Record<string, ResourceSchema> = {
         validate: trimNonEmpty('Name'),
       },
       description: { flagName: 'description' },
+      logo_url: { flagName: 'logoUrl' },
+      theme_primary_color: { flagName: 'themePrimaryColor' },
+      theme_background_color: { flagName: 'themeBackgroundColor' },
+      // Inverted booleans: --private flag presence sets is_public=false.
+      // When the flag is absent on update we fall through to existing[field];
+      // on create the default (true) wins.
+      is_public: { flagName: 'private', transformer: negateBool, default: true },
+      show_incident_history: {
+        flagName: 'hideIncidentHistory',
+        transformer: negateBool,
+        default: true,
+      },
+      show_uptime_percentage: {
+        flagName: 'hideUptime',
+        transformer: negateBool,
+        default: true,
+      },
     },
   },
   incident: {
@@ -264,6 +283,8 @@ export const schemas: Record<string, ResourceSchema> = {
         transformer: toUpper,
       },
       description: { flagName: 'description' },
+      assigned_to: { flagName: 'assignedTo' },
+      team_id: { flagName: 'teamId', transformer: toInt },
     },
   },
   'ai-check': {

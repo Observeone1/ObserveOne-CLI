@@ -1,8 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
-import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
@@ -48,74 +46,9 @@ export function createHeartbeatCommand(
         .option('-p, --period <seconds>', 'Expected period in seconds')
         .option('-g, --grace <seconds>', 'Grace period in seconds');
     },
-    createPrompts: async (options) => {
-      let name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      let period = options.period as string | number | undefined;
-      let grace = options.grace as string | number | undefined;
-
-      if (!name) {
-        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
-        const answers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'name',
-            message: 'Heartbeat name:',
-            validate: (val: string) => (val.trim() ? true : 'Name is required'),
-          },
-          {
-            type: 'number',
-            name: 'period',
-            message: 'Expected period (seconds):',
-            default: 300,
-          },
-          {
-            type: 'number',
-            name: 'grace',
-            message: 'Grace period (seconds):',
-            default: 60,
-          },
-        ]);
-        name = name || (answers.name as string);
-        period = period || (answers.period as number);
-        grace = grace || (answers.grace as number);
-      }
-
-      return {
-        name,
-        period: typeof period === 'string' ? parseInt(period) : (period as number) || 300,
-        grace_period: typeof grace === 'string' ? parseInt(grace) : (grace as number) || 60,
-        description: description ?? '',
-      };
-    },
-    updatePrompts: async (id, options, existing) => {
-      const name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      const period = options.period as string | number | undefined;
-      const grace = options.grace as string | number | undefined;
-
-      if (!name && description === undefined && !period && !grace) {
-        outputService.error(
-          'Please provide at least one field to update (--name, --description, --period, or --grace).'
-        );
-        process.exit(1);
-      }
-
-      return {
-        name: name || existing.name,
-        period: period
-          ? typeof period === 'string'
-            ? parseInt(period)
-            : (period as number)
-          : existing.period,
-        description: description ?? existing.description ?? '',
-        grace_period: grace
-          ? typeof grace === 'string'
-            ? parseInt(grace)
-            : (grace as number)
-          : (existing.grace_period ?? 60),
-      };
-    },
+    // createPrompts/updatePrompts intentionally omitted — the resource-command
+    // factory falls back to the schema-driven default built from
+    // schemas.heartbeat.fieldMetadata.
   });
 
   attachRunsCommand(cmd, {
