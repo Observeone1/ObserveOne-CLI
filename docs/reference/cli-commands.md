@@ -38,12 +38,12 @@ Aliases: `api-check` → `check`, `url-monitor` → `monitor`, `browser-check` �
 ## Monitors
 Manage basic HTTP ping monitors.
 ```bash
-obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
-obs monitor list
-obs monitor get <id>
-obs monitor update <id> --name "Updated Frontend" --interval "*/10 * * * *"
-obs monitor toggle <id>
-obs monitor delete <id> -y
+obs url-monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *"
+obs url-monitor list
+obs url-monitor get <id>
+obs url-monitor update <id> --name "Updated Frontend" --interval "*/10 * * * *"
+obs url-monitor toggle <id>
+obs url-monitor delete <id> -y
 ```
 
 ## API Checks
