@@ -10,6 +10,8 @@ import {
   formatPaginationSummary,
   resolveListQueryOptions,
 } from '../utils/list-query.js';
+import { resolveSchema } from '../utils/schemas.js';
+import { buildDefaultCreatePrompts, buildDefaultUpdatePrompts } from '../utils/schema-prompts.js';
 
 export interface ResourceFactoryOptions<T> {
   resourceName: string;
@@ -178,6 +180,11 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
         payload = resolvedOptions as unknown as Partial<T>;
         if (options.createPrompts) {
           payload = await options.createPrompts(resolvedOptions);
+        } else {
+          const schema = resolveSchema(resourceName);
+          if (schema?.fieldMetadata) {
+            payload = await buildDefaultCreatePrompts<T>(schema)(resolvedOptions);
+          }
         }
       }
 
@@ -225,6 +232,15 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
       let payload: Partial<T> = resolvedOptions as unknown as Partial<T>;
       if (options.updatePrompts) {
         payload = await options.updatePrompts(resourceId, resolvedOptions, existing);
+      } else {
+        const schema = resolveSchema(resourceName);
+        if (schema?.fieldMetadata) {
+          payload = await buildDefaultUpdatePrompts<T>(schema, outputService)(
+            resourceId,
+            resolvedOptions,
+            existing
+          );
+        }
       }
 
       const updatedItem = await apiMethods.update(resourceId, payload);

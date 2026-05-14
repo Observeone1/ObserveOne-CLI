@@ -1,15 +1,13 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
-import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
 import { UrlMonitor } from '../types/index.js';
-import { collectOptionValues, parseNumericIds } from '../utils/cli-input.js';
+import { collectOptionValues } from '../utils/cli-input.js';
 
 /**
  * Factory function to create monitor command using the generic resource factory
@@ -62,93 +60,12 @@ export function createMonitorCommand(
           []
         );
     },
-    createPrompts: async (options) => {
-      let name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      let url = options.url as string | undefined;
-      let interval = options.interval as string | undefined;
-      const alerts = options.alerts as boolean | undefined;
-      const channelIds = parseNumericIds(
-        options.alertChannelId as string[] | string | undefined,
-        'alert-channel-id'
-      );
-
-      if (!name || !url) {
-        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
-        const answers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'name',
-            message: 'Monitor name:',
-            when: !name,
-            validate: (val: string) => (val.trim() ? true : 'Name is required'),
-          },
-          {
-            type: 'input',
-            name: 'url',
-            message: 'URL to monitor:',
-            when: !url,
-            validate: (val: string) => {
-              try {
-                new URL(val);
-                return true;
-              } catch {
-                return 'Please enter a valid URL (e.g. https://example.com)';
-              }
-            },
-          },
-          {
-            type: 'input',
-            name: 'interval',
-            message: 'Cron interval (default: Every 5 mins):',
-            when: !interval,
-            default: '*/5 * * * *',
-          },
-        ]);
-        name = name || (answers.name as string);
-        url = url || (answers.url as string);
-        interval = interval || (answers.interval as string);
-      }
-
-      return {
-        name,
-        description,
-        url,
-        interval: interval || '*/5 * * * *',
-        alert_on_failure: alerts !== false,
-        channel_ids: channelIds,
-        timeout_ms: 30000,
-      };
-    },
-    updatePrompts: async (id, options, existing) => {
-      const name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      const url = options.url as string | undefined;
-      const interval = options.interval as string | undefined;
-      const alertChannelInput = options.alertChannelId as string[] | string | undefined;
-      const channelIds = (
-        Array.isArray(alertChannelInput) ? alertChannelInput.length > 0 : Boolean(alertChannelInput)
-      )
-        ? parseNumericIds(alertChannelInput, 'alert-channel-id')
-        : undefined;
-
-      if (!name && description === undefined && !url && !interval && channelIds === undefined) {
-        outputService.error(
-          'Please provide at least one field to update (--name, --description, --url, --interval, or --alert-channel-id).'
-        );
-        process.exit(1);
-      }
-
-      return {
-        name: name || existing.name,
-        description: description ?? existing.description ?? '',
-        url: url || existing.url,
-        timeout_ms: existing.timeout_ms || 30000,
-        interval: interval || existing.interval,
-        alert_on_failure: existing.alert_on_failure ?? true,
-        ...(channelIds !== undefined && { channel_ids: channelIds }),
-      };
-    },
+    // createPrompts/updatePrompts intentionally omitted — the resource-command
+    // factory falls back to the schema-driven default built from
+    // schemas.monitor.fieldMetadata. The `--alert-channel-id` repeatable
+    // option is handled via fieldMetadata.channel_ids.treatEmptyArrayAsAbsent
+    // so an unspecified flag falls through to existing on update (rather
+    // than wiping attached channels with commander's [] default).
   });
 
   cmd
