@@ -43,8 +43,8 @@ npm install -g @observeone/cli
 
 5. **Manage a monitor**
    ```bash
-   obs monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
-   obs monitor list
+   obs url-monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
+   obs url-monitor list
    ```
 
 ---
@@ -191,18 +191,18 @@ You can manually create, read, update, delete, and toggle individual resources d
 
 ### URL Monitors
 ```bash
-obs monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *" \
+obs url-monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *" \
   --description "Production landing page" \
   --alert-channel-id 12 --alert-channel-id 47
-obs monitor list
-obs monitor list --search "Front" --status up --is-active true --limit 10 --page 1 --json
-obs monitor get <id>
-obs monitor update <id> --description "Updated copy" --alert-channel-id 47
-obs monitor runs <id> --limit 10         # recent executions
-obs monitor run <id>                      # trigger a manual run
-obs monitor toggle <id>
-obs monitor toggle-muted <id>
-obs monitor delete <id> -y
+obs url-monitor list
+obs url-monitor list --search "Front" --status up --is-active true --limit 10 --page 1 --json
+obs url-monitor get <id>
+obs url-monitor update <id> --description "Updated copy" --alert-channel-id 47
+obs url-monitor runs <id> --limit 10         # recent executions
+obs url-monitor run <id>                      # trigger a manual run
+obs url-monitor toggle <id>
+obs url-monitor toggle-muted <id>
+obs url-monitor delete <id> -y
 ```
 
 Monitor flags:

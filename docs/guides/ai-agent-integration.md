@@ -12,7 +12,7 @@ The ObserveOne command-line interface (CLI) is explicitly designed to be driven 
 The golden rule for AI agent integration is to **always append `--json`** to your commands for JavaScript Object Notation (JSON) output.
 
 ```bash
-obs monitor list --json
+obs url-monitor list --json
 obs apply -f my-stack.json --json
 ```
 
