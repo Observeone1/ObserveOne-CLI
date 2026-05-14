@@ -5,6 +5,21 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-05-14
+
+### Changed
+- Resource-command factory now reads a schema-driven default for `createPrompts` / `updatePrompts` when a command doesn't provide its own. Six commands (`monitor`, `check`, `heartbeat`, `alert-channel`, `incident`, `status-page`) had nearly-identical hand-rolled prompt blocks that duplicated logic across 12 places; the new model lives in `src/utils/schemas.ts` (`FieldSchema` metadata: inquirer type, label, required-on-create, choices, validate, transformer, default, treatEmptyArrayAsAbsent) and `src/utils/schema-prompts.ts` (builders that the factory falls back to). Net ~500 lines deleted across the per-command files, ~300 added in the shared infrastructure.
+- Internal refactor only — every interactive flow, validator, transformer, and payload shape is preserved. `obs check`, `obs alert-channel` keep their slim custom composers (assertions, type-dependent config) on top of the schema-driven default.
+
+### Fixed
+- `obs check create` previously re-prompted for HTTP method even when the user passed `--method GET` (due to a stale `when: !method || method === 'GET'` clause). Now it accepts the passed value directly.
+- `obs check update` had a typo (`cron_sequence` instead of `cron_expression`) that silently dropped any interval update. The migration to schema-driven defaults removes the typo.
+- `obs incident create --priority foo` now errors with a clear "Invalid priority: 'FOO'. Must be one of: CRITICAL, HIGH, MEDIUM, LOW" before contacting the backend, instead of the prior "Priority is required" misleading message. Same for any list-type field in any command.
+
+### Notes
+- 14 new unit tests in `src/__tests__/utils/schema-prompts.test.ts` cover trigger logic, transformer application, flag↔API field mapping (e.g. heartbeat `--grace` → `grace_period`), default merging, update fallback semantics, and cross-resource schema consistency.
+- Full e2e suite (124 tests) passes against the local backend.
+
 ## [1.21.0] - 2026-05-12
 
 ### Added
