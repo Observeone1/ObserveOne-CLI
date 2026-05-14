@@ -1,3 +1,5 @@
+import { parseKeyValuePairs, parseNumericIds } from './cli-input.js';
+
 export type InquirerType = 'input' | 'list' | 'number' | 'confirm';
 
 export interface FieldSchema {
@@ -19,6 +21,16 @@ export interface FieldSchema {
   validate?: (val: unknown) => boolean | string;
   /** Transform a CLI string or inquirer answer before merging into the payload. */
   transformer?: (val: unknown) => unknown;
+  /**
+   * Treat an empty array value as if the flag wasn't passed at all.
+   *
+   * Needed for fields backed by commander's repeatable-option collector
+   * (`.option('-a, --foo <v>', 'desc', collectOptionValues, [])`) where the
+   * empty `[]` default is indistinguishable from the user explicitly clearing
+   * the field. With this opt-in, an empty array falls through to `existing`
+   * on update (rather than wiping the existing value).
+   */
+  treatEmptyArrayAsAbsent?: boolean;
 }
 
 export interface ResourceSchema {
@@ -27,6 +39,14 @@ export interface ResourceSchema {
   template: Record<string, unknown>;
   /** Per-field metadata that drives the schema-driven prompt fallback in the resource-command factory. */
   fieldMetadata?: Record<string, FieldSchema>;
+  /**
+   * Extra CLI flag names (camelCase) that count toward the "any updatable
+   * field was passed" check on update, but don't appear in the payload
+   * directly. Use for inputs that flow into a custom composer (e.g.
+   * alert-channel's --email / --webhook-url which feed buildConfigFromOptions
+   * to produce a single `config` field).
+   */
+  extraUpdateTriggers?: readonly string[];
 }
 
 const trimNonEmpty =
@@ -103,8 +123,17 @@ export const schemas: Record<string, ResourceSchema> = {
         default: '*/5 * * * *',
       },
       description: { flagName: 'description' },
-      alert_on_failure: { default: true },
+      // `--no-alerts` flag → options.alerts === false on commander; absence
+      // is undefined, so the default fires and alert_on_failure stays true.
+      alert_on_failure: { flagName: 'alerts', default: true },
       timeout_ms: { default: 30000 },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseNumericIds(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
     },
   },
   check: {
@@ -148,6 +177,25 @@ export const schemas: Record<string, ResourceSchema> = {
         transformer: toUpper,
       },
       description: { flagName: 'description' },
+      body: { flagName: 'body' },
+      cron_expression: { flagName: 'interval' },
+      headers: {
+        flagName: 'header',
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) => parseKeyValuePairs(v as string | string[] | undefined, 'header'),
+      },
+      regions: { flagName: 'regions', treatEmptyArrayAsAbsent: true },
+      retry_count: { flagName: 'retryCount', transformer: toInt },
+      retry_interval: { flagName: 'retryInterval', transformer: toInt },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseNumericIds(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
+      alert_on_failure: { flagName: 'alerts', default: true },
+      timeout_ms: { default: 30000 },
     },
   },
   heartbeat: {
@@ -209,7 +257,18 @@ export const schemas: Record<string, ResourceSchema> = {
         requiredOnCreate: true,
         choices: ALERT_CHANNEL_TYPES,
       },
+      is_default: { flagName: 'default', default: false },
     },
+    extraUpdateTriggers: [
+      'email',
+      'webhookUrl',
+      'botToken',
+      'chatId',
+      'accountSid',
+      'authToken',
+      'fromNumber',
+      'phoneNumber',
+    ],
   },
   'status-page': {
     description: 'Public status page — aggregates resource statuses and incident history',

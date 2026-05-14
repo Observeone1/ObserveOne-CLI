@@ -1,21 +1,16 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
 import { readFileSync } from 'fs';
 import { IConfigService } from '../interfaces/config.interface.js';
-import { requireTTY } from '../utils/confirm.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
 import { ApiCheck } from '../types/index.js';
-import {
-  collectOptionValues,
-  parseJsonArrayOption,
-  parseKeyValuePairs,
-  parseNumericIds,
-} from '../utils/cli-input.js';
+import { collectOptionValues, parseJsonArrayOption } from '../utils/cli-input.js';
+import { schemas } from '../utils/schemas.js';
+import { buildDefaultCreatePrompts, buildDefaultUpdatePrompts } from '../utils/schema-prompts.js';
 
 /**
  * Build assertions from short flags, --assertion-file, and --assertion
@@ -209,130 +204,24 @@ export function createCheckCommand(
         )
         .option('--no-alerts', 'Disable alerts');
     },
+    // Most fields are schema-driven; assertions need a composer because they
+    // are aggregated from 11 different flags (--assertion, --assertion-file,
+    // --status-code, --json-path, etc.) via buildAssertions().
     createPrompts: async (options) => {
-      let name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      let url = options.url as string | undefined;
-      let method = options.method as string | undefined;
-      const interval = options.interval as string | undefined;
-      const alerts = options.alerts as boolean | undefined;
-      const headers = parseKeyValuePairs(options.header as string[] | string | undefined, 'header');
+      const base = await buildDefaultCreatePrompts<ApiCheck>(schemas.check!)(options);
       const assertions = buildAssertions(options);
-      const channelIds = parseNumericIds(
-        options.alertChannelId as string[] | string | undefined,
-        'alert-channel-id'
-      );
-
-      if (!name || !url) {
-        requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
-        const answers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'name',
-            message: 'Check name:',
-            when: !name,
-            validate: (val: string) => (val.trim() ? true : 'Name is required'),
-          },
-          {
-            type: 'input',
-            name: 'url',
-            message: 'API URL:',
-            when: !url,
-            validate: (val: string) => (val.trim() ? true : 'URL is required'),
-          },
-          {
-            type: 'list',
-            name: 'method',
-            message: 'HTTP Method:',
-            choices: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
-            when: !method || method === 'GET',
-            default: 'GET',
-          },
-        ]);
-        name = name || (answers.name as string);
-        url = url || (answers.url as string);
-        method = method || (answers.method as string);
-      }
-
-      return {
-        name,
-        description,
-        url,
-        method: (method || 'GET').toUpperCase(),
-        headers,
-        body: options.body as string | undefined,
-        regions: options.regions as string[] | undefined,
-        retry_count: options['retry-count']
-          ? parseInt(options['retry-count'] as string)
-          : undefined,
-        retry_interval: options['retry-interval']
-          ? parseInt(options['retry-interval'] as string)
-          : undefined,
-        assertions,
-        cron_expression: interval,
-        channel_ids: channelIds,
-        timeout_ms: 30000,
-        alert_on_failure: alerts !== false,
-      };
+      return assertions ? { ...base, assertions } : base;
     },
     updatePrompts: async (id, options, existing) => {
-      const name = options.name as string | undefined;
-      const description = options.description as string | undefined;
-      const url = options.url as string | undefined;
-      const method = options.method as string | undefined;
-      const interval = options.interval as string | undefined;
-      const headerInput = options.header as string[] | string | undefined;
-      const headers = (Array.isArray(headerInput) ? headerInput.length > 0 : Boolean(headerInput))
-        ? parseKeyValuePairs(headerInput, 'header')
-        : undefined;
+      const base = await buildDefaultUpdatePrompts<ApiCheck>(schemas.check!, outputService)(
+        id,
+        options,
+        existing
+      );
       const assertions = buildAssertions(options);
-      const alertChannelInput = options.alertChannelId as string[] | string | undefined;
-      const channelIds = (
-        Array.isArray(alertChannelInput) ? alertChannelInput.length > 0 : Boolean(alertChannelInput)
-      )
-        ? parseNumericIds(alertChannelInput, 'alert-channel-id')
-        : undefined;
-
-      if (
-        !name &&
-        description === undefined &&
-        !url &&
-        !method &&
-        !interval &&
-        headers === undefined &&
-        assertions === undefined &&
-        channelIds === undefined &&
-        options.body === undefined &&
-        options.regions === undefined &&
-        options['retry-count'] === undefined &&
-        options['retry-interval'] === undefined
-      ) {
-        outputService.error(
-          'Please provide at least one field to update (--name, --description, --url, --method, --interval, --header, --assertion, or --alert-channel-id).'
-        );
-        process.exit(1);
-      }
-
-      return {
-        name: name || existing.name,
-        description: description ?? existing.description ?? '',
-        url: url || existing.url,
-        method: method ? method.toUpperCase() : existing.method || 'GET',
-        cron_sequence: interval || existing.cron_expression,
-        headers: headers ?? existing.headers,
-        body: options.body as string | undefined,
-        regions: options.regions as string[] | undefined,
-        retry_count: options['retry-count']
-          ? parseInt(options['retry-count'] as string)
-          : undefined,
-        retry_interval: options['retry-interval']
-          ? parseInt(options['retry-interval'] as string)
-          : undefined,
-        assertions: assertions ?? existing.assertions,
-        timeout_ms: existing.timeout_ms || 30000,
-        alert_on_failure: existing.alert_on_failure ?? true,
-        ...(channelIds !== undefined && { channel_ids: channelIds }),
-      };
+      // Schema default falls through to existing.assertions when no flag is
+      // passed; composer only overrides when buildAssertions returns a value.
+      return assertions ? { ...base, assertions } : base;
     },
   });
 

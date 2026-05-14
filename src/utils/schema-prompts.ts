@@ -34,8 +34,7 @@ export function buildDefaultCreatePrompts<T>(
     // flag flips the whole create flow into interactive mode.
     const triggered = entries.some(([field, meta]) => {
       if (!meta.requiredOnCreate) return false;
-      const flag = meta.flagName ?? field;
-      return options[flag] === undefined;
+      return isFlagAbsent(options, field, meta);
     });
 
     const promptQuestions: DistinctQuestion[] = [];
@@ -45,8 +44,7 @@ export function buildDefaultCreatePrompts<T>(
       // heartbeat period/grace). The user can just press enter to accept.
       for (const [field, meta] of entries) {
         if (!meta.inquirerType) continue;
-        const flag = meta.flagName ?? field;
-        if (options[flag] !== undefined) continue;
+        if (!isFlagAbsent(options, field, meta)) continue;
         promptQuestions.push(toInquirerQuestion(field, meta));
       }
     }
@@ -90,10 +88,9 @@ export function buildDefaultUpdatePrompts<T>(
     const entries = Object.entries(metadata);
     const updatableEntries = entries.filter(([, m]) => m.updatable !== false);
 
-    const anyFlagPassed = updatableEntries.some(([field, meta]) => {
-      const flag = meta.flagName ?? field;
-      return options[flag] !== undefined;
-    });
+    const anyFlagPassed =
+      updatableEntries.some(([field, meta]) => !isFlagAbsent(options, field, meta)) ||
+      (schema.extraUpdateTriggers ?? []).some((flag) => options[flag] !== undefined);
 
     if (!anyFlagPassed) {
       const updatableFlags = updatableEntries
@@ -110,7 +107,8 @@ export function buildDefaultUpdatePrompts<T>(
     const payload: Payload = {};
     for (const [field, meta] of updatableEntries) {
       const flag = meta.flagName ?? field;
-      const raw = options[flag];
+      const flagAbsent = isFlagAbsent(options, field, meta);
+      const raw = flagAbsent ? undefined : options[flag];
       let value: unknown;
       if (raw !== undefined) {
         value = meta.transformer ? meta.transformer(raw) : raw;
@@ -153,7 +151,7 @@ function resolveValue(
   answers: Record<string, unknown>
 ): unknown {
   const flag = meta.flagName ?? field;
-  const fromOptions = flag in options ? options[flag] : undefined;
+  const fromOptions = isFlagAbsent(options, field, meta) ? undefined : options[flag];
   const fromAnswers = field in answers ? answers[field] : undefined;
   const raw = fromOptions !== undefined ? fromOptions : fromAnswers;
   if (raw !== undefined) {
@@ -162,6 +160,19 @@ function resolveValue(
     return transformed;
   }
   return meta.default;
+}
+
+/**
+ * Returns true when the user didn't actually supply this flag — either it's
+ * undefined or it's an empty array that the schema marked as
+ * `treatEmptyArrayAsAbsent` (commander's repeatable-option default).
+ */
+function isFlagAbsent(options: Options, field: string, meta: FieldSchema): boolean {
+  const flag = meta.flagName ?? field;
+  const raw = options[flag];
+  if (raw === undefined) return true;
+  if (meta.treatEmptyArrayAsAbsent && Array.isArray(raw) && raw.length === 0) return true;
+  return false;
 }
 
 /**
