@@ -3,7 +3,7 @@ import {
   buildDefaultCreatePrompts,
   buildDefaultUpdatePrompts,
 } from '../../utils/schema-prompts.js';
-import { ResourceSchema, schemas } from '../../utils/schemas.js';
+import { schemas } from '../../utils/schemas.js';
 import { IOutputService } from '../../interfaces/output.interface.js';
 
 vi.mock('inquirer', () => ({
@@ -255,8 +255,3 @@ describe('schema introspection (buildJsonSchema backward compat)', () => {
     }
   });
 });
-
-// Reference: keep an unused-typed handle to ResourceSchema so TS picks up the import even
-// when no instance is constructed directly.
-const _typeCheck: ResourceSchema | undefined = undefined;
-void _typeCheck;

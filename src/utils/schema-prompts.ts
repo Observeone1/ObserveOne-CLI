@@ -59,7 +59,7 @@ export function buildDefaultCreatePrompts<T>(
 
     const payload: Payload = {};
     for (const [field, meta] of entries) {
-      const value = resolveValue(field, meta, options, answers, /* useDefault */ true);
+      const value = resolveValue(field, meta, options, answers);
       if (value !== undefined) payload[field] = value;
     }
 
@@ -148,8 +148,7 @@ function resolveValue(
   field: string,
   meta: FieldSchema,
   options: Options,
-  answers: Record<string, unknown>,
-  useDefault: boolean
+  answers: Record<string, unknown>
 ): unknown {
   const flag = meta.flagName ?? field;
   const fromOptions = flag in options ? options[flag] : undefined;
@@ -158,10 +157,7 @@ function resolveValue(
   if (raw !== undefined) {
     return meta.transformer ? meta.transformer(raw) : raw;
   }
-  if (useDefault && meta.default !== undefined) {
-    return meta.default;
-  }
-  return undefined;
+  return meta.default;
 }
 
 /** camelCase → kebab-case for help-message rendering of flag names. */
