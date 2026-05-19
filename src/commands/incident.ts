@@ -144,44 +144,5 @@ export function createIncidentCommand(
       }
     });
 
-  // State-transition shortcuts over `incident update <id>` (status field).
-  // Backend IncidentStatus = OPEN | RESOLVED | CLOSED (no ACKNOWLEDGED).
-  const stateVerbs: Array<{
-    verb: string;
-    status: 'OPEN' | 'RESOLVED' | 'CLOSED';
-    label: string;
-  }> = [
-    { verb: 'resolve', status: 'RESOLVED', label: 'resolved' },
-    { verb: 'close', status: 'CLOSED', label: 'closed' },
-    { verb: 'reopen', status: 'OPEN', label: 'reopened' },
-  ];
-  for (const { verb, status, label } of stateVerbs) {
-    cmd
-      .command(`${verb} <id>`)
-      .description(`Set an incident's status to ${status}`)
-      .action(async (id: string) => {
-        const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-        try {
-          const incidentId = parseInt(id);
-          if (isNaN(incidentId)) throw new Error('Invalid incident ID');
-
-          const incident = await apiClient.updateIncident(incidentId, { status });
-          if (isJson) {
-            outputService.formatJsonOutput({ incident });
-            return;
-          }
-          console.log(chalk.green(`\n✓ Incident ${incidentId} ${label}.\n`));
-        } catch (err: unknown) {
-          const msg = (err as Error).message || `Failed to ${verb} incident`;
-          if (isJson) {
-            outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-          } else {
-            console.error(chalk.red(`\n❌ ${msg}\n`));
-          }
-          process.exit(1);
-        }
-      });
-  }
-
   return cmd;
 }

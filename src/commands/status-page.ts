@@ -143,45 +143,5 @@ export function createStatusPageCommand(
       }
     });
 
-  cmd
-    .command('reorder <sp-id> <entry-id>')
-    .description(
-      "Change a monitor's display order on a status page (entry-id from add-monitor response)"
-    )
-    .requiredOption('--order <n>', 'New display order (integer)')
-    .action(async (spId: string, entryIdArg: string, options) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const statusPageId = parseInt(spId);
-        const entryId = parseInt(entryIdArg);
-        const displayOrder = parseInt(options.order as string);
-        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
-        if (isNaN(entryId)) throw new Error('Invalid entry ID');
-        if (isNaN(displayOrder)) throw new Error('Invalid --order value (must be an integer)');
-        const entry = await (apiClient as ApiClient).updateStatusPageMonitorOrder(
-          statusPageId,
-          entryId,
-          displayOrder
-        );
-        if (isJson) {
-          outputService.formatJsonOutput({ status_page_monitor: entry });
-          return;
-        }
-        console.log(
-          chalk.green(
-            `\n Entry ${entryId} on status page ${statusPageId} moved to display order ${displayOrder}.\n`
-          )
-        );
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to reorder monitor';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
-
   return cmd;
 }

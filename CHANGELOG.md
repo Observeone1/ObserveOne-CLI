@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `obs status-page reorder <sp-id> <entry-id> --order <n>` — change a monitor's display order on a status page.
-- `obs incident resolve|close|reopen <id>` — state-transition shortcuts over `incident update` (RESOLVED / CLOSED / OPEN).
 - `obs api-key rotate <id>` — create a replacement key with the same name, then revoke the old one (create-before-revoke; prints the new key once).
 - `obs suite generate-test|dismiss-planned|restore-planned <suite-id> --planned-file <f>` and `obs suite heal-history <test-id> --heal-id <id>` — planned-file and heal-history operations previously only available in the web UI.
 

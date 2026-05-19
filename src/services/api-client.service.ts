@@ -597,24 +597,6 @@ export class ApiClient implements IApiClient {
     await this.client.delete(`/status-pages/${spId}/monitors/${entryId}`);
   }
 
-  async updateStatusPageMonitorOrder(
-    spId: number,
-    entryId: number,
-    displayOrder: number
-  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }> {
-    const response = await this.client.patch<{
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
-    }>(`/status-pages/${spId}/monitors/${entryId}`, { display_order: displayOrder });
-    return response.data as {
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
-      [key: string]: unknown;
-    };
-  }
-
   // Incidents
   async getIncidents(): Promise<Incident[]> {
     const response = await this.client.get<
