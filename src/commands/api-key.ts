@@ -146,5 +146,79 @@ export function createApiKeyCommand(
       }
     });
 
+  // obs api-key rotate <id> [-y] [--json]
+  cmd
+    .command('rotate <id>')
+    .description('Rotate an API key: create a new key with the same name, then revoke the old one')
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (id: string, options: { yes?: boolean }) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const confirmed = await requireConfirmation(
+          `Rotate API key ${id}? This creates a new key and revokes the old one.`,
+          {
+            yes: options.yes,
+            isJson,
+            outputError: (msg) => outputService.error(msg),
+          }
+        );
+        if (!confirmed) {
+          console.log(chalk.gray(' Rotate cancelled.'));
+          return;
+        }
+
+        const existing = (await apiClient.getApiKeys()).find((k) => String(k.id) === String(id));
+        if (!existing) throw new Error(`API key ${id} not found`);
+
+        // Create the replacement BEFORE revoking the old key so there is no
+        // window where the caller has no working key.
+        const created = await apiClient.createApiKey(existing.name);
+
+        let oldKeyRevoked = true;
+        let revokeWarning: string | undefined;
+        try {
+          await apiClient.deleteApiKey(id);
+        } catch (revokeErr: unknown) {
+          oldKeyRevoked = false;
+          revokeWarning = (revokeErr as Error).message || `Failed to revoke old key ${id}`;
+        }
+
+        if (isJson) {
+          outputService.formatJsonOutput({
+            apiKey: created,
+            rotatedFrom: id,
+            oldKeyRevoked,
+            ...(revokeWarning ? { warning: revokeWarning } : {}),
+          });
+          return;
+        }
+        console.log(chalk.green(`\n✓ API key rotated: ${created.name} [${created.id}]`));
+        if (created.key) {
+          console.log(
+            chalk.bold(`  New key: ${created.key}`) +
+              chalk.yellow('  (save it now — it will not be shown again)')
+          );
+        }
+        if (oldKeyRevoked) {
+          console.log(chalk.gray(`  Old key ${id} revoked.\n`));
+        } else {
+          console.log(
+            chalk.yellow(
+              `\n⚠ New key created, but the old key ${id} was NOT revoked: ${revokeWarning}\n` +
+                `  Revoke it manually: obs api-key revoke ${id}\n`
+            )
+          );
+        }
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to rotate API key';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n❌ ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+
   return cmd;
 }

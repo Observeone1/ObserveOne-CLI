@@ -597,6 +597,24 @@ export class ApiClient implements IApiClient {
     await this.client.delete(`/status-pages/${spId}/monitors/${entryId}`);
   }
 
+  async updateStatusPageMonitorOrder(
+    spId: number,
+    entryId: number,
+    displayOrder: number
+  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }> {
+    const response = await this.client.patch<{
+      id: number;
+      status_page_id: number;
+      monitor_id: number;
+    }>(`/status-pages/${spId}/monitors/${entryId}`, { display_order: displayOrder });
+    return response.data as {
+      id: number;
+      status_page_id: number;
+      monitor_id: number;
+      [key: string]: unknown;
+    };
+  }
+
   // Incidents
   async getIncidents(): Promise<Incident[]> {
     const response = await this.client.get<
@@ -786,6 +804,35 @@ export class ApiClient implements IApiClient {
     const response = await this.client.post<{ testId: string }>(
       `/playwright-autopilot/suites/${suiteId}/generate-test`,
       { planned_file: plannedFile }
+    );
+    return response.data;
+  }
+
+  async dismissPlannedFile(
+    suiteId: string,
+    plannedFile: string
+  ): Promise<{ dismissed_planned_files: string[] }> {
+    const response = await this.client.post<{ dismissed_planned_files: string[] }>(
+      `/playwright-autopilot/suites/${suiteId}/planned-files/dismiss`,
+      { plannedFile }
+    );
+    return response.data;
+  }
+
+  async restorePlannedFile(
+    suiteId: string,
+    plannedFile: string
+  ): Promise<{ dismissed_planned_files: string[] }> {
+    const response = await this.client.post<{ dismissed_planned_files: string[] }>(
+      `/playwright-autopilot/suites/${suiteId}/planned-files/restore`,
+      { plannedFile }
+    );
+    return response.data;
+  }
+
+  async testHealHistory(testId: string, healId: string): Promise<Array<Record<string, unknown>>> {
+    const response = await this.client.get<Array<Record<string, unknown>>>(
+      `/playwright-autopilot/tests/${testId}/heals/${healId}/history`
     );
     return response.data;
   }

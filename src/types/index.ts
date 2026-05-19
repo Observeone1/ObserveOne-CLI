@@ -298,6 +298,8 @@ export interface ApiKey {
   id: string;
   name: string;
   is_active: boolean;
+  /** Plaintext key value — only surfaced by the API on create. */
+  key?: string;
   created_at?: string;
   last_used_at?: string;
   [key: string]: unknown;
