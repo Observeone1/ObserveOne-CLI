@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2026-05-19
+
+### Added
+- `obs incident resolve|close|reopen <id>` — set an incident's status to RESOLVED / CLOSED / OPEN. Previously blocked by a backend bug; enabled by Backend-Express PR #109 (partial incident update schema).
+- `obs status-page reorder <sp-id> <entry-id> --order <n>` — change a monitor's display order on a status page. Previously had no backend route; enabled by Backend-Express PR #109 (`PATCH /status-pages/:id/monitors/:id`).
+
+### Notes
+- Both commands require a backend running PR #109 or later. Closes the CLI parity track (the two items deferred from v1.23.0).
+
 ## [1.23.0] - 2026-05-19
 
 ### Added
