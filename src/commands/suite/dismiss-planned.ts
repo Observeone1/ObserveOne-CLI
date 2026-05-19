@@ -1,0 +1,35 @@
+import { Command } from 'commander';
+import chalk from 'chalk';
+import { ApiClient } from '../../services/api-client.service.js';
+import { IConfigService } from '../../interfaces/config.interface.js';
+import { IOutputService } from '../../interfaces/output.interface.js';
+
+export function createSuiteDismissPlannedCommand(
+  _configService: IConfigService,
+  apiClient: ApiClient,
+  outputService: IOutputService
+): Command {
+  return new Command('dismiss-planned')
+    .description('Dismiss a planned file in a suite so it is not generated')
+    .argument('<suite-id>', 'Suite ID')
+    .requiredOption('--planned-file <file>', 'Planned file path to dismiss')
+    .action(async (suiteId: string, options: { plannedFile: string }) => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const result = await apiClient.dismissPlannedFile(suiteId, options.plannedFile);
+        if (isJson) {
+          outputService.formatJsonOutput({ ...result, suiteId, plannedFile: options.plannedFile });
+          return;
+        }
+        console.log(chalk.green(`\n✓ Planned file dismissed: ${options.plannedFile}\n`));
+      } catch (err: unknown) {
+        const msg = (err as Error).message || 'Failed to dismiss planned file';
+        if (isJson) {
+          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+        } else {
+          console.error(chalk.red(`\n❌ ${msg}\n`));
+        }
+        process.exit(1);
+      }
+    });
+}

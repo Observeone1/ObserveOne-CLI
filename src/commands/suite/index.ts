@@ -16,6 +16,10 @@ import { createSuitePullCommand } from './pull.js';
 import { createSuitePushCommand } from './push.js';
 import { createSuiteTogglePublicCommand } from './toggle-public.js';
 import { createSuiteHealCommand } from './heal.js';
+import { createSuiteGenerateTestCommand } from './generate-test.js';
+import { createSuiteDismissPlannedCommand } from './dismiss-planned.js';
+import { createSuiteRestorePlannedCommand } from './restore-planned.js';
+import { createSuiteHealHistoryCommand } from './heal-history.js';
 import { createSuiteCiCommand } from './ci/index.js';
 
 export function createSuiteCommand(
@@ -39,6 +43,10 @@ export function createSuiteCommand(
   suite.addCommand(createSuitePushCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteTogglePublicCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteHealCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteGenerateTestCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteDismissPlannedCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteRestorePlannedCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteHealHistoryCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteCiCommand(configService, apiClient, outputService));
 
   return suite;

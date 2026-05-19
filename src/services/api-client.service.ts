@@ -790,6 +790,35 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
+  async dismissPlannedFile(
+    suiteId: string,
+    plannedFile: string
+  ): Promise<{ dismissed_planned_files: string[] }> {
+    const response = await this.client.post<{ dismissed_planned_files: string[] }>(
+      `/playwright-autopilot/suites/${suiteId}/planned-files/dismiss`,
+      { plannedFile }
+    );
+    return response.data;
+  }
+
+  async restorePlannedFile(
+    suiteId: string,
+    plannedFile: string
+  ): Promise<{ dismissed_planned_files: string[] }> {
+    const response = await this.client.post<{ dismissed_planned_files: string[] }>(
+      `/playwright-autopilot/suites/${suiteId}/planned-files/restore`,
+      { plannedFile }
+    );
+    return response.data;
+  }
+
+  async testHealHistory(testId: string, healId: string): Promise<Array<Record<string, unknown>>> {
+    const response = await this.client.get<Array<Record<string, unknown>>>(
+      `/playwright-autopilot/tests/${testId}/heals/${healId}/history`
+    );
+    return response.data;
+  }
+
   async pollSuiteTests(
     suiteId: string,
     expectedCount: number,
