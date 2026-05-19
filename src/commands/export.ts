@@ -32,18 +32,19 @@ export function createExportCommand(
     .description('Export existing remote resources into a declarative JSON file')
     .option('-f, --file <path>', 'Path to save the JSON configuration file', 'obs.json')
     .option('-j, --json', 'Output in JSON format')
+    .option('--no-scripts', "Exclude each suite's generated Playwright test scripts")
     .option(
       '--include-scripts',
-      "Inline each suite's generated Playwright test scripts under suites[].tests"
+      '[deprecated] Scripts are now included by default; this flag is a no-op'
     )
     .addHelpText(
       'after',
       `
 Examples:
-  $ obs export                         # saves all resources to obs.json
+  $ obs export                         # saves all resources (incl. suite scripts) to obs.json
   $ obs export -f my-stack.json        # saves to a custom file name
   $ obs export --json                  # outputs the config JSON to stdout
-  $ obs export --include-scripts       # inline suite Playwright scripts for portability
+  $ obs export --no-scripts            # omit suite Playwright scripts (lighter, config-only)
 `
     )
     .action(async (options: Record<string, unknown>) => {
@@ -51,6 +52,9 @@ Examples:
       if (isJson) {
         outputService.enableJsonMode();
       }
+      // Lossless by default. Commander maps `--no-scripts` to options.scripts=false;
+      // the deprecated `--include-scripts` is intentionally ignored (now a no-op).
+      const includeScripts = options.scripts !== false;
 
       try {
         const apiKey = configService.getApiKey();
@@ -158,6 +162,9 @@ Examples:
             };
             const channel_ids = extractChannelIds(extended);
             return {
+              // Bundle-local surrogate key: lets status_pages[].monitors[].monitor_id
+              // resolve to this monitor on import. Not a real id in any target.
+              ...(m.id !== undefined && { id: m.id }),
               name: m.name,
               ...(m.description !== undefined && { description: m.description }),
               url: m.url,
@@ -179,6 +186,9 @@ Examples:
             const channel_ids = extractChannelIds(extended);
             const assertions = stripAssertionDbFields(c.assertions);
             return {
+              // Bundle-local surrogate key (see monitors): resolves
+              // status_pages[].monitors[].monitor_id on import.
+              ...(c.id !== undefined && { id: c.id }),
               name: c.name,
               ...(c.description !== undefined && { description: c.description }),
               url: c.url,
@@ -209,6 +219,9 @@ Examples:
         // 4. Map Alert Channels
         if (alertChannels.length > 0) {
           config.alert_channels = alertChannels.map((c) => ({
+            // Bundle-local surrogate key: lets monitors/api_checks `channel_ids`
+            // resolve to this channel on import. Not a real id in any target.
+            ...(c.id !== undefined && { id: c.id }),
             name: c.name,
             type: c.type,
             config: c.config,
@@ -272,7 +285,6 @@ Examples:
 
         // 7. Map Suites
         if (suites.length > 0) {
-          const includeScripts = options.includeScripts === true;
           const scriptsBySuiteId: Record<string, Array<{ name: string; script: string }>> = {};
           if (includeScripts) {
             await Promise.all(
@@ -314,6 +326,7 @@ Examples:
           outputService.formatJsonOutput({
             success: true,
             file: targetFile,
+            scriptsIncluded: includeScripts,
             counts: {
               monitors: monitors.length,
               apiChecks: apiChecks.length,
@@ -334,6 +347,10 @@ Examples:
           console.log(`  Status Pages:   ${statusPages.length}`);
           console.log(`  Incidents:      ${incidents.length}`);
           console.log(`  Suites:         ${suites.length}`);
+          console.log('');
+          console.log(
+            `  Suite scripts:  ${includeScripts ? 'included' : 'excluded (--no-scripts)'}`
+          );
         }
       } catch (error: unknown) {
         outputService.error(outputService.formatError(error));

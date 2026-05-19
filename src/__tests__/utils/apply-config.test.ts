@@ -258,4 +258,56 @@ describe('normalizeApplyConfig', () => {
       expect(result.monitors?.[0]).not.toHaveProperty('resource');
     });
   });
+
+  describe('surrogate id stripping', () => {
+    it('strips bundle-local id from monitors so apply never forwards it', () => {
+      const result = normalizeApplyConfig({
+        monitors: [{ id: 42, name: 'm1', url: 'https://example.com' }],
+      });
+      expect(result.monitors?.[0]).not.toHaveProperty('id');
+      expect(result.monitors?.[0].name).toBe('m1');
+    });
+
+    it('strips id from api_checks', () => {
+      const result = normalizeApplyConfig({
+        api_checks: [{ id: 7, name: 'c1', url: 'https://api.example.com', method: 'GET' }],
+      });
+      expect(result.api_checks?.[0]).not.toHaveProperty('id');
+      expect(result.api_checks?.[0].name).toBe('c1');
+    });
+
+    it('strips id from alert_channels', () => {
+      const result = normalizeApplyConfig({
+        alert_channels: [{ id: 9, name: 'ch1', type: 'webhook' }],
+      });
+      expect(result.alert_channels?.[0]).not.toHaveProperty('id');
+      expect(result.alert_channels?.[0].name).toBe('ch1');
+    });
+
+    it('strips id from a wrapped single resource', () => {
+      const result = normalizeApplyConfig({
+        monitor: { id: 13, name: 'm1', url: 'https://example.com' },
+      });
+      expect(result.monitors?.[0]).not.toHaveProperty('id');
+    });
+
+    it('strips id from a bare inferred resource', () => {
+      const result = normalizeApplyConfig({
+        id: 99,
+        name: 'm1',
+        url: 'https://example.com',
+      });
+      expect(result.monitors?.[0]).not.toHaveProperty('id');
+    });
+
+    it('leaves status_pages monitor_id / id references intact (not stripped)', () => {
+      const result = normalizeApplyConfig({
+        status_pages: [
+          { slug: 'sp1', name: 'SP 1', monitors: [{ monitor_type: 'url_monitor', monitor_id: 5 }] },
+        ],
+      });
+      const sp = result.status_pages?.[0] as { monitors?: Array<{ monitor_id?: number }> };
+      expect(sp.monitors?.[0].monitor_id).toBe(5);
+    });
+  });
 });
