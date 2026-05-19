@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0] - 2026-05-19
+
+### Changed
+- **`obs export` is now lossless by default.** Suite Playwright scripts are included automatically — no flag required. Pass `--no-scripts` for a lighter, config-only export. The previous `--include-scripts` flag is still accepted but is now a no-op (deprecated; kept for CI back-compat).
+- **`obs export` now emits a bundle-local `id`** on each `monitors[]`, `api_checks[]`, and `alert_channels[]` entry. This is a surrogate key local to the export file: it lets cross-references resolve on import — monitors/api_checks `channel_ids` → the exported alert channel, and `status_pages[].monitors[].monitor_id` → the exported monitor/api_check. All other DB-owned fields (`created_at`, `user_id`, …) are still stripped. `obs apply` strips this `id` before sending to the backend, so round-trips (export → apply) are unaffected.
+
+### Notes
+- The `id` is not a real identifier in any target instance — importers (e.g. self-hosted oo-workers) use it only to wire up relationships within the bundle, then assign their own ids. This unblocks faithful migration of monitor→channel bindings and status-page monitor attachments.
+
 ## [1.24.0] - 2026-05-19
 
 ### Added

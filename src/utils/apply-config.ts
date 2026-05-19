@@ -53,23 +53,44 @@ const pluralResourceKeys: ApplyConfigKey[] = [
   'incidents',
 ];
 
+// `obs export` writes a bundle-local surrogate `id` on these resources so
+// cross-references (monitors/api_checks `channel_ids`, status page
+// `monitor_id`) can be resolved on import. `apply` correlates by name/slug
+// and must never forward that surrogate to backend create/update payloads
+// (several create paths spread the config object verbatim). Strip it here,
+// at the single chokepoint every shape passes through.
+const ID_BEARING_KEYS: ApplyConfigKey[] = ['monitors', 'api_checks', 'alert_channels'];
+
+function stripSurrogateIds(config: ApplyConfig): ApplyConfig {
+  for (const key of ID_BEARING_KEYS) {
+    const arr = config[key];
+    if (!Array.isArray(arr)) continue;
+    for (const resource of arr) {
+      if (resource && typeof resource === 'object') {
+        delete (resource as { id?: unknown }).id;
+      }
+    }
+  }
+  return config;
+}
+
 export function normalizeApplyConfig(raw: unknown): ApplyConfig {
   if (!isRecord(raw)) {
     throw new Error('Apply file must contain a JSON object.');
   }
 
   if (hasPluralConfig(raw)) {
-    return normalizePluralConfig(raw);
+    return stripSurrogateIds(normalizePluralConfig(raw));
   }
 
   const wrappedEntry = getWrappedResource(raw);
   if (wrappedEntry) {
-    return { [wrappedEntry.key]: [wrappedEntry.resource] };
+    return stripSurrogateIds({ [wrappedEntry.key]: [wrappedEntry.resource] });
   }
 
   const inferred = inferBareResource(raw);
   if (inferred) {
-    return { [inferred.key]: [inferred.resource] };
+    return stripSurrogateIds({ [inferred.key]: [inferred.resource] });
   }
 
   throw new Error(
