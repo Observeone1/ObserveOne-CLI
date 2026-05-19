@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@observeone/cli.svg)](https://www.npmjs.com/package/@observeone/cli)
 [![CI](https://github.com/Observeone1/ObserveOne-CLI/actions/workflows/ci.yml/badge.svg)](https://github.com/Observeone1/ObserveOne-CLI/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/node/v/@observeone/cli.svg)](package.json)
 
 AI-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
@@ -521,4 +521,4 @@ Contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for dev setu
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [Apache License 2.0](LICENSE).
