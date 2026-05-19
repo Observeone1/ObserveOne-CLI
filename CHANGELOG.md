@@ -5,6 +5,14 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Relicensed from MIT to the Apache License 2.0 for consistency with the rest of the ObserveOne stack and to add an explicit patent grant. All copyright is held by ObserveOne (no external contributors), so the relicense is clean. The top-level `LICENSE` file now contains the full Apache 2.0 text.
+
+### Removed
+- `test-upload.txt` — a leftover Railway upload-test stub, not needed in the public repo.
+
 ## [1.22.0] - 2026-05-14
 
 ### Changed
