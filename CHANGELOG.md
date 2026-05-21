@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.0] - 2026-05-21
+
+### Changed
+- **`obs export` now emits `ping_key` and `alert_on_failure` on each heartbeat.** The self-hosted oo-workers import (v1.22.0+) re-uses `ping_key` as the heartbeat token, which preserves the public ping URL across migration. Without it, every service still POSTing to the old `/heartbeat/:token` URL would silently stop being recorded after the cut-over.
+
 ## [1.25.0] - 2026-05-19
 
 ### Changed

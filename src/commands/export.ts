@@ -206,13 +206,18 @@ Examples:
           });
         }
 
-        // 3. Map Heartbeats
+        // 3. Map Heartbeats. ping_key rides along so the self-host import
+        // can re-use it as the heartbeat token — preserves the public ping
+        // URL across migration, so services that POST to /heartbeat/:token
+        // don't silently stop working.
         if (heartbeats.length > 0) {
           config.heartbeats = heartbeats.map((h) => ({
             name: h.name,
             ...(h.description !== undefined && { description: h.description }),
             period: h.period,
             grace_period: h.grace_period,
+            ping_key: h.ping_key,
+            alert_on_failure: h.alert_on_failure,
           }));
         }
 
