@@ -934,8 +934,12 @@ Examples:
         }
 
         if (isDryRun) {
-          console.log('');
-          printDryRun(dryRunEntries, summary);
+          if (isJson) {
+            outputService.formatJsonOutput({ dry_run: true, changes: dryRunEntries, summary });
+          } else {
+            console.log('');
+            printDryRun(dryRunEntries, summary);
+          }
           return;
         }
 
