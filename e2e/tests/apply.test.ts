@@ -60,6 +60,19 @@ export async function testApplyDryRun() {
     assertSuccess(dryRunUpdate, 'Dry-run (update) failed');
     assertContains(dryRunUpdate.stdout, configContent.monitors[0].name);
     assertContains(dryRunUpdate.stdout, 'to update');
+
+    // 6. --dry-run --json: emits structured JSON, not the coloured preview (v1.27.0 fix)
+    console.log('      - Running dry-run --json...');
+    const dryRunJson = await runCLI(['apply', testConfigFile, '--dry-run', '--json']);
+    assertSuccess(dryRunJson, 'Dry-run --json failed');
+    assertJSON(dryRunJson.stdout, 'Dry-run --json output should be JSON');
+    const parsed = JSON.parse(dryRunJson.stdout) as {
+      data?: { dry_run?: boolean; changes?: unknown[]; summary?: unknown };
+    };
+    if (parsed.data?.dry_run !== true) throw new Error('dry_run flag missing/false in JSON output');
+    if (!Array.isArray(parsed.data?.changes))
+      throw new Error('changes array missing in JSON output');
+    if (!parsed.data?.summary) throw new Error('summary missing in JSON output');
   } finally {
     if (existsSync(testConfigFile)) unlinkSync(testConfigFile);
 
