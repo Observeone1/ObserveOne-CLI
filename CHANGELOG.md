@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0] - 2026-05-24
+
+### Fixed
+- **`obs apply --dry-run --json` now emits JSON instead of the coloured human preview.** Previously the `--dry-run` early return sat above the `--json` block, so combining both flags silently ignored `--json`. Output shape: `{ dry_run: true, changes: [...], summary: {...} }`.
+
 ## [1.26.0] - 2026-05-21
 
 ### Changed
