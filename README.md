@@ -5,9 +5,9 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/node/v/@observeone/cli.svg)](package.json)
 
-AI-powered website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
+Website monitoring, synthetic testing, and infrastructure-as-code from your terminal.
 
-The `obs` CLI lets developers and AI coding agents manage URL monitors, API checks, heartbeats, and AI browser tests — either through individual commands or a single declarative JSON config.
+The `obs` CLI lets developers and AI coding agents manage URL monitors, API checks, heartbeats, status pages, incidents, and Playwright Autopilot suites, either through individual commands or a single declarative JSON config.
 
 ## Installation
 
@@ -17,78 +17,56 @@ npm install -g @observeone/cli
 
 ## Quick Start
 
-1. **Login to ObserveOne**
-   ```bash
-   obs login
-   ```
+```bash
+obs login        # Authenticate (use --force to switch accounts)
+obs init         # Create a local .obs.config.json
+obs export       # Pull your existing resources into obs.json
+obs logout       # Clear local credentials
+```
 
-   *To switch accounts or refresh a session, use:* `obs login --force`
+Create your first monitor:
 
-2. **Initialize Workspace**
-   ```bash
-   # Creates local .obs.config.json
-   obs init
-   ```
-
-3. **Logout**
-   ```bash
-   # Clear local credentials
-   obs logout
-   ```
-
-4. **Pull your existing configuration**
-   ```bash
-   obs export
-   ```
-
-5. **Manage a monitor**
-   ```bash
-   obs url-monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
-   obs url-monitor list
-   ```
-
----
+```bash
+obs url-monitor create --name "My Website" --url "https://example.com" --interval "*/5 * * * *"
+obs url-monitor list
+```
 
 ## Configuration Priority
 
-The CLI resolves configuration settings in the following order (highest to lowest priority):
+The CLI resolves settings highest-to-lowest:
 
-1.  **CLI Flags**: `--api-key`, `--api-url` passed directly to a command.
-2.  **Environment Variables**: `OBS_API_KEY`, `OBS_API_URL`.
-3.  **Local Config File**: `.obs.config.json` in the current working directory (created via `obs init`).
-4.  **Global Store**: Global OS configuration (saved after `obs login`).
-5.  **Defaults**: Internal default values.
-
----
+1. **CLI flags**: `--api-key`, `--api-url` passed to a command.
+2. **Environment variables**: `OBS_API_KEY`, `OBS_API_URL`.
+3. **Local config file**: `.obs.config.json` in the working directory (created by `obs init`).
+4. **Global store**: OS-level config saved after `obs login`.
+5. **Defaults**: built-in values.
 
 ## Config-as-Code (Declarative Workflow)
 
-ObserveOne supports an Infrastructure-as-Code (IaC) workflow using JSON. You can define all your monitors, API checks, and heartbeats in a single `obs.json` file and sync them to your account.
+Define all your resources in one `obs.json` file and sync them to your account.
 
 ### `obs export`
-Fetch all your existing remote resources from the ObserveOne backend and save them locally.
-```bash
-# Generates obs.json in the current directory
-obs export
 
-# Save to a custom file
-obs export -f my-stack.json
+Fetch your remote resources and save them locally.
+
+```bash
+obs export                      # Writes obs.json (suite scripts included)
+obs export -f my-stack.json     # Custom file
+obs export --no-scripts         # Omit suite Playwright scripts (lighter, config-only)
 ```
 
 ### `obs apply`
-Sync your local JSON configuration to the ObserveOne backend. Only changed resources are updated — unchanged ones are skipped.
+
+Sync local JSON to the backend. Only changed resources are updated; unchanged ones are skipped.
+
 ```bash
-# Preview what would change (no writes)
-obs apply --dry-run
-
-# Sync obs.json
-obs apply
-
-# Sync a custom file
-obs apply -f my-stack.json
+obs apply --dry-run             # Preview the diff, no writes
+obs apply                       # Apply obs.json
+obs apply -f my-stack.json      # Apply a custom file
 ```
 
 `--dry-run` fetches remote state, runs the full diff, and prints a git-style preview:
+
 ```
 ~ monitor "Production API"
     - cron_expression: "*/5 * * * *"
@@ -101,7 +79,8 @@ obs apply -f my-stack.json
   Run without --dry-run to apply.
 ```
 
-**Example `obs.json` schema:**
+**Example `obs.json`:**
+
 ```json
 {
   "monitors": [
@@ -162,353 +141,270 @@ obs apply -f my-stack.json
 ```
 
 > **Notes:**
-> - `incidents` — included in export as a backup/audit artifact. `obs apply` warns and skips this block; incidents cannot be re-created from config.
-> - `suites` — `obs apply` updates metadata for existing suites only. New suites require AI generation via `obs suite generate`.
-> - Status-page attached monitors are exported but not applied. Manage them via `obs status-page add-monitor / remove-monitor`.
+> - `incidents` are included in export as a backup artifact. `obs apply` warns and skips this block; incidents cannot be re-created from config.
+> - `suites`: `obs apply` updates metadata for existing suites only. New suites require AI generation via `obs suite generate`.
+> - Status-page attached monitors are exported but not applied. Manage them with `obs status-page add-monitor` / `remove-monitor`.
 
-**Single-resource files (v1.13.0):** `obs apply` also accepts files holding a single resource, in three shapes:
+**Single-resource files:** `obs apply` also accepts a file holding one resource, in three shapes:
 
-```json
-// Bare — type inferred from fields (url → monitor, url+method → check, period → heartbeat)
+```jsonc
+// Bare: type inferred from fields (url is monitor, url+method is check, period is heartbeat)
 { "name": "Landing", "url": "https://example.com", "interval": "*/5 * * * *" }
-```
-```json
-// Wrapped — explicit resource key
+// Wrapped: explicit resource key
 { "monitor": { "name": "Landing", "url": "https://example.com" } }
-```
-```json
-// Explicit type — disambiguates the bare form
+// Explicit type: disambiguates the bare form
 { "type": "heartbeat", "name": "Daily Backup", "period": 86400 }
 ```
 
-Useful for scripting one-off resources without maintaining a full `obs.json`.
-
----
+The bare form supports `monitor`, `check`, and `heartbeat`.
 
 ## Resource Management (CRUD)
 
-You can manually create, read, update, delete, and toggle individual resources directly from the terminal.
+Create, read, update, delete, and toggle individual resources from the terminal. Monitor, check, and heartbeat lists support server-side filtering with `--search`, `--status`, `--is-active true|false`, `--limit`, and `--page`. Pass `--file <path>` to `create` to supply a JSON payload instead of flags.
 
 ### URL Monitors
+
 ```bash
 obs url-monitor create --name "Frontend" --url "https://example.com" --interval "*/5 * * * *" \
   --description "Production landing page" \
   --alert-channel-id 12 --alert-channel-id 47
-obs url-monitor list
-obs url-monitor list --search "Front" --status up --is-active true --limit 10 --page 1 --json
+obs url-monitor list --search "Front" --status up --is-active true --limit 10 --page 1
 obs url-monitor get <id>
-obs url-monitor update <id> --description "Updated copy" --alert-channel-id 47
-obs url-monitor runs <id> --limit 10         # recent executions
-obs url-monitor run <id>                      # trigger a manual run
-obs url-monitor toggle <id>
-obs url-monitor toggle-muted <id>
+obs url-monitor update <id> --interval "*/10 * * * *"
+obs url-monitor run <id>            # Trigger a manual check
+obs url-monitor runs <id> --limit 10
+obs url-monitor toggle <id>         # Pause or resume
+obs url-monitor toggle-muted <id>   # Mute or unmute failure alerts
 obs url-monitor delete <id> -y
 ```
 
-Monitor flags:
-- `-d, --description <text>` — optional description.
-- `--alert-channel-id <id>` — attach an alert channel (repeat for multiple).
-- `--no-alerts` — disable alerting on failure.
+Flags: `-d, --description`, `--alert-channel-id <id>` (repeatable), `--no-alerts` (disable failure alerting on create).
 
 ### API Checks
+
 ```bash
 obs check create --name "Auth API" --url "https://api.example.com/auth" --method POST \
-  --description "Signup endpoint" \
   --interval "*/5 * * * *" \
-  --alert-channel-id 12 \
   --header "Authorization=Bearer test" --header "X-Trace=ci" \
-  --assertion '{"type":"status_code","operator":"equals","value":"200"}' \
-  --assertion '{"type":"json_path","operator":"equals","path":"$.ok","value":"true"}'
-obs check list
-obs check list --search "Auth" --status paused --is-active false --json
-obs check update <id> --description "Signup v2" --header "X-Trace=ci-v2"
-obs check runs <id> --limit 10            # recent executions
-obs check run <id>                         # trigger a manual run
+  --status-code 200 --response-time-under 800
+obs check list --search "Auth" --status paused --is-active false
+obs check run <id>
+obs check runs <id> --limit 10
 obs check toggle <id>
 obs check toggle-muted <id>
 obs check delete <id> -y
 ```
 
-Check flags:
-- `-d, --description <text>` — optional description.
-- `-i, --interval <cron>` — schedule expression (e.g. `*/5 * * * *`).
-- `--alert-channel-id <id>` — attach an alert channel (repeat for multiple).
-- `--no-alerts` — disable alerting on failure.
-- `--header KEY=VALUE` — HTTP header to send (repeatable).
-- `--assertion <json>` — response assertion as a JSON object (repeatable). Supported types: `status_code`, `response_time`, `json_path` (uses `path`), `text_contains`, `header` (uses `path`). Operators: `equals`, `not_equals`, `greater_than`, `less_than`, `contains`, `not_contains`, `exists`, `regex_match`.
+Assertions can be raw JSON (`--assertion '{...}'`, repeatable) or shorthand flags (`--status-code`, `--status-code-not`, `--response-time-under/over`, `--json-path` / `--json-path-value`, `--text-contains`, `--header-exists`, `--regex-match`). See the [command reference](docs/reference/cli-commands.md#api-checks) for the full list.
 
 ### Heartbeats (Cron Monitoring)
+
 ```bash
 obs heartbeat create --name "Daily Backup" --period 86400 --grace 3600
-obs heartbeat list
-obs heartbeat list --search "Backup" --status late --limit 5 --json
+obs heartbeat list --search "Backup" --status late
 obs heartbeat update <id> --period 43200
-obs heartbeat runs <id> --limit 10        # recent pings
+obs heartbeat runs <id> --limit 10
+obs heartbeat reset <id>            # Acknowledge missed pings and restart the grace window
 obs heartbeat toggle <id>
 obs heartbeat toggle-muted <id>
-obs heartbeat reset <id>                  # acknowledge missed pings and restart grace window
 obs heartbeat delete <id> -y
 ```
 
-List filtering notes:
-- `--search` matches visible fields server-side.
-- `--status` uses each resource's real status values.
-- `--is-active true|false` filters by activation state separately from status.
-- `--page` and `--limit` enable server-side pagination.
-
-Run history (new in v1.13.0):
-- `obs <resource> runs <id>` fetches recent executions/pings. Default limit 20, override with `-l, --limit`.
-
 ### Alert Channels
+
 ```bash
 obs alert-channel create --name "Ops Email" --type email --email "ops@example.com"
 obs alert-channel list
-obs alert-channel get <id>
-obs alert-channel update <id> --name "Ops Email Primary" --type email --email "ops@example.com"
+obs alert-channel test <id>         # Send a test notification through the channel
+obs alert-channel update <id> --name "Ops Email Primary"
 obs alert-channel delete <id> -y
 ```
 
+Types: `email`, `slack`, `discord`, `teams`, `telegram`, `sms`, `webhook`.
+
 ### Status Pages
+
 ```bash
 obs status-page create --name "Public Status" --slug "public-status"
 obs status-page list
-obs status-page get <id>
-obs status-page update <id> --description "Updated"
+obs status-page update <id> --hide-uptime
 obs status-page delete <id> -y
 
-# Attach / detach monitors from a status page
+# Attach a monitor (returns an entry ID), reorder it, then detach it
 obs status-page add-monitor <sp-id> <resource-id> --type url-monitor --name "API" --order 1
-obs status-page remove-monitor <sp-id> <resource-id>
+obs status-page reorder <sp-id> <entry-id> --order 2
+obs status-page remove-monitor <sp-id> <entry-id>
 ```
 
+`remove-monitor` and `reorder` take the entry ID returned by `add-monitor`, not the monitor's own ID.
+
 ### Incidents
+
 ```bash
 obs incident create --title "API Outage" --priority HIGH --description "Initial investigation"
 obs incident list
-obs incident get <id>
-obs incident update <id> --description "Resolved"
-obs incident delete <id> -y
-
-# Comment on an incident
-obs incident comment <id> --message "Investigating upstream provider issue"
-
-# Assign / unassign
+obs incident comment <id> --message "Investigating the upstream provider"
 obs incident assign <id> --user <user-id>
 obs incident unassign <id>
+
+# Status verbs (status is OPEN, RESOLVED, or CLOSED)
+obs incident resolve <id>
+obs incident close <id>
+obs incident reopen <id>
+obs incident delete <id> -y
 ```
 
+`create` and `update` also accept `--assigned-to <userId>` and `--team-id <teamId>`.
+
 ### API Keys
+
 ```bash
 obs api-key list
 obs api-key create --name "CI Bot"
-obs api-key revoke <id>        # also: obs api-key delete <id>
+obs api-key revoke <id> -y          # Also: obs api-key delete <id>
 obs api-key toggle <id>
+obs api-key rotate <id> -y          # New key with the same name, then revoke the old one
 ```
 
 ### Teams
+
 ```bash
 obs team list
 obs team members <team-id>
-obs team invite <team-id>                           # regenerate invite code
-obs team remove-member <team-id> <user-id>
+obs team invite <team-id>                          # Regenerate the invite code
+obs team remove-member <team-id> <user-id> -y
 obs team update-role <team-id> <user-id> --role member
 ```
-
----
-
-## AI Browser Checks
-
-Manage and execute intelligent Playwright-driven browser tests using natural language prompts.
-
-```bash
-# Run an existing test and output JUnit report for CI
-obs ai-check run "Login Flow" --reporter junit
-
-# Run multiple tests and output strict JSON for AI Agents
-obs ai-check run test1 test2 --reporter json
-
-# Run an ad-hoc test without saving it
-obs ai-check run --adhoc --url https://example.com --prompt "Verify login section exists"
-```
-
----
 
 ## Playwright Autopilot Suites
 
 Generate and manage AI-driven Playwright test suites from your terminal.
 
 ```bash
-# Generate a suite and tests (plans + generates all test scripts by default)
+# Generate a suite (plans, then generates all test scripts by default)
 obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
-
-# Generate with a cron schedule
 obs suite generate https://example.com --cron "0 */6 * * *"
-
-# Plan only — review before generating tests
-obs suite generate https://example.com --plan-only
-
-# Pass credentials/variables to the test runner
-obs suite generate https://example.com --var USERNAME=admin --var PASSWORD=secret
+obs suite generate https://example.com --plan-only         # Review the plan before generating
+obs suite generate https://example.com --var USER=admin --var PASS=secret
 obs suite generate https://example.com --var-file .env.test
 
-# List all suites
 obs suite list
-
-# Get full suite details
 obs suite get <id>
+obs suite run <id> --wait              # Trigger a run; --wait streams the result
+obs suite status <id>                  # Latest execution status
+obs suite wait <id> <executionId>      # Block on a specific execution
+obs suite delete <id> -y
 
-# Trigger a run and stream results
-obs suite run <id> --wait
-
-# Check the latest execution status
-obs suite status <id>
-
-# Wait on a specific execution
-obs suite wait <id> <executionId>
-
-# Update schedule without regenerating (v1.8.0)
+# Schedule and credentials without regenerating
 obs suite schedule <id> --enable
-obs suite schedule <id> --disable
 obs suite schedule <id> --cron "*/30 * * * *"
-
-# Update credentials/variables without regenerating (v1.8.0)
-obs suite secrets <id> --var USERNAME=admin --var PASSWORD=secret
 obs suite secrets <id> --var-file .env.test
 
-# Toggle public visibility of a suite
 obs suite toggle-public <id>
-
-# Trigger self-heal on a suite's failing tests
-obs suite heal <id>
-
-# Delete a suite
-obs suite delete <id>
+obs suite heal <id>                    # Trigger self-heal on failing tests
 ```
 
-### CI Integration (v1.19.0)
+### Edit Scripts Locally (pull / push)
 
-Headless management of a suite's GitHub App / CI binding. Install + repo selection still happens in the web UI; these commands cover post-install ops that scripts and CI bootstraps actually need.
+Download a suite, edit its generated Playwright scripts, and push them back.
 
 ```bash
-# Show current binding (provider, repo, branch, hooks, masked token)
-obs suite ci status <id>
+obs suite pull <id>                    # Writes ./suites/<slug>-<id>/
+# ...edit the .spec.ts files...
+obs suite push <id>                    # Sends your edits back
+```
 
-# Generate or rotate the inbound webhook token (each call invalidates the previous one)
-obs suite ci webhook-token <id> -y
+`pull` writes a folder per suite containing `PLAN.md` (when present), one `<test-name>.spec.ts` per test, and a `suite.json` manifest. `push` updates the test scripts only; plan edits are not sent back.
 
-# Pipe the new token into a secret store
+### CI Integration
+
+Manage a suite's GitHub App / CI binding headlessly. Install and repo selection still happen in the web UI; these cover the post-install operations scripts need.
+
+```bash
+obs suite ci status <id>               # Show binding: repo, branch, hooks, masked token
+obs suite ci webhook-token <id> -y     # Generate or rotate the inbound webhook token
+obs suite ci disconnect <id> -y        # Remove the integration and invalidate the token
+
+# Pipe a fresh token into a secret store
 TOKEN=$(obs suite ci webhook-token <id> -y --json | jq -r '.data.token')
-
-# Tear down the integration (invalidates the token, unbinds the repo)
-obs suite ci disconnect <id> -y
 ```
 
-The webhook token is what your CI pipeline `POST`s to `/webhook/playwright?token=<token>` to trigger a suite run. `status` shows it as `••••<last4>` for safety; `webhook-token` returns the full value.
+Each `webhook-token` call invalidates the previous one. Your CI pipeline POSTs the token to `/webhook/playwright?token=<token>` to trigger a run.
 
----
+## Resource Discovery
 
-## Resource Discovery (v1.9.0)
-
-Enumerate resource templates and fetch their JSON schemas. All commands work offline against bundled schemas, no login required.
+Enumerate resource templates and fetch their JSON schemas. These work offline against bundled schemas, no login required.
 
 ```bash
-# List every resource type with required fields
-obs templates list
-obs templates list --json
-
-# Print the JSON Schema (Draft-07) for any resource
-obs schema monitor
-obs schema ai-check
+obs templates list                     # Every resource type with required fields
+obs schema monitor                     # Print the JSON Schema (Draft-07) for a type
 obs schema alert-channel --out ./schemas/alert-channel.schema.json
-
-# Validate a JSON file against the bundled schema (offline)
 obs validate --resource monitor --file ./my-monitor.json
-
-# Scaffold a ready-to-edit template
-obs init monitor
-obs init ai-check --out ./tests/ai-check.json
+obs init check --out ./tests/check.json   # Scaffold a ready-to-edit template
 ```
 
-Aliases: `api-check` → `check`, `url-monitor` → `monitor`, `browser-check` → `ai-check`.
-
-The full chain for agents: `obs templates list` → `obs schema <name>` → generate payload → `obs validate` → `obs <resource> create --file <path>`. All steps except the final create are fully offline.
-
----
+Resource-type aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`. The full agent chain is `obs templates list` to `obs schema <name>` to a generated payload to `obs validate` to `obs <resource> create --file <path>`. Every step except the final create is offline.
 
 ## AI Agent Integration (Headless Mode)
 
-The `obs` CLI is explicitly designed to be used by AI coding agents.
+The `obs` CLI is designed to be driven by AI coding agents.
 
 ### The `--json` Flag
-Append `--json` to **any** command. The CLI will automatically suppress all human-readable output and return a strict, machine-readable `JsonEnvelope`.
 
-**Guaranteed Agent Response Schema:**
+Append `--json` to any command for a strict, machine-readable `JsonEnvelope`:
+
 ```json
 {
   "status": "SUCCESS",
-  "data": { ... },
-  "metadata": {
-    "timestamp": "2026-03-11T12:00:00.000Z"
-  }
+  "data": { },
+  "metadata": { "timestamp": "2026-03-11T12:00:00.000Z" }
 }
 ```
 
-For filtered list commands, the `data` payload is paginated:
+Filtered list commands return paginated data:
+
 ```json
 {
   "status": "SUCCESS",
   "data": {
     "items": [],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 0,
-      "totalPages": 0
-    }
+    "pagination": { "page": 1, "limit": 10, "total": 0, "totalPages": 0 }
   },
-  "metadata": {
-    "timestamp": "2026-04-22T12:00:00.000Z"
-  }
+  "metadata": { "timestamp": "2026-04-22T12:00:00.000Z" }
 }
 ```
 
 ### Headless Login
-Agents can authenticate securely using existing credentials:
+
+Agents authenticate from environment variables:
+
 ```bash
 export OBS_EMAIL="agent@company.com"
 export OBS_PASSWORD="secure-password"
 obs login --headless
 ```
 
----
-
-## Update Notifications
-
-The CLI includes a non-blocking background update service that checks for newer versions on npm. If an update is available, a notification will be displayed at the start of your command output. This check is automatically disabled in `--json` mode.
-
----
-
 ## Global Options
 
-- `-v, --verbose` - Enable verbose output and stack traces
-- `--json` - Output in strict JSON format
-- `--api-url <url>` - Override API URL
-- `--api-key <key>` - Override API key
-- `--version` - Show version number
-- `--help` - Show help
+- `-v, --verbose`: verbose output and stack traces
+- `--json`: strict JSON output
+- `--api-url <url>`: override the API URL
+- `--api-key <key>`: override the API key
+- `--version`: show the version number
+- `--help`: show help
 
----
+The CLI also runs a non-blocking background check for newer versions on npm and prints a notice if one is available. This is disabled in `--json` mode.
 
 ## Documentation
 
-Deeper docs live in the [`docs/`](docs/) folder:
+Deeper docs live in [`docs/`](docs/):
 
 - **Guides**
-  - [Getting started](docs/guides/getting-started.md) — install, login, headless agent auth
-  - [Config-as-code](docs/guides/config-as-code.md) — `obs apply` / `obs export` IaC workflow
-  - [AI agent integration](docs/guides/ai-agent-integration.md) — JSON envelope, agent recipes
+  - [Getting started](docs/guides/getting-started.md): install, login, headless agent auth
+  - [Config-as-code](docs/guides/config-as-code.md): the `obs apply` / `obs export` workflow
+  - [AI agent integration](docs/guides/ai-agent-integration.md): JSON envelope, agent recipes
 - **Reference**
-  - [CLI command reference](docs/reference/cli-commands.md)
+  - [CLI command reference](docs/reference/cli-commands.md): every command and flag
   - [Environment variables](docs/reference/environment-variables.md)
   - [JSON schema](docs/reference/json-schema.md)
 - **Architecture** (for contributors)
