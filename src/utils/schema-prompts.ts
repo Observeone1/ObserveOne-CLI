@@ -82,7 +82,7 @@ export function buildDefaultCreatePrompts<T>(
 export function buildDefaultUpdatePrompts<T>(
   schema: ResourceSchema,
   outputService: IOutputService
-): (id: number, options: Options, existing: T) => Promise<Partial<T>> {
+): (id: string, options: Options, existing: T) => Promise<Partial<T>> {
   return async (_id, options, existing) => {
     const metadata = schema.fieldMetadata ?? {};
     const entries = Object.entries(metadata);

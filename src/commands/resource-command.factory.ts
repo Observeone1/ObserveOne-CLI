@@ -20,11 +20,11 @@ export interface ResourceFactoryOptions<T> {
   apiMethods: {
     list: () => Promise<T[]>;
     listWithFilters?: (query: ListQueryOptions) => Promise<PaginatedListResult<T>>;
-    get: (id: number) => Promise<T>;
+    get: (id: string) => Promise<T>;
     create: (data: Partial<T>) => Promise<T>;
-    update: (id: number, data: Partial<T>) => Promise<T>;
-    delete: (id: number) => Promise<void>;
-    toggle?: (id: number) => Promise<boolean>;
+    update: (id: string, data: Partial<T>) => Promise<T>;
+    delete: (id: string) => Promise<void>;
+    toggle?: (id: string) => Promise<boolean>;
   };
   formatters: {
     list: (items: T[], verbose: boolean) => void;
@@ -33,7 +33,7 @@ export interface ResourceFactoryOptions<T> {
   updateCommandSetup?: (cmd: Command) => void;
   createPrompts?: (options: Record<string, unknown>) => Promise<Partial<T>>;
   updatePrompts?: (
-    id: number,
+    id: string,
     options: Record<string, unknown>,
     existing: T
   ) => Promise<Partial<T>>;
@@ -43,7 +43,7 @@ export interface ResourceFactoryOptions<T> {
  * Factory to generate standardized CRUD subcommands for any resource.
  * This ensures consistent JSON mode detection, error handling, and auth checks.
  */
-export function createResourceCommand<T extends { id: number; name?: string }>(
+export function createResourceCommand<T extends { id: string; name?: string }>(
   configService: IConfigService,
   apiClient: IApiClient,
   outputService: IOutputService,
@@ -73,7 +73,9 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
     }
     const apiKey = configService.getApiKey();
     if (!apiKey) {
-      outputService.error('Not authenticated. Please run "obs login" first.');
+      outputService.error(
+        'Not authenticated. Run "obs login", or set OBS_API_KEY (get a key at https://app.observeone.com/settings/api).'
+      );
       process.exit(1);
     }
     return { isJson, apiKey };
@@ -128,8 +130,8 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
       const resolvedOptions = resolveOptions(cmdOptions);
       setupContext(resolvedOptions);
       try {
-        const resourceId = parseInt(id);
-        if (isNaN(resourceId)) {
+        const resourceId = id.trim();
+        if (!resourceId) {
           outputService.error(`Invalid ${resourceName} ID.`);
           process.exit(1);
         }
@@ -220,8 +222,8 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
     const resolvedOptions = resolveOptions(cmdOptions);
     setupContext(resolvedOptions);
     try {
-      const resourceId = parseInt(id);
-      if (isNaN(resourceId)) {
+      const resourceId = id.trim();
+      if (!resourceId) {
         outputService.error(`Invalid ${resourceName} ID.`);
         process.exit(1);
       }
@@ -267,8 +269,8 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
       const resolvedOptions = resolveOptions(cmdOptions);
       setupContext(resolvedOptions);
       try {
-        const resourceId = parseInt(id);
-        if (isNaN(resourceId)) {
+        const resourceId = id.trim();
+        if (!resourceId) {
           outputService.error(`Invalid ${resourceName} ID.`);
           process.exit(1);
         }
@@ -312,8 +314,8 @@ export function createResourceCommand<T extends { id: number; name?: string }>(
         const resolvedOptions = resolveOptions(cmdOptions);
         setupContext(resolvedOptions);
         try {
-          const resourceId = parseInt(id);
-          if (isNaN(resourceId)) {
+          const resourceId = id.trim();
+          if (!resourceId) {
             outputService.error(`Invalid ${resourceName} ID.`);
             process.exit(1);
           }

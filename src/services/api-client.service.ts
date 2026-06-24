@@ -66,7 +66,9 @@ export class ApiClient implements IApiClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          throw new Error('Authentication failed. Please run "obs login" to authenticate.');
+          throw new Error(
+            'Authentication failed. Run "obs login", or set OBS_API_KEY (get a key at https://app.observeone.com/settings/api).'
+          );
         }
         if (error.response?.status === 403) {
           throw new Error('Access denied. You do not have permission to perform this action.');
@@ -297,7 +299,7 @@ export class ApiClient implements IApiClient {
     };
   }
 
-  async getUrlMonitor(id: number): Promise<UrlMonitor> {
+  async getUrlMonitor(id: string): Promise<UrlMonitor> {
     const response = await this.client.get<Record<string, unknown>>(`/url-monitors/${id}`);
     const raw =
       (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
@@ -319,7 +321,7 @@ export class ApiClient implements IApiClient {
     return this.mapMonitor(raw);
   }
 
-  async updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
+  async updateUrlMonitor(id: string, data: Partial<UrlMonitor>): Promise<UrlMonitor> {
     const { interval, ...rest } = data;
     const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
     const response = await this.client.put<Record<string, unknown>>(`/url-monitors/${id}`, payload);
@@ -331,11 +333,11 @@ export class ApiClient implements IApiClient {
     return this.mapMonitor(raw);
   }
 
-  async deleteUrlMonitor(id: number): Promise<void> {
+  async deleteUrlMonitor(id: string): Promise<void> {
     await this.client.delete(`/url-monitors/${id}`);
   }
 
-  async toggleUrlMonitor(id: number): Promise<boolean> {
+  async toggleUrlMonitor(id: string): Promise<boolean> {
     const response = await this.client.patch<{
       is_active?: boolean;
       data?: { is_active?: boolean };
@@ -343,7 +345,7 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteUrlMonitor(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+  async toggleMuteUrlMonitor(id: string): Promise<{ alert_on_failure: boolean; message: string }> {
     const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
       `/url-monitors/${id}/toggle-muted`
     );
@@ -359,7 +361,7 @@ export class ApiClient implements IApiClient {
     return data.executions || (response.data as ResourceRun[]);
   }
 
-  async runApiCheck(id: number): Promise<{
+  async runApiCheck(id: string): Promise<{
     executions: { execution_id: number; region: string; status: string }[];
     message: string;
   }> {
@@ -370,7 +372,7 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async runUrlMonitor(id: number): Promise<{
+  async runUrlMonitor(id: string): Promise<{
     executions: { execution_id: number; region: string; status: string }[];
     message: string;
   }> {
@@ -392,7 +394,7 @@ export class ApiClient implements IApiClient {
     return this.normalizePaginatedItems<ApiCheck>(response.data, ['items', 'apiChecks', 'data']);
   }
 
-  async getApiCheck(id: number): Promise<ApiCheck> {
+  async getApiCheck(id: string): Promise<ApiCheck> {
     const response = await this.client.get<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(
       `/api-checks/${id}`
     );
@@ -409,7 +411,7 @@ export class ApiClient implements IApiClient {
     return resData.apiCheck || resData.data || (response.data as ApiCheck);
   }
 
-  async updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck> {
+  async updateApiCheck(id: string, data: Partial<ApiCheck>): Promise<ApiCheck> {
     const response = await this.client.put<{ apiCheck?: ApiCheck; data?: ApiCheck } | ApiCheck>(
       `/api-checks/${id}`,
       data
@@ -418,11 +420,11 @@ export class ApiClient implements IApiClient {
     return resData.apiCheck || resData.data || (response.data as ApiCheck);
   }
 
-  async deleteApiCheck(id: number): Promise<void> {
+  async deleteApiCheck(id: string): Promise<void> {
     await this.client.delete(`/api-checks/${id}`);
   }
 
-  async toggleApiCheck(id: number): Promise<boolean> {
+  async toggleApiCheck(id: string): Promise<boolean> {
     const response = await this.client.patch<{
       is_active?: boolean;
       data?: { is_active?: boolean };
@@ -430,7 +432,7 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteApiCheck(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+  async toggleMuteApiCheck(id: string): Promise<{ alert_on_failure: boolean; message: string }> {
     const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
       `/api-checks/${id}/toggle-muted`
     );
@@ -459,7 +461,7 @@ export class ApiClient implements IApiClient {
     return this.normalizePaginatedItems<Heartbeat>(response.data, ['items', 'heartbeats', 'data']);
   }
 
-  async getHeartbeat(id: number): Promise<Heartbeat> {
+  async getHeartbeat(id: string): Promise<Heartbeat> {
     const response = await this.client.get<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(
       `/heartbeats/${id}`
     );
@@ -475,7 +477,7 @@ export class ApiClient implements IApiClient {
     return resData.heartbeat || resData.data || (response.data as Heartbeat);
   }
 
-  async updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat> {
+  async updateHeartbeat(id: string, data: Partial<Heartbeat>): Promise<Heartbeat> {
     const response = await this.client.put<{ heartbeat?: Heartbeat; data?: Heartbeat } | Heartbeat>(
       `/heartbeats/${id}`,
       data
@@ -484,11 +486,11 @@ export class ApiClient implements IApiClient {
     return resData.heartbeat || resData.data || (response.data as Heartbeat);
   }
 
-  async deleteHeartbeat(id: number): Promise<void> {
+  async deleteHeartbeat(id: string): Promise<void> {
     await this.client.delete(`/heartbeats/${id}`);
   }
 
-  async toggleHeartbeat(id: number): Promise<boolean> {
+  async toggleHeartbeat(id: string): Promise<boolean> {
     const response = await this.client.patch<{
       is_active?: boolean;
       data?: { is_active?: boolean };
@@ -496,14 +498,14 @@ export class ApiClient implements IApiClient {
     return response.data.is_active ?? response.data.data?.is_active ?? false;
   }
 
-  async toggleMuteHeartbeat(id: number): Promise<{ alert_on_failure: boolean; message: string }> {
+  async toggleMuteHeartbeat(id: string): Promise<{ alert_on_failure: boolean; message: string }> {
     const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
       `/heartbeats/${id}/toggle-muted`
     );
     return response.data;
   }
 
-  async resetHeartbeat(id: number): Promise<Heartbeat> {
+  async resetHeartbeat(id: string): Promise<Heartbeat> {
     const response = await this.client.post<Heartbeat>(`/heartbeats/${id}/reset`);
     return response.data;
   }
@@ -525,7 +527,7 @@ export class ApiClient implements IApiClient {
     return Array.isArray(response.data) ? response.data : response.data.data || [];
   }
 
-  async getAlertChannel(id: number): Promise<AlertChannel> {
+  async getAlertChannel(id: string): Promise<AlertChannel> {
     const response = await this.client.get<AlertChannel>(`/alert-channels/${id}`);
     return response.data;
   }
@@ -535,16 +537,16 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async updateAlertChannel(id: number, data: Partial<AlertChannel>): Promise<AlertChannel> {
+  async updateAlertChannel(id: string, data: Partial<AlertChannel>): Promise<AlertChannel> {
     const response = await this.client.put<AlertChannel>(`/alert-channels/${id}`, data);
     return response.data;
   }
 
-  async deleteAlertChannel(id: number): Promise<void> {
+  async deleteAlertChannel(id: string): Promise<void> {
     await this.client.delete(`/alert-channels/${id}`);
   }
 
-  async testAlertChannel(id: number): Promise<{ success: boolean; message: string }> {
+  async testAlertChannel(id: string): Promise<{ success: boolean; message: string }> {
     const response = await this.client.post<{ success: boolean; message: string }>(
       `/alert-channels/${id}/test`
     );
@@ -557,7 +559,7 @@ export class ApiClient implements IApiClient {
     return Array.isArray(response.data) ? response.data : response.data.data || [];
   }
 
-  async getStatusPage(id: number): Promise<StatusPage> {
+  async getStatusPage(id: string): Promise<StatusPage> {
     const response = await this.client.get<StatusPage>(`/status-pages/${id}`);
     return response.data;
   }
@@ -567,50 +569,50 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async updateStatusPage(id: number, data: Partial<StatusPage>): Promise<StatusPage> {
+  async updateStatusPage(id: string, data: Partial<StatusPage>): Promise<StatusPage> {
     const response = await this.client.put<StatusPage>(`/status-pages/${id}`, data);
     return response.data;
   }
 
-  async deleteStatusPage(id: number): Promise<void> {
+  async deleteStatusPage(id: string): Promise<void> {
     await this.client.delete(`/status-pages/${id}`);
   }
 
   async addMonitorToStatusPage(
-    spId: number,
-    data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
-  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }> {
+    spId: string,
+    data: { monitor_type: string; monitor_id: string; display_name: string; display_order?: number }
+  ): Promise<{ id: string; status_page_id: string; monitor_id: string; [key: string]: unknown }> {
     const response = await this.client.post<{
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
+      id: string;
+      status_page_id: string;
+      monitor_id: string;
     }>(`/status-pages/${spId}/monitors`, data);
     return response.data as {
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
+      id: string;
+      status_page_id: string;
+      monitor_id: string;
       [key: string]: unknown;
     };
   }
 
-  async removeMonitorFromStatusPage(spId: number, entryId: number): Promise<void> {
+  async removeMonitorFromStatusPage(spId: string, entryId: string): Promise<void> {
     await this.client.delete(`/status-pages/${spId}/monitors/${entryId}`);
   }
 
   async updateStatusPageMonitorOrder(
-    spId: number,
-    entryId: number,
+    spId: string,
+    entryId: string,
     displayOrder: number
-  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }> {
+  ): Promise<{ id: string; status_page_id: string; monitor_id: string; [key: string]: unknown }> {
     const response = await this.client.patch<{
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
+      id: string;
+      status_page_id: string;
+      monitor_id: string;
     }>(`/status-pages/${spId}/monitors/${entryId}`, { display_order: displayOrder });
     return response.data as {
-      id: number;
-      status_page_id: number;
-      monitor_id: number;
+      id: string;
+      status_page_id: string;
+      monitor_id: string;
       [key: string]: unknown;
     };
   }
@@ -625,7 +627,7 @@ export class ApiClient implements IApiClient {
     return response.data.data || [];
   }
 
-  async getIncident(id: number): Promise<Incident> {
+  async getIncident(id: string): Promise<Incident> {
     const response = await this.client.get<Incident>(`/incidents/${id}`);
     return response.data;
   }
@@ -635,12 +637,12 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async updateIncident(id: number, data: Partial<Incident>): Promise<Incident> {
+  async updateIncident(id: string, data: Partial<Incident>): Promise<Incident> {
     const response = await this.client.put<Incident>(`/incidents/${id}`, data);
     return response.data;
   }
 
-  async deleteIncident(id: number): Promise<void> {
+  async deleteIncident(id: string): Promise<void> {
     await this.client.delete(`/incidents/${id}`);
   }
 
@@ -891,14 +893,14 @@ export class ApiClient implements IApiClient {
   }
 
   // Incident extras
-  async addIncidentComment(id: number, message: string): Promise<IncidentEvent> {
+  async addIncidentComment(id: string, message: string): Promise<IncidentEvent> {
     const response = await this.client.post<IncidentEvent>(`/incidents/${id}/comments`, {
       message,
     });
     return response.data;
   }
 
-  async assignIncident(id: number, userId: string | null): Promise<Incident> {
+  async assignIncident(id: string, userId: string | null): Promise<Incident> {
     const response = await this.client.post<Incident>(`/incidents/${id}/assign`, {
       assigned_to: userId,
     });

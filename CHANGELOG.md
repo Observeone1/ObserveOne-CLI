@@ -5,6 +5,14 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0] - 2026-06-24
+
+### Fixed
+- **ID-based commands now work with UUID resource IDs.** `get`, `update`, `delete`, `toggle`, and `run` coerced the `<id>` argument with `parseInt`, which truncated UUIDs (e.g. `7c9b256c-…` became `7`) and made every id-based call fail with "Invalid … ID" against the current backend. IDs are now passed through as strings end to end (commands, `IApiClient`, and the resource types). Affects `monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, and `incident`. `create` and `list` were unaffected.
+
+### Changed
+- **Clearer authentication errors.** The 401 and not-authenticated messages now point to both `obs login` and the `OBS_API_KEY` environment variable (with the key URL), so agents and CI see the non-interactive path.
+
 ## [1.27.0] - 2026-05-24
 
 ### Fixed

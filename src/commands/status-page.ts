@@ -66,17 +66,17 @@ export function createStatusPageCommand(
     .action(async (spId: string, resourceId: string, options) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const statusPageId = parseInt(spId);
-        const monitorId = parseInt(resourceId);
-        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
-        if (isNaN(monitorId)) throw new Error('Invalid resource ID');
+        const statusPageId = spId.trim();
+        const monitorId = resourceId.trim();
+        if (!statusPageId) throw new Error('Invalid status page ID');
+        if (!monitorId) throw new Error('Invalid resource ID');
         const type = options.type as string;
         if (!MONITOR_TYPES.includes(type as (typeof MONITOR_TYPES)[number])) {
           throw new Error(`Invalid type. Must be one of: ${MONITOR_TYPES.join(', ')}`);
         }
         const payload: {
           monitor_type: string;
-          monitor_id: number;
+          monitor_id: string;
           display_name: string;
           display_order?: number;
         } = {
@@ -114,10 +114,10 @@ export function createStatusPageCommand(
     .action(async (spId: string, resourceId: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const statusPageId = parseInt(spId);
-        const monitorId = parseInt(resourceId);
-        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
-        if (isNaN(monitorId)) throw new Error('Invalid resource ID');
+        const statusPageId = spId.trim();
+        const monitorId = resourceId.trim();
+        if (!statusPageId) throw new Error('Invalid status page ID');
+        if (!monitorId) throw new Error('Invalid resource ID');
         await (apiClient as ApiClient).removeMonitorFromStatusPage(statusPageId, monitorId);
         if (isJson) {
           outputService.formatJsonOutput({
@@ -152,11 +152,11 @@ export function createStatusPageCommand(
     .action(async (spId: string, entryIdArg: string, options) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const statusPageId = parseInt(spId);
-        const entryId = parseInt(entryIdArg);
+        const statusPageId = spId.trim();
+        const entryId = entryIdArg.trim();
         const displayOrder = parseInt(options.order as string);
-        if (isNaN(statusPageId)) throw new Error('Invalid status page ID');
-        if (isNaN(entryId)) throw new Error('Invalid entry ID');
+        if (!statusPageId) throw new Error('Invalid status page ID');
+        if (!entryId) throw new Error('Invalid entry ID');
         if (isNaN(displayOrder)) throw new Error('Invalid --order value (must be an integer)');
         const entry = await (apiClient as ApiClient).updateStatusPageMonitorOrder(
           statusPageId,

@@ -137,8 +137,8 @@ export function createAlertChannelCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const channelId = parseInt(id);
-        if (isNaN(channelId)) throw new Error('Invalid channel ID');
+        const channelId = id.trim();
+        if (!channelId) throw new Error('Invalid channel ID');
 
         const result = await (apiClient as ApiClient).testAlertChannel(channelId);
 

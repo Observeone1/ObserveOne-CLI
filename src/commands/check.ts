@@ -231,8 +231,8 @@ export function createCheckCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const checkId = parseInt(id);
-        if (isNaN(checkId)) throw new Error('Invalid check ID');
+        const checkId = id.trim();
+        if (!checkId) throw new Error('Invalid check ID');
 
         const result = await (apiClient as ApiClient).runApiCheck(checkId);
 
@@ -277,8 +277,8 @@ export function createCheckCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const checkId = parseInt(id);
-        if (isNaN(checkId)) throw new Error('Invalid check ID');
+        const checkId = id.trim();
+        if (!checkId) throw new Error('Invalid check ID');
         const result = await (apiClient as ApiClient).toggleMuteApiCheck(checkId);
         if (isJson) {
           outputService.formatJsonOutput({

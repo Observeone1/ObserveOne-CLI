@@ -66,8 +66,8 @@ export function createHeartbeatCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const hbId = parseInt(id);
-        if (isNaN(hbId)) throw new Error('Invalid heartbeat ID');
+        const hbId = id.trim();
+        if (!hbId) throw new Error('Invalid heartbeat ID');
         const result = await (apiClient as ApiClient).toggleMuteHeartbeat(hbId);
         if (isJson) {
           outputService.formatJsonOutput({
@@ -95,8 +95,8 @@ export function createHeartbeatCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const hbId = parseInt(id);
-        if (isNaN(hbId)) throw new Error('Invalid heartbeat ID');
+        const hbId = id.trim();
+        if (!hbId) throw new Error('Invalid heartbeat ID');
         const hb = await (apiClient as ApiClient).resetHeartbeat(hbId);
         if (isJson) {
           outputService.formatJsonOutput(hb);
