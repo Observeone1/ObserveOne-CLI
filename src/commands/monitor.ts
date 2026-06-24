@@ -74,8 +74,8 @@ export function createMonitorCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const monitorId = parseInt(id);
-        if (isNaN(monitorId)) throw new Error('Invalid monitor ID');
+        const monitorId = id.trim();
+        if (!monitorId) throw new Error('Invalid monitor ID');
 
         const result = await (apiClient as ApiClient).runUrlMonitor(monitorId);
 
@@ -120,8 +120,8 @@ export function createMonitorCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const monitorId = parseInt(id);
-        if (isNaN(monitorId)) throw new Error('Invalid monitor ID');
+        const monitorId = id.trim();
+        if (!monitorId) throw new Error('Invalid monitor ID');
         const result = await (apiClient as ApiClient).toggleMuteUrlMonitor(monitorId);
         if (isJson) {
           outputService.formatJsonOutput({

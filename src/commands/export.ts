@@ -124,9 +124,9 @@ Examples:
         // Helper: GET responses populate `channels` as full objects;
         // CREATE/UPDATE wire format expects `channel_ids` as numeric IDs.
         const extractChannelIds = (r: {
-          channels?: Array<{ id: number }> | undefined;
-          channel_ids?: number[] | undefined;
-        }): number[] | undefined => {
+          channels?: Array<{ id: string }> | undefined;
+          channel_ids?: string[] | undefined;
+        }): string[] | undefined => {
           if (Array.isArray(r.channels) && r.channels.length > 0) {
             return r.channels.map((c) => c.id);
           }
@@ -157,7 +157,7 @@ Examples:
         if (monitors.length > 0) {
           config.monitors = monitors.map((m) => {
             const extended = m as UrlMonitor & {
-              channels?: Array<{ id: number }>;
+              channels?: Array<{ id: string }>;
               cron_expression?: string;
             };
             const channel_ids = extractChannelIds(extended);
@@ -180,7 +180,7 @@ Examples:
         if (apiChecks.length > 0) {
           config.api_checks = apiChecks.map((c) => {
             const extended = c as ApiCheck & {
-              channels?: Array<{ id: number }>;
+              channels?: Array<{ id: string }>;
               interval?: string;
             };
             const channel_ids = extractChannelIds(extended);

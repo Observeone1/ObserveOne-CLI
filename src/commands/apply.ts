@@ -22,22 +22,22 @@ import { ApplyConfig, normalizeApplyConfig } from '../utils/apply-config.js';
 // the local-config and backend-response types declare different
 // subsets of these fields (backend returns `channels`, local config
 // uses `channel_ids`); we narrow at runtime.
-const extractChannelIds = (r: unknown): number[] => {
+const extractChannelIds = (r: unknown): string[] => {
   if (typeof r !== 'object' || r === null) return [];
   const obj = r as { channels?: unknown; channel_ids?: unknown };
   if (Array.isArray(obj.channels) && obj.channels.length > 0) {
     return obj.channels
       .filter(
-        (c): c is { id: number } =>
-          typeof c === 'object' && c !== null && typeof (c as { id?: unknown }).id === 'number'
+        (c): c is { id: string } =>
+          typeof c === 'object' && c !== null && typeof (c as { id?: unknown }).id === 'string'
       )
       .map((c) => c.id)
-      .sort((a, b) => a - b);
+      .sort((a, b) => a.localeCompare(b));
   }
   if (Array.isArray(obj.channel_ids)) {
     return obj.channel_ids
-      .filter((id): id is number => typeof id === 'number')
-      .sort((a, b) => a - b);
+      .filter((id): id is string => typeof id === 'string')
+      .sort((a, b) => a.localeCompare(b));
   }
   return [];
 };

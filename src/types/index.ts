@@ -49,7 +49,7 @@ export interface TestResult {
 }
 
 export interface UrlMonitor {
-  id: number;
+  id: string;
   name: string;
   description?: string | undefined;
   url: string;
@@ -57,7 +57,7 @@ export interface UrlMonitor {
   status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
   is_active: boolean;
   alert_on_failure: boolean;
-  channel_ids?: number[] | undefined;
+  channel_ids?: string[] | undefined;
   interval?: string | undefined;
   assertions: Array<{
     operator: string;
@@ -68,7 +68,7 @@ export interface UrlMonitor {
 }
 
 export interface ApiCheck {
-  id: number;
+  id: string;
   name: string;
   description?: string | undefined;
   url: string;
@@ -79,7 +79,7 @@ export interface ApiCheck {
   timeout_ms: number;
   is_active: boolean;
   alert_on_failure: boolean;
-  channel_ids?: number[] | undefined;
+  channel_ids?: string[] | undefined;
   cron_expression?: string | undefined;
   assertions?:
     | Array<{
@@ -94,7 +94,7 @@ export interface ApiCheck {
 }
 
 export interface Heartbeat {
-  id: number;
+  id: string;
   name: string;
   description?: string | undefined;
   period: number;
@@ -109,7 +109,7 @@ export interface Heartbeat {
 }
 
 export interface ResourceRun {
-  id: number;
+  id: string;
   status: string;
   region?: string | undefined;
   start_time?: string | undefined;
@@ -120,8 +120,8 @@ export interface ResourceRun {
 }
 
 export interface HeartbeatPing {
-  id: number;
-  heartbeat_id: number;
+  id: string;
+  heartbeat_id: string;
   pinged_at: string;
   duration?: number | null | undefined;
   is_late?: boolean | undefined;
@@ -169,7 +169,7 @@ export type AlertChannelType =
   | 'webhook';
 
 export interface AlertChannel {
-  id: number;
+  id: string;
   name: string;
   type: AlertChannelType;
   config: AlertChannelConfig;
@@ -179,7 +179,7 @@ export interface AlertChannel {
 }
 
 export interface StatusPage {
-  id: number;
+  id: string;
   slug: string;
   name: string;
   description?: string | undefined;
@@ -198,13 +198,13 @@ export type IncidentPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type IncidentStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
 
 export interface Incident {
-  id: number;
+  id: string;
   title: string;
   description?: string | undefined;
   status: IncidentStatus;
   priority: IncidentPriority;
   assigned_to?: string | null | undefined;
-  team_id?: number | undefined;
+  team_id?: string | undefined;
   created_at?: string | undefined;
   updated_at?: string | undefined;
 }
@@ -242,7 +242,7 @@ export interface SuiteTestResult {
 export interface Suite {
   id: string;
   user_id: string;
-  team_id: number | null;
+  team_id: string | null;
   target_url: string;
   suite_name: string;
   status: SuiteStatus;

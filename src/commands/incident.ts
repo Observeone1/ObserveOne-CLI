@@ -55,8 +55,8 @@ export function createIncidentCommand(
     .action(async (id: string, options: { message?: string }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const incidentId = parseInt(id);
-        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+        const incidentId = id.trim();
+        if (!incidentId) throw new Error('Invalid incident ID');
 
         let message = options.message;
         if (!message) {
@@ -96,8 +96,8 @@ export function createIncidentCommand(
     .action(async (id: string, options: { user: string }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const incidentId = parseInt(id);
-        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+        const incidentId = id.trim();
+        if (!incidentId) throw new Error('Invalid incident ID');
 
         const incident = await apiClient.assignIncident(incidentId, options.user);
         if (isJson) {
@@ -123,8 +123,8 @@ export function createIncidentCommand(
     .action(async (id: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
-        const incidentId = parseInt(id);
-        if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+        const incidentId = id.trim();
+        if (!incidentId) throw new Error('Invalid incident ID');
 
         // No dedicated unassign route; backend treats null userId as unassign.
         const incident = await apiClient.assignIncident(incidentId, null);
@@ -162,8 +162,8 @@ export function createIncidentCommand(
       .action(async (id: string) => {
         const isJson = process.env.OBS_JSON_OUTPUT === 'true';
         try {
-          const incidentId = parseInt(id);
-          if (isNaN(incidentId)) throw new Error('Invalid incident ID');
+          const incidentId = id.trim();
+          if (!incidentId) throw new Error('Invalid incident ID');
 
           const incident = await apiClient.updateIncident(incidentId, { status });
           if (isJson) {

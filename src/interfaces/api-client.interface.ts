@@ -65,64 +65,64 @@ export interface IApiClient {
   // URL Monitors
   getUrlMonitors(): Promise<UrlMonitor[]>;
   listUrlMonitors(query?: ListQueryOptions): Promise<PaginatedListResult<UrlMonitor>>;
-  getUrlMonitor(id: number): Promise<UrlMonitor>;
+  getUrlMonitor(id: string): Promise<UrlMonitor>;
   createUrlMonitor(data: Partial<UrlMonitor>): Promise<UrlMonitor>;
-  updateUrlMonitor(id: number, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
-  deleteUrlMonitor(id: number): Promise<void>;
-  toggleUrlMonitor(id: number): Promise<boolean>;
-  toggleMuteUrlMonitor(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
+  updateUrlMonitor(id: string, data: Partial<UrlMonitor>): Promise<UrlMonitor>;
+  deleteUrlMonitor(id: string): Promise<void>;
+  toggleUrlMonitor(id: string): Promise<boolean>;
+  toggleMuteUrlMonitor(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
   getUrlMonitorRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // API Checks
   getApiChecks(): Promise<ApiCheck[]>;
   listApiChecks(query?: ListQueryOptions): Promise<PaginatedListResult<ApiCheck>>;
-  getApiCheck(id: number): Promise<ApiCheck>;
+  getApiCheck(id: string): Promise<ApiCheck>;
   createApiCheck(data: Partial<ApiCheck>): Promise<ApiCheck>;
-  updateApiCheck(id: number, data: Partial<ApiCheck>): Promise<ApiCheck>;
-  deleteApiCheck(id: number): Promise<void>;
-  toggleApiCheck(id: number): Promise<boolean>;
-  toggleMuteApiCheck(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
+  updateApiCheck(id: string, data: Partial<ApiCheck>): Promise<ApiCheck>;
+  deleteApiCheck(id: string): Promise<void>;
+  toggleApiCheck(id: string): Promise<boolean>;
+  toggleMuteApiCheck(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
   getApiCheckRuns(id: number, limit?: number): Promise<ResourceRun[]>;
 
   // Heartbeats
   getHeartbeats(): Promise<Heartbeat[]>;
   listHeartbeats(query?: ListQueryOptions): Promise<PaginatedListResult<Heartbeat>>;
-  getHeartbeat(id: number): Promise<Heartbeat>;
+  getHeartbeat(id: string): Promise<Heartbeat>;
   createHeartbeat(data: Partial<Heartbeat>): Promise<Heartbeat>;
-  updateHeartbeat(id: number, data: Partial<Heartbeat>): Promise<Heartbeat>;
-  deleteHeartbeat(id: number): Promise<void>;
-  toggleHeartbeat(id: number): Promise<boolean>;
-  toggleMuteHeartbeat(id: number): Promise<{ alert_on_failure: boolean; message: string }>;
-  resetHeartbeat(id: number): Promise<Heartbeat>;
+  updateHeartbeat(id: string, data: Partial<Heartbeat>): Promise<Heartbeat>;
+  deleteHeartbeat(id: string): Promise<void>;
+  toggleHeartbeat(id: string): Promise<boolean>;
+  toggleMuteHeartbeat(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
+  resetHeartbeat(id: string): Promise<Heartbeat>;
   getHeartbeatRuns(id: number, limit?: number): Promise<HeartbeatPing[]>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;
-  getAlertChannel(id: number): Promise<AlertChannel>;
+  getAlertChannel(id: string): Promise<AlertChannel>;
   createAlertChannel(data: Partial<AlertChannel>): Promise<AlertChannel>;
-  updateAlertChannel(id: number, data: Partial<AlertChannel>): Promise<AlertChannel>;
-  deleteAlertChannel(id: number): Promise<void>;
+  updateAlertChannel(id: string, data: Partial<AlertChannel>): Promise<AlertChannel>;
+  deleteAlertChannel(id: string): Promise<void>;
 
   // Status Pages
   getStatusPages(): Promise<StatusPage[]>;
-  getStatusPage(id: number): Promise<StatusPage>;
+  getStatusPage(id: string): Promise<StatusPage>;
   createStatusPage(data: Partial<StatusPage>): Promise<StatusPage>;
-  updateStatusPage(id: number, data: Partial<StatusPage>): Promise<StatusPage>;
-  deleteStatusPage(id: number): Promise<void>;
+  updateStatusPage(id: string, data: Partial<StatusPage>): Promise<StatusPage>;
+  deleteStatusPage(id: string): Promise<void>;
   addMonitorToStatusPage(
-    spId: number,
-    data: { monitor_type: string; monitor_id: number; display_name: string; display_order?: number }
-  ): Promise<{ id: number; status_page_id: number; monitor_id: number; [key: string]: unknown }>;
-  removeMonitorFromStatusPage(spId: number, monitorId: number): Promise<void>;
+    spId: string,
+    data: { monitor_type: string; monitor_id: string; display_name: string; display_order?: number }
+  ): Promise<{ id: string; status_page_id: string; monitor_id: string; [key: string]: unknown }>;
+  removeMonitorFromStatusPage(spId: string, monitorId: string): Promise<void>;
 
   // Incidents
   getIncidents(): Promise<Incident[]>;
-  getIncident(id: number): Promise<Incident>;
+  getIncident(id: string): Promise<Incident>;
   createIncident(data: Partial<Incident>): Promise<Incident>;
-  updateIncident(id: number, data: Partial<Incident>): Promise<Incident>;
-  deleteIncident(id: number): Promise<void>;
-  addIncidentComment(id: number, message: string): Promise<IncidentEvent>;
-  assignIncident(id: number, userId: string | null): Promise<Incident>;
+  updateIncident(id: string, data: Partial<Incident>): Promise<Incident>;
+  deleteIncident(id: string): Promise<void>;
+  addIncidentComment(id: string, message: string): Promise<IncidentEvent>;
+  assignIncident(id: string, userId: string | null): Promise<Incident>;
 
   // API Keys
   getApiKeys(): Promise<ApiKey[]>;
