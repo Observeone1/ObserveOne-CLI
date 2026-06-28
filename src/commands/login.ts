@@ -86,9 +86,10 @@ export function createLoginCommand(
           return;
         }
 
-        // Handle API key override
+        // Handle API key override (kept in-memory until validated, so an
+        // invalid/typo'd key is never written to disk before it is checked).
         if (options.apiKey) {
-          configService.setApiKey(options.apiKey as string);
+          configService.setCommandLineApiKey(options.apiKey as string);
         }
 
         const apiKey = configService.getApiKey();
@@ -103,13 +104,12 @@ export function createLoginCommand(
 
         // If an API key is available (from either source), try to authenticate
         if (apiKeyToUse && !options.force) {
-          // Use the API key that was provided
-          configService.setApiKey(apiKeyToUse);
           apiClient.setApiKey(apiKeyToUse);
 
-          // Validate the API key
+          // Validate BEFORE persisting, so an invalid key never lands on disk.
           const isValid = await apiClient.validateToken();
           if (isValid) {
+            configService.setApiKey(apiKeyToUse);
             outputService.success('Successfully authenticated with provided API key');
 
             // Project configuration setup is now separated to "obs init"

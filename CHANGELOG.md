@@ -5,6 +5,12 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.2] - 2026-06-28
+
+### Fixed
+- **`obs apply` no longer fires a spurious status-page update** for omitted `is_public` / `show_incident_history` / `show_uptime_percentage` (an omitted field now falls back to the remote value instead of a default, the same fix already applied to monitors).
+- **`obs login --api-key` validates before persisting.** An invalid/typo'd key passed to `login` (or the global `--api-key`) was written to the config store before validation; it is now kept in-memory and only saved once `validateToken` succeeds.
+
 ## [1.30.1] - 2026-06-28
 
 ### Fixed
