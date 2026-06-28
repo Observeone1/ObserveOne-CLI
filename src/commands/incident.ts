@@ -5,6 +5,7 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { requireTTY } from '../utils/confirm.js';
 import { Incident } from '../types/index.js';
 
 export function createIncidentCommand(
@@ -60,6 +61,16 @@ export function createIncidentCommand(
 
         let message = options.message;
         if (!message) {
+          // In a non-TTY/CI pipe there is no one to answer the prompt; fail
+          // fast with guidance instead of hanging forever.
+          requireTTY((m) => {
+            const guidance = `${m} Provide --message <message>.`;
+            if (isJson) {
+              outputService.formatJsonOutput({ status: 'ERROR', error: { message: guidance } });
+            } else {
+              console.error(chalk.red(`\n❌ ${guidance}\n`));
+            }
+          });
           const answers = await inquirer.prompt([
             {
               type: 'input',

@@ -4,7 +4,7 @@ import ora from 'ora';
 import { ApiClient } from '../../services/api-client.service.js';
 import { IConfigService } from '../../interfaces/config.interface.js';
 import { IOutputService } from '../../interfaces/output.interface.js';
-import { mergeVars } from './vars.js';
+import { resolveVars } from './vars.js';
 import { suiteStatusColor } from './formatters.js';
 
 function extractPlannedFiles(planMarkdown: string): string[] {
@@ -26,12 +26,15 @@ export function createSuiteGenerateCommand(
     .option('--cron <expr>', 'Cron schedule (e.g. "0 */6 * * *"). Omit for manual only.')
     .option('--max-tests <n>', 'Max tests to generate (1-30, default: 10)', '10')
     .option(
-      '--var <KEY=VALUE>',
-      'Variable/credential (repeatable)',
+      '--var <KEY[=VALUE]>',
+      'Variable/credential (repeatable). Omit =VALUE (e.g. --var API_TOKEN) to be prompted securely.',
       (v, prev: string[]) => [...prev, v],
       [] as string[]
     )
-    .option('--var-file <path>', 'Load variables from a .env file')
+    .option(
+      '--var-file <path>',
+      'Load variables from an uncommitted .env file (safer than inline values)'
+    )
     .option('--allow-form-submit', 'Allow AI agents to submit non-auth forms')
     .option('--plan-only', 'Stop after the planning phase; do not generate test scripts')
     .addOption(
@@ -44,6 +47,8 @@ Examples:
   $ obs suite generate https://example.com
   $ obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
   $ obs suite generate https://example.com --cron "0 */6 * * *"
+  $ obs suite generate https://example.com --var API_TOKEN   # prompts for the secret (masked)
+  $ obs suite generate https://example.com --var-file .env.secrets
 `
     )
     .action(
@@ -74,12 +79,10 @@ Examples:
           const hostname = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
           const suiteName = options.name || hostname;
 
-          let secrets: Record<string, string> | undefined;
-          try {
-            secrets = mergeVars(options.var, options.varFile);
-          } catch (e: unknown) {
-            throw new Error((e as Error).message);
-          }
+          const secrets = await resolveVars(options.var, options.varFile, {
+            isJson,
+            outputError: (msg) => outputService.error(msg),
+          });
 
           const payload: Parameters<typeof apiClient.generateSuite>[0] = {
             target_url: url,

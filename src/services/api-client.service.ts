@@ -683,6 +683,17 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
+  /**
+   * Returns true for HTTP errors that won't resolve on retry (4xx client
+   * errors such as 404 for a bad/deleted id, 401, 403). Transient failures
+   * (network errors, timeouts, 5xx) have no 4xx `response.status` and remain
+   * retryable so the pollers don't burn the full timeout on a permanent error.
+   */
+  private isNonTransientHttpError(error: unknown): boolean {
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    return typeof status === 'number' && status >= 400 && status < 500;
+  }
+
   // Polling method for test execution status
   async pollExecutionStatus(
     executionId: number,
@@ -707,6 +718,11 @@ export class ApiClient implements IApiClient {
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
         attempts++;
       } catch (_error: unknown) {
+        // A 4xx (bad/deleted id, auth) will never resolve — fail fast instead
+        // of looping the full timeout. Keep retrying transient errors.
+        if (this.isNonTransientHttpError(_error)) {
+          throw _error;
+        }
         attempts++;
         if (attempts >= maxAttempts) {
           throw _error;
@@ -908,6 +924,9 @@ export class ApiClient implements IApiClient {
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
         attempts++;
       } catch (_error: unknown) {
+        // A 4xx (bad/deleted id, auth) will never resolve — fail fast instead
+        // of looping the full timeout. Keep retrying transient errors.
+        if (this.isNonTransientHttpError(_error)) throw _error;
         attempts++;
         if (attempts >= maxAttempts) throw _error;
         await new Promise((resolve) => setTimeout(resolve, intervalMs));

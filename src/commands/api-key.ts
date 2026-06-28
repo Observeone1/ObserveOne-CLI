@@ -4,7 +4,7 @@ import inquirer from 'inquirer';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { requireConfirmation } from '../utils/confirm.js';
+import { requireConfirmation, requireTTY } from '../utils/confirm.js';
 
 export function createApiKeyCommand(
   _configService: IConfigService,
@@ -56,6 +56,16 @@ export function createApiKeyCommand(
       try {
         let name = options.name;
         if (!name) {
+          // In a non-TTY/CI pipe there is no one to answer the prompt; fail
+          // fast with guidance instead of hanging forever.
+          requireTTY((m) => {
+            const guidance = `${m} Provide --name <name>.`;
+            if (isJson) {
+              outputService.formatJsonOutput({ status: 'ERROR', error: { message: guidance } });
+            } else {
+              console.error(chalk.red(`\n❌ ${guidance}\n`));
+            }
+          });
           const answers = await inquirer.prompt([
             {
               type: 'input',

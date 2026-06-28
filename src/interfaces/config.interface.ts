@@ -10,6 +10,8 @@ export interface IConfigService {
   setApiUrl(url: string): void;
   setApiKey(key: string): void;
   clearApiKey(): void;
+  clearLocalApiKey(): void;
+  hasEnvApiKey(): boolean;
   getProjectConfig(): ProjectConfig;
   setProjectConfig(config: ProjectConfig): void;
   getDefaultOptions(): Required<DefaultOptions>;
