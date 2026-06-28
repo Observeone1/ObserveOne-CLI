@@ -9,6 +9,7 @@ export interface IConfigService {
   getApiKey(): string | undefined;
   setApiUrl(url: string): void;
   setApiKey(key: string): void;
+  setCommandLineApiKey(key: string): void;
   clearApiKey(): void;
   clearLocalApiKey(): void;
   hasEnvApiKey(): boolean;

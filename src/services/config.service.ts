@@ -2,7 +2,12 @@ import Conf from 'conf';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { IConfigService } from '../interfaces/config.interface.js';
-import { ObserveOneConfig, ProjectConfig, DefaultOptions } from '../types/index.js';
+import {
+  ObserveOneConfig,
+  LocalProjectConfig,
+  ProjectConfig,
+  DefaultOptions,
+} from '../types/index.js';
 
 // Detect environment dynamically
 const isDevelopment = () => {
@@ -29,7 +34,8 @@ const getDefaultApiUrl = () => {
 export class ConfigService implements IConfigService {
   private config: Conf<ObserveOneConfig>;
   private commandLineApiUrl?: string;
-  private localConfig: Partial<ObserveOneConfig> = {};
+  private commandLineApiKey?: string;
+  private localConfig: LocalProjectConfig = {};
   private localConfigPath: string;
 
   constructor(config?: Conf<ObserveOneConfig>) {
@@ -95,19 +101,38 @@ export class ConfigService implements IConfigService {
   }
 
   getApiKey(): string | undefined {
-    // Priority: 1) Env Var, 2) Local Config, 3) Global Config
+    // Priority:
+    // 1) --api-key flag (session-only runtime override, never persisted)
+    // 2) Env Var (OBS_API_KEY)
+    // 3) Local Config file (back-compat read only)
+    // 4) Global Config (OS store)
+    const runtimeKey = this.commandLineApiKey;
     const envKey = process.env.OBS_API_KEY;
-    const localKey = this.localConfig.apiKey;
+    // Back-compat: a key already present in an existing .obs.config.json is still
+    // honored, even though LocalProjectConfig no longer advertises the field (the
+    // CLI never writes it there). Cast to reach the legacy field without widening
+    // the committed-file type to invite a secret.
+    const localKey = (this.localConfig as { apiKey?: string }).apiKey;
     const globalKey = this.config.get('apiKey');
 
     if (process.env.OBS_VERBOSE === 'true') {
-      if (envKey) console.error('  [Config] Using API key from Environment Variable (OBS_API_KEY)');
+      if (runtimeKey) console.error('  [Config] Using API key from --api-key flag (session only)');
+      else if (envKey)
+        console.error('  [Config] Using API key from Environment Variable (OBS_API_KEY)');
       else if (localKey)
         console.error('  [Config] Using API key from Local Config (.obs.config.json)');
       else if (globalKey) console.error('  [Config] Using API key from Global OS Store');
     }
 
-    return envKey || localKey || globalKey;
+    return runtimeKey || envKey || localKey || globalKey;
+  }
+
+  setCommandLineApiKey(key: string): void {
+    // Keep the provided key in-memory for this process/session only. It is NOT
+    // written to the global Conf store here — persisting an unvalidated key would
+    // leave an invalid credential on disk. Validated persistence happens in the
+    // `login` flow.
+    this.commandLineApiKey = key;
   }
 
   setApiUrl(url: string): void {
@@ -131,8 +156,9 @@ export class ConfigService implements IConfigService {
   clearLocalApiKey(): void {
     // Drop the in-memory copy first so a subsequent getApiKey() in this process
     // does not return the stale local value.
-    if (this.localConfig.apiKey !== undefined) {
-      delete this.localConfig.apiKey;
+    const localInMemory = this.localConfig as { apiKey?: string };
+    if (localInMemory.apiKey !== undefined) {
+      delete localInMemory.apiKey;
     }
 
     try {

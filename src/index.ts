@@ -108,7 +108,13 @@ program.hook('preAction', (thisCommand) => {
   }
 
   if (options.apiKey) {
-    configService.setApiKey(options.apiKey as string);
+    // Keep the provided key in-memory for this session only. Do NOT persist it to
+    // the global Conf store before it is validated — an invalid --api-key must
+    // never be written to disk. The runtime override reaches per-call readers
+    // (sse-client, command bodies); apiClient caches its key at construction
+    // (before this hook), so push it onto the live client too.
+    configService.setCommandLineApiKey(options.apiKey as string);
+    apiClient.setApiKey(options.apiKey as string);
   }
 });
 

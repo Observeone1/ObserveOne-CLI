@@ -41,6 +41,20 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
+/**
+ * Decide whether a desired (apply-config) field should generate an update
+ * against the remote value.
+ *
+ * An omitted/undefined desired value means "don't care": the apply config did
+ * not specify this field, so it must never count as a change (otherwise we emit
+ * a spurious UPDATE that can overwrite the remote value with a default).
+ * A present desired value counts as a change only when it actually differs.
+ */
+export function fieldChanged(desired: unknown, remote: unknown): boolean {
+  if (desired === undefined) return false;
+  return !deepEqual(desired, remote);
+}
+
 export interface FieldDiff {
   from: unknown;
   to: unknown;

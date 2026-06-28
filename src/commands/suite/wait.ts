@@ -19,7 +19,7 @@ export function createSuiteWaitCommand(
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       const spinner = ora({
         text: 'Waiting for execution to complete...',
-        stream: process.stdout,
+        stream: process.stderr,
       });
       try {
         spinner.start();

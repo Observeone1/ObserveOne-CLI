@@ -4,7 +4,13 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { readFileSync, existsSync } from 'fs';
 import ora, { Ora } from 'ora';
-import { deepEqual, normalizeResource, diffObjects, FieldDiff } from '../utils/deep-equal.js';
+import {
+  deepEqual,
+  normalizeResource,
+  diffObjects,
+  fieldChanged,
+  FieldDiff,
+} from '../utils/deep-equal.js';
 import {
   UrlMonitor,
   ApiCheck,
@@ -306,14 +312,26 @@ Examples:
                     const localChannelIds = extractChannelIds(monitorConfig);
                     const remoteChannelIds = extractChannelIds(existing);
                     // Normalize both objects for comparison
+                    // Omitted (undefined) optional fields mean "don't care": mirror
+                    // the remote value so they never produce a spurious diff/update.
+                    // An explicitly-set value that differs still updates.
+                    const remoteInterval = existing.interval;
+                    const remoteAlertOnFailure = existing.alert_on_failure ?? true;
                     const normalizedLocal = normalizeResource(
                       {
                         name: monitorConfig.name,
                         description: monitorConfig.description ?? '',
                         url: monitorConfig.url,
                         timeout_ms: monitorConfig.timeout_ms || 30000,
-                        interval: monitorConfig.interval,
-                        alert_on_failure: monitorConfig.alert_on_failure ?? true,
+                        interval: fieldChanged(monitorConfig.interval, remoteInterval)
+                          ? monitorConfig.interval
+                          : remoteInterval,
+                        alert_on_failure: fieldChanged(
+                          monitorConfig.alert_on_failure,
+                          remoteAlertOnFailure
+                        )
+                          ? monitorConfig.alert_on_failure
+                          : remoteAlertOnFailure,
                         channel_ids: localChannelIds,
                       },
                       { timeout_ms: 30000, alert_on_failure: true, description: '' }

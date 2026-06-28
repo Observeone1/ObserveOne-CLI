@@ -57,8 +57,10 @@ export function createAiCheckWaitCommand(
           }
         }
 
-        const payload = { execution, ...(results !== undefined && { results }) };
-        outputService.formatJsonOutput(payload);
+        if (isJson) {
+          const payload = { execution, ...(results !== undefined && { results }) };
+          outputService.formatJsonOutput(payload);
+        }
 
         if (execution.status !== 'SUCCESS') {
           process.exit(1);

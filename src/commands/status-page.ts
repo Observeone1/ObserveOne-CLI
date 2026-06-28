@@ -9,6 +9,17 @@ import { StatusPage } from '../types/index.js';
 
 const MONITOR_TYPES = ['url-monitor', 'api-check', 'heartbeat', 'browser-check'] as const;
 
+/**
+ * Parse a `--order` CLI value into an integer, rejecting non-numeric input.
+ * Throws a clear error (matching the reorder command) so no request is sent
+ * with a NaN display order.
+ */
+export function parseDisplayOrder(raw: string): number {
+  const value = parseInt(raw, 10);
+  if (isNaN(value)) throw new Error('Invalid --order value (must be an integer)');
+  return value;
+}
+
 export function createStatusPageCommand(
   configService: IConfigService,
   apiClient: IApiClient,
@@ -85,7 +96,7 @@ export function createStatusPageCommand(
           display_name: options.name as string,
         };
         if (options.order !== undefined) {
-          payload.display_order = parseInt(options.order as string);
+          payload.display_order = parseDisplayOrder(options.order as string);
         }
         const entry = await (apiClient as ApiClient).addMonitorToStatusPage(statusPageId, payload);
         if (isJson) {
@@ -154,10 +165,9 @@ export function createStatusPageCommand(
       try {
         const statusPageId = spId.trim();
         const entryId = entryIdArg.trim();
-        const displayOrder = parseInt(options.order as string);
         if (!statusPageId) throw new Error('Invalid status page ID');
         if (!entryId) throw new Error('Invalid entry ID');
-        if (isNaN(displayOrder)) throw new Error('Invalid --order value (must be an integer)');
+        const displayOrder = parseDisplayOrder(options.order as string);
         const entry = await (apiClient as ApiClient).updateStatusPageMonitorOrder(
           statusPageId,
           entryId,

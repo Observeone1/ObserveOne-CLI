@@ -171,4 +171,104 @@ describe('ApiClient', () => {
       expect(mockExec).toHaveBeenCalledTimes(3);
     });
   });
+
+  describe('response interceptor (no auth-token leak on client errors)', () => {
+    // The constructor registers the response interceptor via the mocked
+    // `client.interceptors.response.use(onFulfilled, onRejected)`. Pull the
+    // rejection handler back out so we can drive it directly.
+    function getRejectionHandler(): (error: unknown) => unknown {
+      const useMock = (
+        apiClient as unknown as {
+          client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
+        }
+      ).client.interceptors.response.use;
+      const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
+      return lastCall[1] as (error: unknown) => unknown;
+    }
+
+    it('surfaces a 422 as a clean Error with the server message and no auth header attached', () => {
+      const onRejected = getRejectionHandler();
+      const axiosError = {
+        message: 'Request failed with status code 422',
+        config: {
+          url: '/api-checks',
+          headers: { 'x-obs1-cli': 'super-secret-token', 'Content-Type': 'application/json' },
+        },
+        response: { status: 422, data: { message: 'Validation failed: url is required' } },
+      };
+
+      let thrown: unknown;
+      try {
+        onRejected(axiosError);
+      } catch (e) {
+        thrown = e;
+      }
+
+      // A clean Error carrying ONLY the server message — not the raw axios
+      // error, and without any config/headers that would leak the token.
+      expect(thrown).toBeInstanceOf(Error);
+      expect(thrown).not.toBe(axiosError);
+      expect((thrown as Error).message).toBe('Validation failed: url is required');
+      expect((thrown as { config?: unknown }).config).toBeUndefined();
+    });
+
+    it('re-throws the raw error (preserving .code) when there is no response', () => {
+      const onRejected = getRejectionHandler();
+      // Network error: no `response`, carries a `.code` that callers branch on.
+      const networkError = { code: 'ECONNREFUSED', message: 'connect ECONNREFUSED 127.0.0.1' };
+
+      let thrown: unknown;
+      try {
+        onRejected(networkError);
+      } catch (e) {
+        thrown = e;
+      }
+
+      // Must be the SAME object (not a wrapped Error) so `.code` survives.
+      expect(thrown).toBe(networkError);
+    });
+
+    it('falls back to the .error field, then a generic status message', () => {
+      const onRejected = getRejectionHandler();
+
+      let fromError: unknown;
+      try {
+        onRejected({
+          config: { headers: {} },
+          response: { status: 409, data: { error: 'conflict' } },
+        });
+      } catch (e) {
+        fromError = e;
+      }
+      expect((fromError as Error).message).toBe('conflict');
+
+      let fromStatus: unknown;
+      try {
+        onRejected({ config: { headers: {} }, response: { status: 400, data: {} } });
+      } catch (e) {
+        fromStatus = e;
+      }
+      expect((fromStatus as Error).message).toBe('Request failed with status 400');
+    });
+  });
+
+  describe('validateApiKey (never mutates shared client default header)', () => {
+    it('restores the default x-obs1-cli header to its pre-call value when there was no prior key', async () => {
+      const mockClient = (
+        apiClient as unknown as {
+          client: { defaults: { headers: Record<string, unknown> }; get: ReturnType<typeof vi.fn> };
+        }
+      ).client;
+
+      // No key was set on the client defaults before validation.
+      delete mockClient.defaults.headers['x-obs1-cli'];
+      mockClient.get = vi.fn().mockResolvedValue({ data: { valid: true } });
+
+      const result = await apiClient.validateApiKey('candidate-key');
+
+      expect(result).toBe(true);
+      // The candidate key must NOT be left attached to the shared client.
+      expect(mockClient.defaults.headers['x-obs1-cli']).toBeUndefined();
+    });
+  });
 });

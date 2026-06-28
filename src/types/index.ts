@@ -18,6 +18,22 @@ export interface ObserveOneConfig {
   project?: ProjectConfig | undefined;
 }
 
+/**
+ * Shape of the local, committable project config file (`.obs.config.json`),
+ * read from `process.cwd()`.
+ *
+ * Intentionally does NOT include `apiKey`: a credential must never live in a
+ * project file that can be committed to version control. Provide a key via the
+ * `OBS_API_KEY` env var, the `--api-key` flag, or `obs login` (stored in the
+ * global Conf store / OS keychain) — never this file. The CLI never writes
+ * `apiKey` here.
+ */
+export interface LocalProjectConfig {
+  apiUrl?: string | undefined;
+  defaultOptions?: DefaultOptions | undefined;
+  project?: ProjectConfig | undefined;
+}
+
 export interface Test {
   id: number;
   name: string;
