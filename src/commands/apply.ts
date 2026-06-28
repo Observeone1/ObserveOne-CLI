@@ -77,6 +77,26 @@ const chunkArray = <T>(arr: T[], size: number): T[][] => {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Apply matches existing resources by name/slug only, so a rename in the file
+ * looks like a brand-new resource: a duplicate is created and the original is
+ * orphaned (still running) with no signal. When we decide to CREATE (no match),
+ * surface the existing names so a likely rename is visible. Returns null when
+ * there are no existing resources of this type (nothing a rename could be).
+ */
+export function likelyRenameWarning(
+  kind: string,
+  newName: string,
+  existingNames: string[]
+): string | null {
+  if (existingNames.length === 0) return null;
+  return (
+    `Creating new ${kind} "${newName}" — no existing ${kind} matched by name. ` +
+    `If this is a rename, the original is left untouched (and still running). ` +
+    `Existing ${kind}s: ${existingNames.join(', ')}.`
+  );
+}
+
 interface ResourceSummary {
   created: number;
   updated: number;
@@ -250,6 +270,7 @@ Examples:
         };
 
         const errors: string[] = [];
+        const renameWarnings: string[] = [];
         const dryRunEntries: DryRunEntry[] = [];
         const delayMs = 1000; // 1 second between chunks to respect 100 req/min rate limit
 
@@ -340,6 +361,12 @@ Examples:
                     });
                   } else {
                     summary.monitors.created++;
+                    const w = likelyRenameWarning(
+                      'monitor',
+                      monitorConfig.name!,
+                      Array.from(existingByName.keys())
+                    );
+                    if (w) renameWarnings.push(w);
                     if (isDryRun) {
                       dryRunEntries.push({
                         type: 'create',
@@ -503,6 +530,12 @@ Examples:
                     });
                   } else {
                     summary.apiChecks.created++;
+                    const w = likelyRenameWarning(
+                      'API check',
+                      checkConfig.name!,
+                      Array.from(existingByName.keys())
+                    );
+                    if (w) renameWarnings.push(w);
                     if (isDryRun) {
                       dryRunEntries.push({
                         type: 'create',
@@ -601,6 +634,12 @@ Examples:
                     });
                   } else {
                     summary.heartbeats.created++;
+                    const w = likelyRenameWarning(
+                      'heartbeat',
+                      hbConfig.name!,
+                      Array.from(existingByName.keys())
+                    );
+                    if (w) renameWarnings.push(w);
                     if (isDryRun) {
                       dryRunEntries.push({
                         type: 'create',
@@ -699,6 +738,12 @@ Examples:
                     await apiClient.updateAlertChannel(existing.id, chConfig);
                   } else {
                     summary.alertChannels.created++;
+                    const w = likelyRenameWarning(
+                      'alert channel',
+                      chConfig.name!,
+                      Array.from(existingByName.keys())
+                    );
+                    if (w) renameWarnings.push(w);
                     if (isDryRun) {
                       dryRunEntries.push({
                         type: 'create',
@@ -801,6 +846,12 @@ Examples:
                     await apiClient.updateStatusPage(existing.id, spConfig);
                   } else {
                     summary.statusPages.created++;
+                    const w = likelyRenameWarning(
+                      'status page',
+                      spConfig.slug!,
+                      Array.from(existingBySlug.keys())
+                    );
+                    if (w) renameWarnings.push(w);
                     if (isDryRun) {
                       dryRunEntries.push({
                         type: 'create',
@@ -932,6 +983,11 @@ Examples:
         if (spinner) {
           spinner.stop();
         }
+
+        // Surface likely-rename warnings on stderr only — never in the JSON
+        // payload (stdout). Flushed after the spinner stops so they don't
+        // interleave with ora's stderr output; covers dry-run too.
+        renameWarnings.forEach((w) => console.error(w));
 
         if (isDryRun) {
           if (isJson) {

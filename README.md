@@ -286,6 +286,7 @@ obs suite generate https://example.com --name "Smoke Tests" --max-tests 5
 obs suite generate https://example.com --cron "0 */6 * * *"
 obs suite generate https://example.com --plan-only         # Review the plan before generating
 obs suite generate https://example.com --var USER=admin --var PASS=secret
+obs suite generate https://example.com --var USER --var PASS    # omit =value to enter secrets at a masked prompt
 obs suite generate https://example.com --var-file .env.test
 
 obs suite list
@@ -300,7 +301,7 @@ obs suite schedule <id> --enable
 obs suite schedule <id> --cron "*/30 * * * *"
 obs suite secrets <id> --var-file .env.test
 
-obs suite toggle-public <id>
+obs suite toggle-public <id> -y        # Confirms before exposing a suite; -y skips the prompt
 obs suite heal <id>                    # Trigger self-heal on failing tests
 ```
 

@@ -1,8 +1,8 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import { IConfigService } from '../../interfaces/config.interface.js';
 import { IApiClient } from '../../interfaces/api-client.interface.js';
 import { IOutputService } from '../../interfaces/output.interface.js';
+import { requireConfirmation } from '../../utils/confirm.js';
 
 export function createAiCheckDeleteCommand(
   configService: IConfigService,
@@ -15,7 +15,8 @@ export function createAiCheckDeleteCommand(
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('-j, --json', 'Output in JSON format')
     .action(async (id: string, options: Record<string, unknown>) => {
-      if (process.env.OBS_JSON_OUTPUT === 'true' || options.json === true) {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true' || options.json === true;
+      if (isJson) {
         outputService.enableJsonMode();
       }
       try {
@@ -31,21 +32,21 @@ export function createAiCheckDeleteCommand(
           process.exit(1);
         }
 
-        if (!options.yes) {
-          const { confirm } = await inquirer.prompt<{ confirm: boolean }>([
-            {
-              type: 'confirm',
-              name: 'confirm',
-              message: `Are you sure you want to delete AI check ${testId}?`,
-              default: false,
-            },
-          ]);
-          if (!confirm) return;
-        }
+        // requireConfirmation handles --yes, JSON mode, and the non-TTY/CI
+        // case (exits non-zero instead of hanging on the interactive prompt).
+        const confirmed = await requireConfirmation(
+          `Are you sure you want to delete AI check ${testId}?`,
+          {
+            yes: options.yes as boolean | undefined,
+            isJson,
+            outputError: (msg) => outputService.error(msg),
+          }
+        );
+        if (!confirmed) return;
 
         outputService.progress(`Deleting AI check ${testId}...`);
         await apiClient.deleteTest(testId);
-        if (process.env.OBS_JSON_OUTPUT === 'true') {
+        if (isJson) {
           outputService.formatJsonOutput({ success: true, id: testId });
         } else {
           outputService.success(`AI check ${testId} deleted successfully.`);

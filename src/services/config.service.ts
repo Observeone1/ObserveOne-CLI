@@ -1,5 +1,5 @@
 import Conf from 'conf';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { ObserveOneConfig, ProjectConfig, DefaultOptions } from '../types/index.js';
@@ -30,6 +30,7 @@ export class ConfigService implements IConfigService {
   private config: Conf<ObserveOneConfig>;
   private commandLineApiUrl?: string;
   private localConfig: Partial<ObserveOneConfig> = {};
+  private localConfigPath: string;
 
   constructor(config?: Conf<ObserveOneConfig>) {
     // 1. Load Global Config (Lowest priority before Defaults)
@@ -51,10 +52,10 @@ export class ConfigService implements IConfigService {
 
     // 2. Load Local Config (.obs.config.json in process.cwd())
     // This takes precedence over global config
-    const localConfigPath = join(process.cwd(), '.obs.config.json');
-    if (existsSync(localConfigPath)) {
+    this.localConfigPath = join(process.cwd(), '.obs.config.json');
+    if (existsSync(this.localConfigPath)) {
       try {
-        const rawData = readFileSync(localConfigPath, 'utf8');
+        const rawData = readFileSync(this.localConfigPath, 'utf8');
         this.localConfig = JSON.parse(rawData);
       } catch (_error) {
         // Silently fail or log if invalid JSON
@@ -121,7 +122,33 @@ export class ConfigService implements IConfigService {
   }
 
   clearApiKey(): void {
+    // Clear from BOTH the global OS store and the local .obs.config.json so a
+    // stale local-file token cannot keep authenticating after `obs logout`.
     this.config.delete('apiKey');
+    this.clearLocalApiKey();
+  }
+
+  clearLocalApiKey(): void {
+    // Drop the in-memory copy first so a subsequent getApiKey() in this process
+    // does not return the stale local value.
+    if (this.localConfig.apiKey !== undefined) {
+      delete this.localConfig.apiKey;
+    }
+
+    try {
+      if (!existsSync(this.localConfigPath)) return;
+      const rawData = readFileSync(this.localConfigPath, 'utf8');
+      const parsed = JSON.parse(rawData) as Partial<ObserveOneConfig>;
+      if (parsed.apiKey === undefined) return;
+      delete parsed.apiKey;
+      writeFileSync(this.localConfigPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8');
+    } catch (_error) {
+      // Best effort — never throw out of logout because of a local-file issue.
+    }
+  }
+
+  hasEnvApiKey(): boolean {
+    return Boolean(process.env.OBS_API_KEY);
   }
 
   getProjectConfig(): ProjectConfig {

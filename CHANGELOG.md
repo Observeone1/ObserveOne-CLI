@@ -5,6 +5,18 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0] - 2026-06-28
+
+### Fixed
+- **`obs apply` warns before creating a likely-renamed resource.** Apply matched resources by name/slug only, so a rename silently created a duplicate and orphaned the original. Create paths now print a stderr warning listing existing names of that type so a rename is visible (JSON output stays clean).
+- **`obs validate` now enforces field types and enum values**, not just required-present. Wrong types and out-of-range enum values (e.g. an invalid `method` or `priority`) are rejected using the schema metadata. No new dependency.
+- **Polling no longer hangs ~5 min on a bad id.** `pollExecutionStatus` / `pollSuiteExecution` retried all errors including 4xx; they now fail fast on a non-transient 4xx (deleted/invalid id) while still retrying transient/5xx errors.
+- **SSE consumer errors surface correctly.** A throw from the `onMessage` callback was mislabeled "Failed to parse SSE message" and never reached `onError` (the command hung to timeout). The callback now runs outside the JSON-parse try, and an optional idle timeout prevents an indefinitely silent stream from blocking.
+- **`obs logout` fully clears credentials.** It cleared only the global config key while `OBS_API_KEY` and a CWD `.obs.config.json` could still authenticate. Logout now also clears the local-file key and warns when `OBS_API_KEY` is set in the environment.
+- **Commands no longer hang forever in non-TTY/CI.** `incident comment` (`--message`), `api-key create` (`--name`), and `ai-check delete` (`--yes`) prompted via inquirer with no input, blocking pipes. They now guard on a TTY and exit non-zero with guidance.
+- **Suite secret values can be entered masked.** `--var KEY` (no `=value`) now prompts with a hidden inquirer password input instead of forcing the secret onto the command line (where it lands in shell history / `ps`). `--var KEY=VALUE` still works; the safer `--var-file` is documented.
+- **`obs suite toggle-public` now requires confirmation** (and accepts `-y/--yes`) before exposing a suite, matching `delete` / `ci disconnect`.
+
 ## [1.29.0] - 2026-06-28
 
 ### Security
