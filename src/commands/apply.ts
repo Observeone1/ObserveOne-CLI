@@ -815,10 +815,17 @@ Examples:
                       {
                         slug: spConfig.slug,
                         name: spConfig.name,
-                        description: spConfig.description ?? '',
-                        is_public: spConfig.is_public ?? true,
-                        show_incident_history: spConfig.show_incident_history ?? true,
-                        show_uptime_percentage: spConfig.show_uptime_percentage ?? true,
+                        // Omitted fields mean "leave as-is": fall back to the
+                        // remote value so an absent field never diffs into a
+                        // spurious update that overwrites the server default.
+                        description: spConfig.description ?? existing.description ?? '',
+                        is_public: spConfig.is_public ?? existing.is_public ?? true,
+                        show_incident_history:
+                          spConfig.show_incident_history ?? existing.show_incident_history ?? true,
+                        show_uptime_percentage:
+                          spConfig.show_uptime_percentage ??
+                          existing.show_uptime_percentage ??
+                          true,
                       },
                       {
                         description: '',
