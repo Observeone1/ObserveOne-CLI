@@ -174,7 +174,7 @@ async function runNamedTests(
       .map((name: string) => {
         let test = tests.find((t) => t.name === name);
         if (!test) {
-          const id = parseInt(name);
+          const id = parseInt(name, 10);
           if (!isNaN(id)) {
             test = tests.find((t) => t.id === id);
           }

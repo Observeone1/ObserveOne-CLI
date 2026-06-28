@@ -5,6 +5,18 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.1] - 2026-06-28
+
+### Fixed
+- **The API token can no longer leak through a raw error.** Non-401/403/404/5xx HTTP errors re-threw the raw AxiosError, whose `config.headers` carried the `x-obs1-cli` token; these now throw a clean Error with the server message (network errors still re-throw raw so `.code` survives).
+- **`validateApiKey` no longer leaves a candidate key on the shared client** when no key was set before validation (always restores the prior header state).
+- **An invalid global `--api-key` is no longer written to disk** before validation; it is kept in-memory for the session only.
+- **`.obs.config.json` is gitignored** and the local project-config type no longer advertises an `apiKey` field (avoids committing a credential).
+- **`obs apply` no longer fires spurious monitor updates** for omitted `interval` / `alert_on_failure` (an omitted field is now treated as "don't care" instead of a change to a default).
+- **`obs status-page add-monitor --order` rejects a non-numeric value** instead of sending `NaN` (mirrors `reorder`).
+- **`obs suite ci` subcommands emit structured JSON on error** in `--json` mode (was plain text); `obs ai-check wait` only prints the JSON envelope in JSON mode.
+- **Suite spinners write to stderr**, so piping suite output to `jq` stays clean. Added an explicit radix to the `ai-check` id parses.
+
 ## [1.30.0] - 2026-06-28
 
 ### Fixed

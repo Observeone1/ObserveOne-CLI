@@ -23,7 +23,7 @@ export function createAiCheckGetCommand(
           process.exit(1);
         }
 
-        const testId = parseInt(id);
+        const testId = parseInt(id, 10);
         if (isNaN(testId)) {
           outputService.error('Invalid test ID.');
           process.exit(1);

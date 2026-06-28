@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deepEqual, normalizeResource } from '../../utils/deep-equal.js';
+import { deepEqual, normalizeResource, fieldChanged } from '../../utils/deep-equal.js';
 
 describe('deepEqual', () => {
   describe('primitives', () => {
@@ -176,5 +176,31 @@ describe('normalizeResource', () => {
       timeout_ms: 30000,
       url: 'https://example.com',
     });
+  });
+});
+
+describe('fieldChanged', () => {
+  it('returns false when the desired value is omitted (undefined)', () => {
+    // Omitted field = "don't care": must never produce a spurious update,
+    // even when the remote holds a non-default value.
+    expect(fieldChanged(undefined, true)).toBe(false);
+    expect(fieldChanged(undefined, false)).toBe(false);
+    expect(fieldChanged(undefined, 300)).toBe(false);
+  });
+
+  it('returns true when an explicit value differs from remote', () => {
+    expect(fieldChanged(false, true)).toBe(true);
+    expect(fieldChanged(60, 300)).toBe(true);
+  });
+
+  it('returns false when an explicit value equals remote', () => {
+    // Explicitly-set-but-unchanged must NOT update (no spurious diff).
+    expect(fieldChanged(true, true)).toBe(false);
+    expect(fieldChanged(300, 300)).toBe(false);
+  });
+
+  it('treats null as an explicit value (distinct from undefined)', () => {
+    expect(fieldChanged(null, undefined)).toBe(true);
+    expect(fieldChanged(null, null)).toBe(false);
   });
 });

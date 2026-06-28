@@ -92,6 +92,19 @@ export class ApiClient implements IApiClient {
         if (error.response?.status >= 500) {
           throw new Error(`Server error: ${error.response.status}`);
         }
+        // Remaining response-bearing client errors (400/409/422/etc.).
+        // Re-throwing the raw AxiosError would carry `config.headers` —
+        // including the x-obs1-cli auth token — into any logger or error
+        // printer. Surface a clean Error built from the server message instead.
+        if (error.response) {
+          const data = error.response.data;
+          const message =
+            data?.message || data?.error || `Request failed with status ${error.response.status}`;
+          throw new Error(message);
+        }
+        // No response (network error, timeout). Preserve the raw error so its
+        // `.code` (e.g. ECONNREFUSED) survives for callers like
+        // provisionHeadlessAuth that branch on it.
         throw error;
       }
     );
@@ -117,21 +130,25 @@ export class ApiClient implements IApiClient {
   }
 
   async validateApiKey(apiKey: string): Promise<boolean> {
+    // Save the previous default header value (which may be undefined when no
+    // key was set yet) and ALWAYS restore it. Otherwise a candidate key would
+    // leak onto the shared client's defaults after a no-prior-key validation.
+    const previousHeader = this.client.defaults.headers['x-obs1-cli'];
     try {
       // Temporarily set the key to test it
-      const currentKey = this.apiKey;
       this.client.defaults.headers['x-obs1-cli'] = apiKey;
 
       const response = await this.client.get<{ valid: boolean }>('/cli/auth/verify');
 
-      // Restore previous key if validation was just a check
-      if (currentKey) {
-        this.client.defaults.headers['x-obs1-cli'] = currentKey;
-      }
-
       return response.data.valid === true;
     } catch (_error: unknown) {
       return false;
+    } finally {
+      if (previousHeader === undefined) {
+        delete this.client.defaults.headers['x-obs1-cli'];
+      } else {
+        this.client.defaults.headers['x-obs1-cli'] = previousHeader;
+      }
     }
   }
 

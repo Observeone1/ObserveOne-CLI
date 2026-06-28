@@ -120,4 +120,31 @@ describe('ConfigService', () => {
       expect(mockConf.delete).toHaveBeenCalledWith('apiKey');
     });
   });
+
+  describe('Runtime --api-key override (session-only, not persisted)', () => {
+    it('uses the runtime key over the env var and the global store', () => {
+      process.env.OBS_API_KEY = 'env_api_key';
+      mockConf.get.mockImplementation((key: string) =>
+        key === 'apiKey' ? 'saved_api_key' : undefined
+      );
+
+      configService.setCommandLineApiKey('cli_api_key');
+
+      expect(configService.getApiKey()).toBe('cli_api_key');
+    });
+
+    it('does NOT write the runtime key to the global Conf store', () => {
+      configService.setCommandLineApiKey('cli_api_key');
+
+      // An invalid --api-key must never be persisted to disk before validation.
+      expect(mockConf.set).not.toHaveBeenCalled();
+      // But it is still honored for the session.
+      expect(configService.getApiKey()).toBe('cli_api_key');
+    });
+
+    it('returns undefined when no runtime key, env var, or stored key is set', () => {
+      mockConf.get.mockReturnValue(undefined);
+      expect(configService.getApiKey()).toBeUndefined();
+    });
+  });
 });
