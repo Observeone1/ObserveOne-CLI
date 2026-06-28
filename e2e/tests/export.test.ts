@@ -69,7 +69,7 @@ export async function testDeclarativeExport() {
     }
     // v1.25.0: monitors carry a bundle-local surrogate `id` so a status
     // page's `monitor_id` reference resolves on import.
-    if (typeof (foundMonitor as { id?: unknown }).id !== 'number') {
+    if (typeof (foundMonitor as { id?: unknown }).id !== 'string') {
       throw new Error('Exported monitor must carry its bundle-local `id`');
     }
 
@@ -77,7 +77,7 @@ export async function testDeclarativeExport() {
     if (!foundCheck) {
       throw new Error('Created test API check was not found in exported file');
     }
-    if (typeof (foundCheck as { id?: unknown }).id !== 'number') {
+    if (typeof (foundCheck as { id?: unknown }).id !== 'string') {
       throw new Error('Exported api_check must carry its bundle-local `id`');
     }
   } finally {
@@ -178,7 +178,7 @@ export async function testDeclarativeExportExtendedCoverage() {
     // `id` (so monitors' `channel_ids` resolve on import), but all other
     // DB-owned fields (created_at, user_id, ...) are still stripped.
     const ac = data.alert_channels.find((c: ResourcePreview) => c.name === channelName);
-    if (typeof (ac as { id?: unknown }).id !== 'number') {
+    if (typeof (ac as { id?: unknown }).id !== 'string') {
       throw new Error('Alert channel export must carry its bundle-local `id`');
     }
     if ('created_at' in ac) {
@@ -317,7 +317,7 @@ export async function testExportApplyRoundTrip() {
     try {
       const list = await runCLI([kind, 'list', '--json']);
       for (const r of extractList(list.stdout)) {
-        if (r.name === name && typeof r.id === 'number') {
+        if (r.name === name && typeof r.id === 'string') {
           await runCLI([kind, 'delete', String(r.id), '-y', '--json']);
         }
       }
@@ -357,10 +357,10 @@ export async function testExportApplyRoundTrip() {
     const exported = JSON.parse(readFileSync(fullExportFile, 'utf-8'));
     const m = (exported.monitors ?? []).find((x: ResourcePreview) => x.name === monitorName);
     const c = (exported.alert_channels ?? []).find((x: ResourcePreview) => x.name === channelName);
-    if (!m || typeof (m as { id?: unknown }).id !== 'number') {
+    if (!m || typeof (m as { id?: unknown }).id !== 'string') {
       throw new Error('Round-trip export missing monitor or its surrogate id');
     }
-    if (!c || typeof (c as { id?: unknown }).id !== 'number') {
+    if (!c || typeof (c as { id?: unknown }).id !== 'string') {
       throw new Error('Round-trip export missing alert channel or its surrogate id');
     }
     writeFileSync(minimalFile, JSON.stringify({ monitors: [m], alert_channels: [c] }, null, 2));
