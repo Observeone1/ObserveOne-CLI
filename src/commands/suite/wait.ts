@@ -17,11 +17,12 @@ export function createSuiteWaitCommand(
     .argument('<executionId>', 'Execution ID')
     .action(async (id: string, executionId: string) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      const spinner = ora({
+        text: 'Waiting for execution to complete...',
+        stream: process.stdout,
+      });
       try {
-        const spinner = ora({
-          text: 'Waiting for execution to complete...',
-          stream: process.stdout,
-        }).start();
+        spinner.start();
 
         const done = await apiClient.pollSuiteExecution(id, executionId);
 
@@ -36,6 +37,7 @@ export function createSuiteWaitCommand(
         const allPassed = done.status === 'COMPLETED' && (done.failed ?? 0) === 0;
         process.exit(allPassed ? 0 : 1);
       } catch (err: unknown) {
+        spinner.stop();
         const msg = (err as Error).message || 'Failed to wait for suite execution';
         if (isJson) {
           outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });

@@ -18,6 +18,7 @@ export function createSuiteRunCommand(
     .option('--tests <ids>', 'Comma-separated list of test IDs to run')
     .action(async (id: string, options: { wait?: boolean; tests?: string }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      let spinner: ReturnType<typeof ora> | null = null;
       try {
         const testIds = options.tests ? options.tests.split(',').map((s) => s.trim()) : undefined;
         const { execution_id } = await apiClient.runSuite(id, testIds);
@@ -38,7 +39,7 @@ export function createSuiteRunCommand(
           console.log(chalk.gray('─'.repeat(56)));
         }
 
-        const spinner = isJson ? null : ora({ text: 'Running...', stream: process.stdout }).start();
+        spinner = isJson ? null : ora({ text: 'Running...', stream: process.stdout }).start();
         const started = Date.now();
 
         const done = await apiClient.pollSuiteExecution(id, execution_id);
@@ -55,6 +56,7 @@ export function createSuiteRunCommand(
         const allPassed = done.status === 'COMPLETED' && (done.failed ?? 0) === 0;
         process.exit(allPassed ? 0 : 1);
       } catch (err: unknown) {
+        spinner?.stop();
         const msg = (err as Error).message || 'Failed to run suite';
         if (isJson) {
           outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });

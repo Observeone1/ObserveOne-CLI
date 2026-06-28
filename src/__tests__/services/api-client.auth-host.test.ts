@@ -1,0 +1,68 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { IConfigService } from '../../interfaces/config.interface.js';
+
+type ReqConfig = { headers: Record<string, string>; baseURL?: string };
+
+const hoisted = vi.hoisted(() => ({
+  requestInterceptor: undefined as ((c: ReqConfig) => ReqConfig) | undefined,
+}));
+
+// Capture the request interceptor so we can drive it directly with a fake config.
+vi.mock('axios', () => ({
+  default: {
+    create: vi.fn().mockReturnValue({
+      interceptors: {
+        request: {
+          use: vi.fn((fn: (c: ReqConfig) => ReqConfig) => {
+            hoisted.requestInterceptor = fn;
+          }),
+        },
+        response: { use: vi.fn() },
+      },
+      defaults: { headers: {} },
+      get: vi.fn(),
+    }),
+  },
+}));
+
+import { ApiClient } from '../../services/api-client.service.js';
+
+function makeConfig(apiUrl: string, isDev = false): IConfigService {
+  return {
+    getApiKey: vi.fn().mockReturnValue('secret-token'),
+    getApiUrl: vi.fn().mockReturnValue(apiUrl),
+    isDevelopment: vi.fn().mockReturnValue(isDev),
+    getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
+  } as unknown as IConfigService;
+}
+
+describe('ApiClient auth-header host allowlist', () => {
+  beforeEach(() => {
+    hoisted.requestInterceptor = undefined;
+    vi.restoreAllMocks();
+  });
+
+  it('attaches x-obs1-cli for an allowlisted host', () => {
+    new ApiClient(makeConfig('https://api.observeone.com/api'));
+    const config: ReqConfig = { headers: {} };
+    hoisted.requestInterceptor!(config);
+    expect(config.headers['x-obs1-cli']).toBe('secret-token');
+  });
+
+  it('strips x-obs1-cli and warns for a non-allowlisted host', () => {
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    new ApiClient(makeConfig('https://evil.example.com/api'));
+    // Simulate the token already present via client.defaults.headers merge.
+    const config: ReqConfig = { headers: { 'x-obs1-cli': 'leaked' } };
+    hoisted.requestInterceptor!(config);
+    expect(config.headers['x-obs1-cli']).toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('attaches the token for a loopback host (local dev / e2e)', () => {
+    new ApiClient(makeConfig('http://localhost:8080/api'));
+    const config: ReqConfig = { headers: {} };
+    hoisted.requestInterceptor!(config);
+    expect(config.headers['x-obs1-cli']).toBe('secret-token');
+  });
+});

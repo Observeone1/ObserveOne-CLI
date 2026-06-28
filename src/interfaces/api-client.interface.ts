@@ -71,7 +71,7 @@ export interface IApiClient {
   deleteUrlMonitor(id: string): Promise<void>;
   toggleUrlMonitor(id: string): Promise<boolean>;
   toggleMuteUrlMonitor(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
-  getUrlMonitorRuns(id: number, limit?: number): Promise<ResourceRun[]>;
+  getUrlMonitorRuns(id: string, limit?: number): Promise<ResourceRun[]>;
 
   // API Checks
   getApiChecks(): Promise<ApiCheck[]>;
@@ -82,7 +82,7 @@ export interface IApiClient {
   deleteApiCheck(id: string): Promise<void>;
   toggleApiCheck(id: string): Promise<boolean>;
   toggleMuteApiCheck(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
-  getApiCheckRuns(id: number, limit?: number): Promise<ResourceRun[]>;
+  getApiCheckRuns(id: string, limit?: number): Promise<ResourceRun[]>;
 
   // Heartbeats
   getHeartbeats(): Promise<Heartbeat[]>;
@@ -94,7 +94,7 @@ export interface IApiClient {
   toggleHeartbeat(id: string): Promise<boolean>;
   toggleMuteHeartbeat(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
   resetHeartbeat(id: string): Promise<Heartbeat>;
-  getHeartbeatRuns(id: number, limit?: number): Promise<HeartbeatPing[]>;
+  getHeartbeatRuns(id: string, limit?: number): Promise<HeartbeatPing[]>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;

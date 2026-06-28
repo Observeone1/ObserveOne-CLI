@@ -99,7 +99,7 @@ describe('ApiClient', () => {
       const mockGet = vi.fn().mockResolvedValue({ data: { executions: [{ id: 101 }] } });
       (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
 
-      const runs = await apiClient.getUrlMonitorRuns(1, 5);
+      const runs = await apiClient.getUrlMonitorRuns('1', 5);
       expect(runs).toEqual([{ id: 101 }]);
     });
 
@@ -107,7 +107,7 @@ describe('ApiClient', () => {
       const mockGet = vi.fn().mockResolvedValue({ data: [{ id: 202 }] });
       (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
 
-      const runs = await apiClient.getApiCheckRuns(1, 5);
+      const runs = await apiClient.getApiCheckRuns('1', 5);
       expect(runs).toEqual([{ id: 202 }]);
     });
 
@@ -115,7 +115,7 @@ describe('ApiClient', () => {
       const mockGet = vi.fn().mockResolvedValue({ data: { pings: [{ id: 303 }] } });
       (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
 
-      const runs = await apiClient.getHeartbeatRuns(1, 5);
+      const runs = await apiClient.getHeartbeatRuns('1', 5);
       expect(runs).toEqual([{ id: 303 }]);
     });
   });

@@ -8,7 +8,7 @@ interface RunsCommandOptions<T> {
   title: string;
   emptyMessage: string;
   description: string;
-  fetchRuns: (id: number, limit: number) => Promise<T[]>;
+  fetchRuns: (id: string, limit: number) => Promise<T[]>;
   formatRuns: (runs: T[]) => void;
   outputService: IOutputService;
 }
@@ -22,7 +22,10 @@ export function attachRunsCommand<T>(cmd: Command, options: RunsCommandOptions<T
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
 
       try {
-        const resourceId = parseNumericId(id, 'resource');
+        const resourceId = id?.trim();
+        if (!resourceId) {
+          throw new Error('Invalid resource ID');
+        }
         const limit = parsePositiveInteger(commandOptions.limit, 'limit');
         const runs = await options.fetchRuns(resourceId, limit);
 
@@ -81,14 +84,6 @@ export function printHeartbeatRuns(runs: HeartbeatPing[]): void {
     }
     console.log('');
   });
-}
-
-function parseNumericId(value: string, label: string): number {
-  const parsed = parseInt(value, 10);
-  if (Number.isNaN(parsed)) {
-    throw new Error(`Invalid ${label} ID`);
-  }
-  return parsed;
 }
 
 function parsePositiveInteger(value: string | undefined, label: string): number {
