@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0] - 2026-06-28
+
+### Security
+- **The API token is no longer sent to non-ObserveOne hosts.** The base URL is overridable via `--api-url`, `OBS_API_URL`, or a working-directory `.obs.config.json`, and the `x-obs1-cli` auth header was attached to every request regardless of destination. Requests now go through a host allowlist (`observeone.com` and `*.observeone.com`, plus loopback addresses for local dev): on a non-allowlisted host the token is stripped and a warning is printed to stderr (the request still proceeds, unauthenticated). The same guard now covers the SSE event stream.
+
+### Fixed
+- **Remaining UUID-as-int coercions removed.** The 1.28.0 sweep missed three paths that still truncated UUIDs with `parseInt`/`Number()`: `monitor`/`check`/`heartbeat runs <id>`, `--alert-channel-id` on `monitor`/`check create`/`update`, and `--team-id` on `incident create`. These now pass IDs through as strings end to end and validate only that the value is non-empty.
+- **`obs suite run` / `obs suite wait` no longer leave a stuck spinner** after an error. The `ora` spinner is now stopped in the error path before the process exits, restoring the terminal cursor.
+
 ## [1.28.0] - 2026-06-24
 
 ### Fixed

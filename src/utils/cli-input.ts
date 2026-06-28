@@ -49,19 +49,19 @@ export function parseJsonArrayOption<T>(
   });
 }
 
-export function parseNumericIds(
+export function parseIdList(
   input: string | string[] | undefined,
   label: string
-): number[] | undefined {
+): string[] | undefined {
   if (!input) return undefined;
 
   const values = Array.isArray(input) ? input : [input];
   if (values.length === 0) return undefined;
   return values.map((entry) => {
-    const parsed = Number(entry);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      throw new Error(`Invalid --${label} value: "${entry}". Expected a positive integer`);
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      throw new Error(`Invalid --${label} value: "${entry}". Value cannot be empty`);
     }
-    return parsed;
+    return trimmed;
   });
 }

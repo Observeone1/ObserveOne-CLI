@@ -1,4 +1,4 @@
-import { parseKeyValuePairs, parseNumericIds } from './cli-input.js';
+import { parseKeyValuePairs, parseIdList } from './cli-input.js';
 
 export type InquirerType = 'input' | 'list' | 'number' | 'confirm';
 
@@ -132,7 +132,7 @@ export const schemas: Record<string, ResourceSchema> = {
         default: [],
         treatEmptyArrayAsAbsent: true,
         transformer: (v) =>
-          parseNumericIds(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
       },
     },
   },
@@ -194,7 +194,7 @@ export const schemas: Record<string, ResourceSchema> = {
         default: [],
         treatEmptyArrayAsAbsent: true,
         transformer: (v) =>
-          parseNumericIds(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
       },
       alert_on_failure: { flagName: 'alerts', default: true },
       timeout_ms: { default: 30000 },
@@ -345,7 +345,8 @@ export const schemas: Record<string, ResourceSchema> = {
       },
       description: { flagName: 'description', default: '' },
       assigned_to: { flagName: 'assignedTo' },
-      team_id: { flagName: 'teamId', transformer: toInt },
+      // team_id is a UUID string; no numeric coercion.
+      team_id: { flagName: 'teamId' },
     },
   },
   'ai-check': {

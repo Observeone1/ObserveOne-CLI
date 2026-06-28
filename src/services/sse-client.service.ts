@@ -1,5 +1,6 @@
 import { IConfigService } from '../interfaces/config.interface.js';
 import { ISSEClient, SSEMessage } from '../interfaces/sse-client.interface.js';
+import { isAllowedHost } from '../utils/host-allowlist.js';
 
 /**
  * SSE Client implementation
@@ -44,11 +45,24 @@ export class SSEClient implements ISSEClient {
     onError: (error: unknown) => void
   ): Promise<void> {
     try {
+      const headers: Record<string, string> = { Accept: 'text/event-stream' };
+      // Never leak the token to a non-ObserveOne host (base URL is overridable).
+      if (isAllowedHost(url)) {
+        headers['x-obs1-cli'] = apiKey;
+      } else {
+        let host = url;
+        try {
+          host = new URL(url).host;
+        } catch {
+          // keep raw value
+        }
+        console.error(
+          `warn: destination host "${host}" is not allowlisted — sending without credentials`
+        );
+      }
+
       const response = await fetch(url, {
-        headers: {
-          'x-obs1-cli': apiKey,
-          Accept: 'text/event-stream',
-        },
+        headers,
         signal: this.abortController!.signal,
       });
 

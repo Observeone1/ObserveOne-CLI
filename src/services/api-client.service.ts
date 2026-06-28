@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { mapSuiteCiIntegration } from '../utils/suite-ci-mapper.js';
+import { isAllowedHost } from '../utils/host-allowlist.js';
 import {
   Test,
   TestExecution,
@@ -34,6 +35,7 @@ export class ApiClient implements IApiClient {
   private client: AxiosInstance;
   private apiKey: string | undefined;
   private configService: IConfigService;
+  private offHostWarned = false;
 
   constructor(configService: IConfigService, version: string = '1.0.1') {
     this.configService = configService;
@@ -53,7 +55,15 @@ export class ApiClient implements IApiClient {
     // Add interceptor to set baseURL dynamically (allows --api-url to work)
     this.client.interceptors.request.use((config) => {
       config.baseURL = this.configService.getApiUrl();
-      if (this.apiKey) {
+
+      // Never leak the API token to a non-ObserveOne host. The base URL is
+      // user-overridable, so we strip credentials on any disallowed host —
+      // this also covers the token set via setApiKey/validateApiKey on
+      // client.defaults.headers, which axios merges into every request.
+      if (!isAllowedHost(config.baseURL)) {
+        delete config.headers['x-obs1-cli'];
+        this.warnOffHost(config.baseURL);
+      } else if (this.apiKey) {
         // Backend expects CLI API keys in x-obs1-cli header, not Authorization
         // Note: keeping x-obs1-cli header name for backward compatibility
         config.headers['x-obs1-cli'] = this.apiKey;
@@ -84,6 +94,20 @@ export class ApiClient implements IApiClient {
         }
         throw error;
       }
+    );
+  }
+
+  private warnOffHost(baseUrl: string | undefined): void {
+    if (this.offHostWarned) return;
+    this.offHostWarned = true;
+    let host = baseUrl ?? 'unknown';
+    try {
+      if (baseUrl) host = new URL(baseUrl).host;
+    } catch {
+      // keep raw value
+    }
+    console.error(
+      `warn: destination host "${host}" is not allowlisted — sending without credentials`
     );
   }
 
@@ -352,7 +376,7 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async getUrlMonitorRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
+  async getUrlMonitorRuns(id: string, limit: number = 20): Promise<ResourceRun[]> {
     const response = await this.client.get<{ executions?: ResourceRun[] } | ResourceRun[]>(
       `/url-monitors/${id}/executions`,
       { params: { limit } }
@@ -439,7 +463,7 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async getApiCheckRuns(id: number, limit: number = 20): Promise<ResourceRun[]> {
+  async getApiCheckRuns(id: string, limit: number = 20): Promise<ResourceRun[]> {
     const response = await this.client.get<ResourceRun[] | { executions: ResourceRun[] }>(
       `/api-checks/${id}/executions`,
       {
@@ -510,7 +534,7 @@ export class ApiClient implements IApiClient {
     return response.data;
   }
 
-  async getHeartbeatRuns(id: number, limit: number = 20): Promise<HeartbeatPing[]> {
+  async getHeartbeatRuns(id: string, limit: number = 20): Promise<HeartbeatPing[]> {
     const response = await this.client.get<{ pings?: HeartbeatPing[] } | HeartbeatPing[]>(
       `/heartbeats/${id}/pings`,
       { params: { limit } }
