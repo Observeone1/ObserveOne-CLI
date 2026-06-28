@@ -214,7 +214,7 @@ obs suite status <id> [executionId]        # Status of an execution (defaults to
 obs suite wait <id> <executionId>          # Block until an execution finishes (CI-friendly)
 obs suite update <id> --name "New name" --url "https://new.example.com"
 obs suite delete <id> -y
-obs suite toggle-public <id>
+obs suite toggle-public <id> -y            # Confirms before exposing a suite; -y skips the prompt
 obs suite heal <id>                        # Trigger self-heal on failing tests
 obs suite heal-history <test-id> --heal-id <id>
 
@@ -231,7 +231,7 @@ obs suite dismiss-planned <suite-id> --planned-file <file>
 obs suite restore-planned <suite-id> --planned-file <file>
 ```
 
-`generate` flags: `--name`, `--cron`, `--max-tests <n>` (1-30, default 10), `--var <KEY=VALUE>` (repeatable), `--var-file <path>`, `--allow-form-submit`, `--plan-only`. (`-w, --wait` on `generate` is deprecated and has no effect; generation is now the default.)
+`generate` flags: `--name`, `--cron`, `--max-tests <n>` (1-30, default 10), `--var <KEY[=VALUE]>` (repeatable; omit `=VALUE` to enter the secret at a masked prompt instead of leaking it into shell history), `--var-file <path>`, `--allow-form-submit`, `--plan-only`. (`-w, --wait` on `generate` is deprecated and has no effect; generation is now the default.)
 
 ### Edit scripts locally: pull and push
 
