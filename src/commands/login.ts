@@ -167,8 +167,8 @@ export function createLoginCommand(
 
               console.log('');
               console.log(chalk.bold('Next steps:'));
-              console.log(chalk.gray('1. Run "obs ai-check list" to see available tests'));
-              console.log(chalk.gray('2. Run "obs ai-check <test-name>" to execute tests'));
+              console.log(chalk.gray('1. Run "obs monitor list" to see your monitors'));
+              console.log(chalk.gray('2. Run "obs --help" to explore available commands'));
 
               process.exit(0);
             } else if (status.status === 'denied') {

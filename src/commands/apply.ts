@@ -114,7 +114,6 @@ interface ApplySummary {
   monitors: ResourceSummary;
   apiChecks: ResourceSummary;
   heartbeats: ResourceSummary;
-  aiChecks: ResourceSummary;
   alertChannels: ResourceSummary;
   statusPages: ResourceSummary;
   suites: ResourceSummary;
@@ -160,7 +159,6 @@ function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
     ['Monitors', summary.monitors],
     ['API Checks', summary.apiChecks],
     ['Heartbeats', summary.heartbeats],
-    ['AI Checks', summary.aiChecks],
     ['Alert Channels', summary.alertChannels],
     ['Status Pages', summary.statusPages],
     ['Suites', summary.suites],
@@ -269,7 +267,6 @@ Examples:
           monitors: { created: 0, updated: 0, unchanged: 0, errors: 0 },
           apiChecks: { created: 0, updated: 0, unchanged: 0, errors: 0 },
           heartbeats: { created: 0, updated: 0, unchanged: 0, errors: 0 },
-          aiChecks: { created: 0, updated: 0, unchanged: 0, errors: 0 },
           alertChannels: { created: 0, updated: 0, unchanged: 0, errors: 0 },
           statusPages: { created: 0, updated: 0, unchanged: 0, errors: 0 },
           suites: { created: 0, updated: 0, unchanged: 0, errors: 0 },
@@ -693,21 +690,14 @@ Examples:
           }
         }
 
-        // 4. Browser checks are currently disabled
-        if (config.ai_checks && Array.isArray(config.ai_checks) && config.ai_checks.length > 0) {
-          outputService.warning(
-            'Browser checks are currently disabled. Skipping ai_checks entries.'
-          );
-        }
-
-        // 5. Incidents are export-only (runtime state, not config)
+        // 4. Incidents are export-only (runtime state, not config)
         if (config.incidents && Array.isArray(config.incidents) && config.incidents.length > 0) {
           outputService.warning(
             'Incidents are runtime state and cannot be applied. Use `obs incident create` to manage incidents directly.'
           );
         }
 
-        // 6. Process Alert Channels
+        // 5. Process Alert Channels
         if (config.alert_channels && Array.isArray(config.alert_channels)) {
           logProgress('Fetching existing alert channels...');
           const existingChannels = await apiClient.getAlertChannels();
@@ -791,7 +781,7 @@ Examples:
           }
         }
 
-        // 7. Process Status Pages (top-level metadata only; monitors managed via obs status-page add/remove-monitor)
+        // 6. Process Status Pages (top-level metadata only; monitors managed via obs status-page add/remove-monitor)
         if (config.status_pages && Array.isArray(config.status_pages)) {
           logProgress('Fetching existing status pages...');
           const existingPages = await apiClient.getStatusPages();
@@ -906,7 +896,7 @@ Examples:
           }
         }
 
-        // 8. Process Suites (top-level metadata only; tests are AI-generated and not applied)
+        // 7. Process Suites (top-level metadata only; tests are AI-generated and not applied)
         if (config.suites && Array.isArray(config.suites)) {
           logProgress('Fetching existing suites...');
           const existingSuites = await apiClient.listSuites();
@@ -1043,9 +1033,6 @@ Examples:
           );
           console.log(
             `  Heartbeats:     ${summary.heartbeats.created} created, ${summary.heartbeats.updated} updated, ${summary.heartbeats.unchanged} unchanged`
-          );
-          console.log(
-            `  AI Checks:      ${summary.aiChecks.created} created, ${summary.aiChecks.updated} updated, ${summary.aiChecks.unchanged} unchanged`
           );
           console.log(
             `  Alert Channels: ${summary.alertChannels.created} created, ${summary.alertChannels.updated} updated, ${summary.alertChannels.unchanged} unchanged`

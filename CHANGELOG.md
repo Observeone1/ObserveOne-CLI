@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.3] - 2026-06-30
+
+### Removed
+- **The `obs ai-check` command group (Browser Checks) has been removed.** Browser Checks are disabled/stale, so the entire command group and its supporting infrastructure are gone: the `ai-check` resource schema and its `browser-check` alias, the `/browser-checks` API-client methods, the SSE streaming client, and the `apply` handling for `ai_checks`. The `browser-check` monitor type is no longer accepted by `obs status-page add-monitor`. All other commands (`monitor`, `check`, `heartbeat`, `status-page`, `incident`, `suite`, etc.) are unaffected.
+
 ## [1.30.2] - 2026-06-28
 
 ### Fixed

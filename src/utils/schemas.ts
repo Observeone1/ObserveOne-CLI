@@ -349,46 +349,11 @@ export const schemas: Record<string, ResourceSchema> = {
       team_id: { flagName: 'teamId' },
     },
   },
-  'ai-check': {
-    description: 'AI browser check — prompt-driven Playwright run against a URL',
-    required: ['name', 'url', 'prompt'],
-    template: {
-      name: 'My AI Check',
-      url: 'https://example.com',
-      prompt: 'Verify the page loads and the main heading is visible',
-      description: '',
-    },
-    fieldMetadata: {
-      name: {
-        flagName: 'name',
-        inquirerType: 'input',
-        label: 'AI check name:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Name'),
-      },
-      url: {
-        flagName: 'url',
-        inquirerType: 'input',
-        label: 'URL to test:',
-        requiredOnCreate: true,
-        validate: validateUrl,
-      },
-      prompt: {
-        flagName: 'prompt',
-        inquirerType: 'input',
-        label: 'AI prompt:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Prompt'),
-      },
-      description: { flagName: 'description', default: '' },
-    },
-  },
 };
 
 const resourceAliases: Record<string, string> = {
   'api-check': 'check',
   'url-monitor': 'monitor',
-  'browser-check': 'ai-check',
 };
 
 export function resolveSchema(resource: string): ResourceSchema | undefined {

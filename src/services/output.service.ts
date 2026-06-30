@@ -2,9 +2,6 @@ import chalk from 'chalk';
 import { IOutputService } from '../interfaces/output.interface.js';
 import {
   JsonEnvelope,
-  Test,
-  TestExecution,
-  TestResult,
   UrlMonitor,
   ApiCheck,
   Heartbeat,
@@ -56,31 +53,6 @@ export class OutputService implements IOutputService {
   progress(message: string): void {
     if (this.isJsonMode) return;
     console.log(c.accent(message));
-  }
-
-  formatTestList(tests: Test[], verbose: boolean = false): void {
-    if (tests.length === 0) {
-      this.info('No AI browser checks found.');
-      return;
-    }
-
-    console.log(chalk.bold('\nAI Browser Checks'));
-    console.log(c.muted('─'.repeat(80)));
-
-    tests.forEach((test, index) => {
-      console.log(chalk.bold(`${index + 1}. ${test.name}`));
-      if (test.description) {
-        console.log(c.muted(`   ${test.description}`));
-      }
-      console.log(c.muted(`   URL: ${test.url}`));
-      console.log(c.muted(`   ID: ${test.id}`));
-
-      if (verbose) {
-        console.log(c.muted(`   Prompt: ${test.prompt}`));
-        console.log(c.muted(`   Created: ${new Date(test.created_at).toLocaleString()}`));
-      }
-      console.log('');
-    });
   }
 
   formatMonitorList(monitors: UrlMonitor[], verbose: boolean = false): void {
@@ -257,52 +229,6 @@ export class OutputService implements IOutputService {
     });
   }
 
-  formatTestExecution(execution: TestExecution): void {
-    const statusColor = this.getStatusColor(execution.status);
-    const statusIcon = this.getStatusIcon(execution.status);
-
-    console.log(chalk.bold('\nExecution Status'));
-    console.log(c.muted('─'.repeat(50)));
-    console.log(`Status: ${statusColor(`${statusIcon} ${execution.status}`)}`);
-    console.log(`Execution ID: ${execution.id}`);
-    console.log(`Test ID: ${execution.test_id}`);
-    console.log(`Started: ${new Date(execution.started_at).toLocaleString()}`);
-
-    if (execution.completed_at) {
-      console.log(`Completed: ${new Date(execution.completed_at).toLocaleString()}`);
-    }
-
-    if (execution.error_message) {
-      console.log(c.error(`Error: ${execution.error_message}`));
-    }
-
-    if (execution.task_id) {
-      console.log(`Task ID: ${execution.task_id}`);
-    }
-  }
-
-  formatTestResult(result: TestResult): void {
-    const statusColor = this.getStatusColor(result.status);
-    const statusIcon = this.getStatusIcon(result.status);
-
-    console.log(chalk.bold('\nResult'));
-    console.log(c.muted('─'.repeat(50)));
-    console.log(`Status: ${statusColor(`${statusIcon} ${result.status}`)}`);
-    console.log(`Message: ${result.message}`);
-
-    if (result.task_id) {
-      console.log(`Task ID: ${result.task_id}`);
-    }
-
-    if (result.duration) {
-      console.log(`Duration: ${(result.duration / 1000).toFixed(2)}s`);
-    }
-
-    if (result.screenshots && result.screenshots.length > 0) {
-      console.log(c.muted(`\nScreenshots: ${result.screenshots.length} captured`));
-    }
-  }
-
   formatJsonOutput(data: unknown): void {
     const envelope: JsonEnvelope = {
       status: 'SUCCESS',
@@ -374,40 +300,6 @@ ${testSuite.testCases
 </testsuite>`;
 
     return xml;
-  }
-
-  private getStatusColor(status: string): (text: string) => string {
-    switch (status.toUpperCase()) {
-      case 'SUCCESS':
-        return c.success;
-      case 'FAILED':
-        return c.error;
-      case 'RUNNING':
-        return c.accent;
-      case 'PENDING':
-        return c.warning;
-      case 'CANCELLED':
-        return c.muted;
-      default:
-        return chalk.white;
-    }
-  }
-
-  private getStatusIcon(status: string): string {
-    switch (status.toUpperCase()) {
-      case 'SUCCESS':
-        return '✓';
-      case 'FAILED':
-        return '✗';
-      case 'RUNNING':
-        return '~';
-      case 'PENDING':
-        return '-';
-      case 'CANCELLED':
-        return '·';
-      default:
-        return '?';
-    }
   }
 
   formatError(error: unknown): string {

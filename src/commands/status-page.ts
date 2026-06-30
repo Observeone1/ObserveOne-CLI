@@ -7,7 +7,7 @@ import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { StatusPage } from '../types/index.js';
 
-const MONITOR_TYPES = ['url-monitor', 'api-check', 'heartbeat', 'browser-check'] as const;
+const MONITOR_TYPES = ['url-monitor', 'api-check', 'heartbeat'] as const;
 
 /**
  * Parse a `--order` CLI value into an integer, rejecting non-numeric input.

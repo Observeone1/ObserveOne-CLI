@@ -4,9 +4,6 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { mapSuiteCiIntegration } from '../utils/suite-ci-mapper.js';
 import { isAllowedHost } from '../utils/host-allowlist.js';
 import {
-  Test,
-  TestExecution,
-  TestResult,
   UrlMonitor,
   ApiCheck,
   Heartbeat,
@@ -188,88 +185,6 @@ export class ApiClient implements IApiClient {
 
   async get(url: string): Promise<unknown> {
     const response = await this.client.get(url);
-    return response.data;
-  }
-
-  async getTests(): Promise<Test[]> {
-    const response = await this.client.get<{ tests: Test[] } | Test[]>('/browser-checks');
-    // Supporting both {tests: []} and [] formats if backend varies
-    if (Array.isArray(response.data)) return response.data;
-    return (response.data as { tests: Test[] }).tests || [];
-  }
-
-  async getTest(testId: number): Promise<Test> {
-    const response = await this.client.get<Test>(`/browser-checks/${testId}`);
-    return response.data;
-  }
-
-  async createTest(testData: {
-    name: string;
-    url: string;
-    prompt: string;
-    description?: string;
-  }): Promise<{ id: number; message: string }> {
-    const response = await this.client.post<{ id: number; message: string }>(
-      '/browser-checks',
-      testData
-    );
-    return response.data;
-  }
-
-  async updateTest(testId: number, testData: Partial<Test>): Promise<Test> {
-    const response = await this.client.put<Test>(`/browser-checks/${testId}`, testData);
-    return response.data;
-  }
-
-  async deleteTest(testId: number): Promise<void> {
-    await this.client.delete(`/browser-checks/${testId}`);
-  }
-
-  async executeTest(testId: number): Promise<TestResult> {
-    const response = await this.client.post<TestResult>(`/browser-checks/${testId}/execute`);
-    return response.data;
-  }
-
-  async executeAdhocTest(testData: {
-    name: string;
-    url: string;
-    prompt: string;
-    description?: string;
-  }): Promise<TestResult> {
-    const response = await this.client.post<TestResult>('/browser-checks/execute-adhoc', testData);
-    return response.data;
-  }
-
-  async getExecutionStatus(executionId: number): Promise<TestExecution> {
-    const response = await this.client.get<TestExecution>(
-      `/browser-checks/execution/${executionId}`
-    );
-    return response.data;
-  }
-
-  async getExecutionResults(executionId: number): Promise<unknown[]> {
-    const response = await this.client.get<unknown[]>(`/browser-checks/executions/${executionId}`);
-    return response.data;
-  }
-
-  async cancelTask(
-    taskId: string,
-    executionId?: number
-  ): Promise<{
-    success: boolean;
-    taskId: string;
-    status?: string;
-    message?: string;
-  }> {
-    const response = await this.client.post<{
-      success: boolean;
-      taskId: string;
-      status?: string;
-      message?: string;
-    }>('/browser-checks/cancel', {
-      taskId,
-      executionId,
-    });
     return response.data;
   }
 
@@ -709,46 +624,6 @@ export class ApiClient implements IApiClient {
   private isNonTransientHttpError(error: unknown): boolean {
     const status = (error as { response?: { status?: number } })?.response?.status;
     return typeof status === 'number' && status >= 400 && status < 500;
-  }
-
-  // Polling method for test execution status
-  async pollExecutionStatus(
-    executionId: number,
-    maxAttempts: number = 60,
-    intervalMs: number = 5000
-  ): Promise<TestExecution> {
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      try {
-        const execution = await this.getExecutionStatus(executionId);
-
-        if (
-          execution.status === 'SUCCESS' ||
-          execution.status === 'FAILED' ||
-          execution.status === 'CANCELLED'
-        ) {
-          return execution;
-        }
-
-        // Wait before next poll
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
-        attempts++;
-      } catch (_error: unknown) {
-        // A 4xx (bad/deleted id, auth) will never resolve — fail fast instead
-        // of looping the full timeout. Keep retrying transient errors.
-        if (this.isNonTransientHttpError(_error)) {
-          throw _error;
-        }
-        attempts++;
-        if (attempts >= maxAttempts) {
-          throw _error;
-        }
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      }
-    }
-
-    throw new Error(`Test execution ${executionId} did not complete within the timeout period`);
   }
 
   // Suites (Playwright Autopilot)

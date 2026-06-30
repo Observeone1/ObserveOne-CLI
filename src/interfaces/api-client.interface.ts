@@ -1,7 +1,4 @@
 import {
-  Test,
-  TestExecution,
-  TestResult,
   UrlMonitor,
   ApiCheck,
   Heartbeat,
@@ -31,36 +28,6 @@ export interface IApiClient {
   provisionHeadlessAuth(email?: string, password?: string): Promise<{ api_key: string }>;
   post(url: string, data?: unknown): Promise<unknown>;
   get(url: string): Promise<unknown>;
-
-  // Browser Tests (AI Checks)
-  getTests(): Promise<Test[]>;
-  getTest(testId: number): Promise<Test>;
-  createTest(testData: {
-    name: string;
-    url: string;
-    prompt: string;
-    description?: string | undefined;
-  }): Promise<{ id: number; message: string }>;
-  updateTest(testId: number, testData: Partial<Test>): Promise<Test>;
-  deleteTest(testId: number): Promise<void>;
-  executeTest(testId: number): Promise<TestResult>;
-  executeAdhocTest(testData: {
-    name: string;
-    url: string;
-    prompt: string;
-    description?: string | undefined;
-  }): Promise<TestResult>;
-  getExecutionStatus(executionId: number): Promise<TestExecution>;
-  getExecutionResults(executionId: number): Promise<unknown[]>;
-  cancelTask(
-    taskId: string,
-    executionId?: number
-  ): Promise<{
-    success: boolean;
-    taskId: string;
-    status?: string;
-    message?: string;
-  }>;
 
   // URL Monitors
   getUrlMonitors(): Promise<UrlMonitor[]>;
@@ -165,11 +132,6 @@ export interface IApiClient {
     timestamp: string;
     environment: string;
   }>;
-  pollExecutionStatus(
-    executionId: number,
-    maxAttempts?: number,
-    intervalMs?: number
-  ): Promise<TestExecution>;
   requestCliAuth(): Promise<{ request_id: string; auth_url: string }>;
   checkCliAuthStatus(requestId: string): Promise<{
     status: 'pending' | 'approved' | 'denied';
