@@ -297,4 +297,4 @@ obs apply                   # Apply obs.json
 obs apply -f my-stack.json  # Apply a specific file
 ```
 
-`apply` updates only changed resources. It also accepts a single-resource file (bare, wrapped, or with an explicit `type`); the bare form supports `monitor`, `check`, and `heartbeat`. `incidents` and new `suites` cannot be created through `apply`.
+`apply` updates only changed resources. It also accepts a single-resource file (bare, wrapped, or with an explicit `type`); the bare form supports `monitor`, `check`, and `heartbeat`. `incidents` and new `suites` cannot be created through `apply`. Status-page monitor attachments are excluded — manage them via `obs status-page add-monitor / remove-monitor`.
