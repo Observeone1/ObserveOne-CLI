@@ -35,7 +35,7 @@ obs logout               # Clear local credentials
 
 ## Project setup and resource discovery
 
-`init`, `schema`, `validate`, and `templates` all work offline against bundled schemas. No login required. They cover the core resource types (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`); run `obs templates list` for the authoritative set. Resource-name aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`.
+`init`, `schema`, `validate`, and `templates` all work offline against bundled schemas. No login required. They cover the core resource types (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`, `ai-check`); run `obs templates list` for the authoritative set. Resource-name aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`, `browser-check` to `ai-check`.
 
 ```bash
 obs init                                   # Create .obs.config.json in the current directory
@@ -297,4 +297,4 @@ obs apply                   # Apply obs.json
 obs apply -f my-stack.json  # Apply a specific file
 ```
 
-`apply` updates only changed resources. It also accepts a single-resource file (bare, wrapped, or with an explicit `type`); the bare form supports `monitor`, `check`, and `heartbeat`. `incidents` and new `suites` cannot be created through `apply`. Status-page monitor attachments are excluded — manage them via `obs status-page add-monitor / remove-monitor`.
+`apply` updates only changed resources. It also accepts a single-resource file (bare, wrapped, or with an explicit `type`); the bare form supports `monitor`, `check`, and `heartbeat`. `incidents` and new `suites` cannot be created through `apply`. `ai_checks` (browser checks) are accepted but skipped with a warning while the feature is disabled. Status-page monitor attachments are excluded — manage them via `obs status-page add-monitor / remove-monitor`.
