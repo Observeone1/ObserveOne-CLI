@@ -35,22 +35,6 @@ describe('ApiClient', () => {
   });
 
   describe('Response Normalization', () => {
-    it('normalizes getTests returning {tests: []}', async () => {
-      const mockGet = vi.fn().mockResolvedValue({ data: { tests: [{ id: 1, name: 'test' }] } });
-      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
-
-      const tests = await apiClient.getTests();
-      expect(tests).toEqual([{ id: 1, name: 'test' }]);
-    });
-
-    it('normalizes getTests returning [] directly', async () => {
-      const mockGet = vi.fn().mockResolvedValue({ data: [{ id: 2, name: 'direct-test' }] });
-      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
-
-      const tests = await apiClient.getTests();
-      expect(tests).toEqual([{ id: 2, name: 'direct-test' }]);
-    });
-
     it('normalizes getUrlMonitors returning {monitors: []}', async () => {
       const mockGet = vi
         .fn()
@@ -121,38 +105,6 @@ describe('ApiClient', () => {
   });
 
   describe('poll error handling (fail fast on 4xx)', () => {
-    it('pollExecutionStatus throws immediately on a 4xx without looping maxAttempts', async () => {
-      const axios404 = { response: { status: 404 } };
-      const mockStatus = vi.fn().mockRejectedValue(axios404);
-      (apiClient as unknown as { getExecutionStatus: typeof mockStatus }).getExecutionStatus =
-        mockStatus;
-
-      await expect(apiClient.pollExecutionStatus(123, 60, 0)).rejects.toBe(axios404);
-      // Without the fix this would be called 60 times before giving up.
-      expect(mockStatus).toHaveBeenCalledTimes(1);
-    });
-
-    it('pollExecutionStatus keeps retrying a transient 5xx until maxAttempts', async () => {
-      const axios503 = { response: { status: 503 } };
-      const mockStatus = vi.fn().mockRejectedValue(axios503);
-      (apiClient as unknown as { getExecutionStatus: typeof mockStatus }).getExecutionStatus =
-        mockStatus;
-
-      await expect(apiClient.pollExecutionStatus(123, 3, 0)).rejects.toBe(axios503);
-      expect(mockStatus).toHaveBeenCalledTimes(3);
-    });
-
-    it('pollExecutionStatus keeps retrying a transient (network) error until maxAttempts', async () => {
-      // No `response` field — looks like a network/timeout error, must retry.
-      const networkErr = new Error('ECONNRESET');
-      const mockStatus = vi.fn().mockRejectedValue(networkErr);
-      (apiClient as unknown as { getExecutionStatus: typeof mockStatus }).getExecutionStatus =
-        mockStatus;
-
-      await expect(apiClient.pollExecutionStatus(123, 3, 0)).rejects.toBe(networkErr);
-      expect(mockStatus).toHaveBeenCalledTimes(3);
-    });
-
     it('pollSuiteExecution throws immediately on a 4xx without looping maxAttempts', async () => {
       const axios404 = { response: { status: 404 } };
       const mockExec = vi.fn().mockRejectedValue(axios404);

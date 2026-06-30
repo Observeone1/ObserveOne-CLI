@@ -146,11 +146,6 @@ describe('normalizeApplyConfig', () => {
       const result = normalizeApplyConfig({ name: 'h1', ping_key: 'abc123' });
       expect(result.heartbeats).toHaveLength(1);
     });
-
-    it('should infer ai_check from prompt', () => {
-      const result = normalizeApplyConfig({ name: 'a1', prompt: 'check my page' });
-      expect(result.ai_checks).toHaveLength(1);
-    });
   });
 
   describe('error cases', () => {

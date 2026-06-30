@@ -239,7 +239,7 @@ describe('schema consistency', () => {
 });
 
 describe('schema introspection (buildJsonSchema backward compat)', () => {
-  it('returns 7 named resources', () => {
+  it('returns 6 named resources', () => {
     expect(Object.keys(schemas)).toEqual(
       expect.arrayContaining([
         'monitor',
@@ -248,7 +248,6 @@ describe('schema introspection (buildJsonSchema backward compat)', () => {
         'alert-channel',
         'status-page',
         'incident',
-        'ai-check',
       ])
     );
   });

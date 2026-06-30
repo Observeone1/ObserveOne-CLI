@@ -35,7 +35,7 @@ obs logout               # Clear local credentials
 
 ## Project setup and resource discovery
 
-`init`, `schema`, `validate`, and `templates` all work offline against bundled schemas. No login required. They cover the core resource types (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`, `ai-check`); run `obs templates list` for the authoritative set. Resource-name aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`, `browser-check` to `ai-check`.
+`init`, `schema`, `validate`, and `templates` all work offline against bundled schemas. No login required. They cover the core resource types (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`); run `obs templates list` for the authoritative set. Resource-name aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`.
 
 ```bash
 obs init                                   # Create .obs.config.json in the current directory

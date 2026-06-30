@@ -5,7 +5,6 @@ import {
   Incident,
   StatusPage,
   Suite,
-  Test,
   UrlMonitor,
 } from '../types/index.js';
 
@@ -13,7 +12,6 @@ export interface ApplyConfig {
   monitors?: Partial<UrlMonitor>[] | undefined;
   api_checks?: Partial<ApiCheck>[] | undefined;
   heartbeats?: Partial<Heartbeat>[] | undefined;
-  ai_checks?: Partial<Test>[] | undefined;
   alert_channels?: Partial<AlertChannel>[] | undefined;
   status_pages?: Partial<StatusPage>[] | undefined;
   suites?: Partial<Suite>[] | undefined;
@@ -30,10 +28,6 @@ const singularResourceKeys: Record<string, ApplyConfigKey> = {
   'api-check': 'api_checks',
   api_check: 'api_checks',
   heartbeat: 'heartbeats',
-  'ai-check': 'ai_checks',
-  ai_check: 'ai_checks',
-  'browser-check': 'ai_checks',
-  browser_check: 'ai_checks',
   'alert-channel': 'alert_channels',
   alert_channel: 'alert_channels',
   'status-page': 'status_pages',
@@ -46,7 +40,6 @@ const pluralResourceKeys: ApplyConfigKey[] = [
   'monitors',
   'api_checks',
   'heartbeats',
-  'ai_checks',
   'alert_channels',
   'status_pages',
   'suites',
@@ -140,7 +133,6 @@ function inferBareResource(
     return { key: resourceType, resource };
   }
 
-  if ('prompt' in resource) return { key: 'ai_checks', resource };
   if ('period' in resource || 'grace_period' in resource || 'ping_key' in resource) {
     return { key: 'heartbeats', resource };
   }

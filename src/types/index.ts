@@ -34,36 +34,6 @@ export interface LocalProjectConfig {
   project?: ProjectConfig | undefined;
 }
 
-export interface Test {
-  id: number;
-  name: string;
-  description?: string | undefined;
-  url: string;
-  prompt: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TestExecution {
-  id: number;
-  test_id: number;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
-  started_at: string;
-  completed_at?: string | undefined;
-  error_message?: string | undefined;
-  task_id?: string | undefined;
-}
-
-export interface TestResult {
-  status: 'SUCCESS' | 'FAILED' | 'STARTED';
-  message: string;
-  task_id?: string | undefined;
-  results?: unknown[] | undefined;
-  screenshots?: string[] | undefined;
-  duration?: number | undefined;
-}
-
 export interface UrlMonitor {
   id: string;
   name: string;

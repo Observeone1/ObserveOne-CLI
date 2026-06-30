@@ -1,7 +1,4 @@
 import {
-  Test,
-  TestExecution,
-  TestResult,
   UrlMonitor,
   ApiCheck,
   Heartbeat,
@@ -21,7 +18,6 @@ export interface IOutputService {
   progress(message: string): void;
   enableJsonMode(): void;
 
-  formatTestList(tests: Test[], verbose?: boolean): void;
   formatMonitorList(monitors: UrlMonitor[], verbose?: boolean): void;
   formatApiCheckList(checks: ApiCheck[], verbose?: boolean): void;
   formatHeartbeatList(heartbeats: Heartbeat[], verbose?: boolean): void;
@@ -29,8 +25,6 @@ export interface IOutputService {
   formatStatusPageList(statusPages: StatusPage[], verbose?: boolean): void;
   formatIncidentList(incidents: Incident[], verbose?: boolean): void;
 
-  formatTestExecution(execution: TestExecution): void;
-  formatTestResult(result: TestResult): void;
   formatJsonOutput(data: unknown): void;
   formatJUnitReport(testSuite: {
     name: string;

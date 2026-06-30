@@ -2,7 +2,7 @@ import { runCLI } from '../lib/test-runner.js';
 
 export async function testListWithoutAuthentication() {
   // Test list command without authentication
-  const result = await runCLI(['ai-check', 'list'], 30000, { OBS_API_KEY: undefined });
+  const result = await runCLI(['monitor', 'list'], 30000, { OBS_API_KEY: undefined });
 
   // If not authenticated, it should fail with an appropriate message
   // Could be "authentication", "Resource not found", or similar
@@ -20,8 +20,8 @@ export async function testListWithoutAuthentication() {
   // If it succeeds, that's also valid (maybe showing empty list)
 }
 
-export async function testAiCheckWithoutAuthentication() {
-  const result = await runCLI(['ai-check', 'nonexistent-test'], 30000, { OBS_API_KEY: undefined });
+export async function testMonitorWithoutAuthentication() {
+  const result = await runCLI(['monitor', 'get', '999999'], 30000, { OBS_API_KEY: undefined });
 
   // May fail due to auth, test not found, or other reasons - all are valid
   if (result.exitCode !== 0) {
