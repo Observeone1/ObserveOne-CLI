@@ -57,11 +57,11 @@ See [`docs/architecture/e2e-testing.md`](docs/architecture/e2e-testing.md) for h
 CI runs the same chain on every PR. Run them locally before pushing:
 
 ```bash
-pnpm type-check
+pnpm check
 pnpm lint
-pnpm format
+pnpm format:check
 pnpm knip       # flags unused exports and deps
-pnpm test
+pnpm test:unit
 pnpm build
 ```
 
