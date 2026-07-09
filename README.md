@@ -322,6 +322,20 @@ obs project update <id> --description "…"
 obs project delete <id> -y
 ```
 
+### API Collections
+
+Reusable base URL + default headers shared by API checks. Alias: `collection`. `--base-url` may contain `{{KEY}}` references resolved server-side.
+
+```bash
+obs api-collection create --name "Payments API" --base-url https://api.example.com \
+  --header "Authorization=Bearer {{TOKEN}}"
+obs api-collection list
+obs api-collection update <id> --base-url https://api-v2.example.com
+obs api-collection delete <id> -y
+```
+
+Create/update flags: `-n, --name`, `--base-url`, `--header <KEY=VALUE>` (repeatable). An `update` that omits `--header` leaves existing headers untouched.
+
 ### API Keys
 
 ```bash

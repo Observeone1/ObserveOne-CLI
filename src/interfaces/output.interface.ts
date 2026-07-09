@@ -9,6 +9,7 @@ import {
   ProtocolMonitor,
   Schedule,
   Project,
+  ApiCollection,
 } from '../types/index.js';
 
 /**
@@ -29,6 +30,7 @@ export interface IOutputService {
   formatEnvironmentList(environments: Environment[], verbose?: boolean): void;
   formatScheduleList(schedules: Schedule[], verbose?: boolean): void;
   formatProjectList(projects: Project[], verbose?: boolean): void;
+  formatApiCollectionList(collections: ApiCollection[], verbose?: boolean): void;
   formatAlertChannelList(channels: AlertChannel[], verbose?: boolean): void;
   formatStatusPageList(statusPages: StatusPage[], verbose?: boolean): void;
   formatIncidentList(incidents: Incident[], verbose?: boolean): void;

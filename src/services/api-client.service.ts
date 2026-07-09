@@ -28,6 +28,7 @@ import {
   Schedule,
   CreateSchedulePayload,
   Project,
+  ApiCollection,
 } from '../types/index.js';
 
 /** Base REST path for each protocol-monitor kind. */
@@ -746,6 +747,41 @@ export class ApiClient implements IApiClient {
 
   async deleteProject(id: string): Promise<void> {
     await this.client.delete(`/projects/${id}`);
+  }
+
+  // API Collections
+  private unwrapApiCollection(payload: unknown): ApiCollection {
+    const data = payload as { collection?: ApiCollection; data?: ApiCollection };
+    return data.collection ?? data.data ?? (payload as ApiCollection);
+  }
+
+  async getApiCollections(): Promise<ApiCollection[]> {
+    const response = await this.client.get('/api-collections');
+    const normalized = this.normalizePaginatedItems<ApiCollection>(response.data, [
+      'items',
+      'collections',
+      'data',
+    ]);
+    return normalized.items;
+  }
+
+  async getApiCollection(id: string): Promise<ApiCollection> {
+    const response = await this.client.get<Record<string, unknown>>(`/api-collections/${id}`);
+    return this.unwrapApiCollection(response.data);
+  }
+
+  async createApiCollection(data: Partial<ApiCollection>): Promise<ApiCollection> {
+    const response = await this.client.post<Record<string, unknown>>('/api-collections', data);
+    return this.unwrapApiCollection(response.data);
+  }
+
+  async updateApiCollection(id: string, data: Partial<ApiCollection>): Promise<ApiCollection> {
+    const response = await this.client.put<Record<string, unknown>>(`/api-collections/${id}`, data);
+    return this.unwrapApiCollection(response.data);
+  }
+
+  async deleteApiCollection(id: string): Promise<void> {
+    await this.client.delete(`/api-collections/${id}`);
   }
 
   // Alert Channels

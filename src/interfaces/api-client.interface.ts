@@ -21,6 +21,7 @@ import {
   Schedule,
   CreateSchedulePayload,
   Project,
+  ApiCollection,
 } from '../types/index.js';
 
 /**
@@ -134,6 +135,13 @@ export interface IApiClient {
   createProject(data: Partial<Project>): Promise<Project>;
   updateProject(id: string, data: Partial<Project>): Promise<Project>;
   deleteProject(id: string): Promise<void>;
+
+  // API Collections
+  getApiCollections(): Promise<ApiCollection[]>;
+  getApiCollection(id: string): Promise<ApiCollection>;
+  createApiCollection(data: Partial<ApiCollection>): Promise<ApiCollection>;
+  updateApiCollection(id: string, data: Partial<ApiCollection>): Promise<ApiCollection>;
+  deleteApiCollection(id: string): Promise<void>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;

@@ -411,6 +411,31 @@ export const schemas: Record<string, ResourceSchema> = {
       description: { flagName: 'description', default: '' },
     },
   },
+  'api-collection': {
+    description: 'API collection — reusable base URL + default headers shared by API checks',
+    required: ['name'],
+    template: {
+      name: 'My Collection',
+      base_url: 'https://api.example.com',
+      headers: {},
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Collection name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      base_url: { flagName: 'baseUrl' },
+      // `--header KEY=VALUE` (repeatable) → a default-headers map.
+      headers: {
+        flagName: 'header',
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) => parseKeyValuePairs(v as string | string[] | undefined, 'header'),
+      },
+    },
+  },
   'ssl-monitor': {
     description: 'SSL certificate monitor — checks TLS certificate expiry on a host:port',
     required: ['name', 'hostname'],

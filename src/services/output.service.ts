@@ -12,6 +12,7 @@ import {
   ProtocolMonitor,
   Schedule,
   Project,
+  ApiCollection,
 } from '../types/index.js';
 import { brand as c } from '../utils/theme.js';
 
@@ -249,6 +250,31 @@ export class OutputService implements IOutputService {
       console.log(c.muted(`   ID: ${project.id}`));
       if (verbose && project.description) {
         console.log(c.muted(`   Desc: ${project.description}`));
+      }
+      console.log('');
+    });
+  }
+
+  formatApiCollectionList(collections: ApiCollection[], verbose: boolean = false): void {
+    if (collections.length === 0) {
+      this.info('No API collections found.');
+      return;
+    }
+
+    console.log(chalk.bold('\nAPI Collections'));
+    console.log(c.muted('─'.repeat(80)));
+
+    collections.forEach((collection, index) => {
+      const headerCount = collection.headers ? Object.keys(collection.headers).length : 0;
+      console.log(chalk.bold(`${index + 1}. ${collection.name}`));
+      if (collection.base_url) console.log(c.muted(`   Base URL: ${collection.base_url}`));
+      console.log(c.muted(`   ID: ${collection.id}`));
+      console.log(c.muted(`   Headers: ${headerCount}`));
+
+      if (verbose && headerCount > 0) {
+        for (const [key, value] of Object.entries(collection.headers ?? {})) {
+          console.log(c.muted(`     ${key}: ${value}`));
+        }
       }
       console.log('');
     });

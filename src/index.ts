@@ -34,6 +34,7 @@ import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createEnvironmentCommand } from './commands/environment.js';
 import { createScheduleCommand } from './commands/schedule.js';
 import { createProjectCommand } from './commands/project.js';
+import { createApiCollectionCommand } from './commands/api-collection.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
 import { createAlertChannelCommand } from './commands/alert-channel.js';
@@ -91,6 +92,7 @@ program.addCommand(createHeartbeatCommand(configService, apiClient, outputServic
 program.addCommand(createEnvironmentCommand(configService, apiClient, outputService));
 program.addCommand(createScheduleCommand(configService, apiClient, outputService));
 program.addCommand(createProjectCommand(configService, apiClient, outputService));
+program.addCommand(createApiCollectionCommand(configService, apiClient, outputService));
 program.addCommand(createApplyCommand(configService, apiClient, outputService));
 program.addCommand(createExportCommand(configService, apiClient, outputService));
 program.addCommand(createAlertChannelCommand(configService, apiClient, outputService));
