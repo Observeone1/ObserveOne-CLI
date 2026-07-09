@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0] - 2026-07-09
+
+### Added
+- **New command: `obs api-collection` (alias `collection`)** — manage API collections, the reusable base-URL + default-headers groups shared by API checks. Simple CRUD: `list`, `get`, `create` (`--name`, `--base-url`, repeatable `--header KEY=VALUE`), `update`, `delete`, plus `--file` create and `obs schema api-collection`. `--base-url` may contain `{{KEY}}` references (resolved server-side).
+
 ## [1.34.0] - 2026-07-09
 
 ### Added

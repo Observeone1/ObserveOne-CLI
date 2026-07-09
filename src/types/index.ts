@@ -197,6 +197,19 @@ export interface Project {
   updated_at: string;
 }
 
+/**
+ * API collection — a reusable group of API checks sharing a base URL and
+ * default headers. `base_url` may carry `{{KEY}}` references resolved server-side.
+ */
+export interface ApiCollection {
+  id: string;
+  name: string;
+  base_url?: string | null | undefined;
+  headers?: Record<string, string> | null | undefined;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ResourceRun {
   id: string;
   status: string;
