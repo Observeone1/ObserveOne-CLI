@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-07-09
+
+> Assumes the new-monitor-types release (1.31.0, PR #72) merges first. If this lands first, renumber to 1.31.0.
+
+### Added
+- **New command: `obs environment` (alias `env`)** — manage environments, the named variable + base-URL sets that monitors/checks resolve against. Supports `list`, `get`, `create`, `update`, `delete`, plus a dedicated `secrets` subcommand.
+  - `create`/`update`: `--name`, `--base-url`, repeatable `--var KEY=VALUE` (plaintext variables); `--project-id` on create only. An `update` that omits `--var` leaves existing variables untouched.
+  - `secrets <id> --secret KEY=VALUE` (repeatable): sets write-only secrets (`--secret KEY=` deletes a key). Secret values are never returned by the API or printed — only key names.
+  - JSON-schema-driven `--file` create and `obs schema environment` are available.
+
 ## [1.30.3] - 2026-06-30
 
 ### Removed

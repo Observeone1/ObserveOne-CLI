@@ -15,6 +15,7 @@ import {
   IncidentEvent,
   Suite,
   SuiteCiIntegration,
+  Environment,
 } from '../types/index.js';
 
 /**
@@ -62,6 +63,18 @@ export interface IApiClient {
   toggleMuteHeartbeat(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
   resetHeartbeat(id: string): Promise<Heartbeat>;
   getHeartbeatRuns(id: string, limit?: number): Promise<HeartbeatPing[]>;
+
+  // Environments
+  getEnvironments(): Promise<Environment[]>;
+  getEnvironment(id: string): Promise<Environment>;
+  createEnvironment(data: Partial<Environment>): Promise<Environment>;
+  updateEnvironment(id: string, data: Partial<Environment>): Promise<Environment>;
+  deleteEnvironment(id: string): Promise<void>;
+  /** Write-only secrets merge: '' value deletes a key. Returns the resulting secret key names. */
+  updateEnvironmentSecrets(
+    id: string,
+    secrets: Record<string, string>
+  ): Promise<{ secret_keys: string[] }>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;

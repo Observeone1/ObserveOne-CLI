@@ -349,6 +349,37 @@ export const schemas: Record<string, ResourceSchema> = {
       team_id: { flagName: 'teamId' },
     },
   },
+  environment: {
+    description:
+      'Environment — named set of variables + base URL that monitors/checks resolve against',
+    required: ['name'],
+    template: {
+      name: 'production',
+      base_url: 'https://api.example.com',
+      project_id: null,
+      variables: {},
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Environment name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      base_url: { flagName: 'baseUrl' },
+      // project_id is only accepted on create (the backend update schema omits
+      // it), so mark it non-updatable.
+      project_id: { flagName: 'projectId', updatable: false },
+      // `--var KEY=VALUE` (repeatable) → a variables map. Secrets are managed
+      // separately via `obs environment secrets` and are never set here.
+      variables: {
+        flagName: 'var',
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) => parseKeyValuePairs(v as string | string[] | undefined, 'var'),
+      },
+    },
+  },
 };
 
 const resourceAliases: Record<string, string> = {

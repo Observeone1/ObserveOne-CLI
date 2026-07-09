@@ -8,6 +8,7 @@ import {
   AlertChannel,
   StatusPage,
   Incident,
+  Environment,
 } from '../types/index.js';
 import { brand as c } from '../utils/theme.js';
 
@@ -147,6 +148,39 @@ export class OutputService implements IOutputService {
             `   Last Ping: ${hb.last_ping_at ? new Date(hb.last_ping_at).toLocaleString() : 'Never'}`
           )
         );
+      }
+      console.log('');
+    });
+  }
+
+  formatEnvironmentList(environments: Environment[], verbose: boolean = false): void {
+    if (environments.length === 0) {
+      this.info('No environments found.');
+      return;
+    }
+
+    console.log(chalk.bold('\nEnvironments'));
+    console.log(c.muted('─'.repeat(80)));
+
+    environments.forEach((env, index) => {
+      const varCount = env.variables ? Object.keys(env.variables).length : 0;
+      const secretCount = env.secret_keys ? env.secret_keys.length : 0;
+
+      console.log(chalk.bold(`${index + 1}. ${env.name}`));
+      if (env.base_url) console.log(c.muted(`   Base URL: ${env.base_url}`));
+      console.log(c.muted(`   ID: ${env.id}`));
+      console.log(c.muted(`   Variables: ${varCount}  Secrets: ${secretCount}`));
+
+      if (verbose) {
+        if (varCount > 0) {
+          for (const [key, value] of Object.entries(env.variables ?? {})) {
+            console.log(c.muted(`     ${key}=${value}`));
+          }
+        }
+        // Secret values are never returned by the API — only key names.
+        if (secretCount > 0) {
+          console.log(c.muted(`     Secret keys: ${(env.secret_keys ?? []).join(', ')}`));
+        }
       }
       console.log('');
     });
