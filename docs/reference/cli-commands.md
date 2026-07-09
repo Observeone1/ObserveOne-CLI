@@ -13,14 +13,14 @@ Append `--json` to any command for a strict machine-readable envelope. Run `obs 
 
 Available on every command:
 
-| Flag | Purpose |
-|------|---------|
-| `-v, --verbose` | Verbose output and stack traces |
-| `--json` | Strict JSON output (suppresses human formatting) |
-| `--api-url <url>` | Override the API URL |
-| `--api-key <key>` | Override the API key |
-| `-V, --version` | Print the version |
-| `-h, --help` | Show help |
+| Flag              | Purpose                                          |
+| ----------------- | ------------------------------------------------ |
+| `-v, --verbose`   | Verbose output and stack traces                  |
+| `--json`          | Strict JSON output (suppresses human formatting) |
+| `--api-url <url>` | Override the API URL                             |
+| `--api-key <key>` | Override the API key                             |
+| `-V, --version`   | Print the version                                |
+| `-h, --help`      | Show help                                        |
 
 ## Authentication
 
@@ -68,13 +68,13 @@ obs <resource> toggle <id>         # Pause or resume (monitor, check, heartbeat)
 
 List filters (monitor, check, heartbeat):
 
-| Flag | Purpose |
-|------|---------|
-| `-s, --search <query>` | Filter by search text |
-| `-S, --status <status>` | Filter by status |
+| Flag                        | Purpose                          |
+| --------------------------- | -------------------------------- |
+| `-s, --search <query>`      | Filter by search text            |
+| `-S, --status <status>`     | Filter by status                 |
 | `--is-active <true\|false>` | Filter by active lifecycle state |
-| `-l, --limit <n>` | Max results per page |
-| `-p, --page <n>` | Page number (1-based) |
+| `-l, --limit <n>`           | Max results per page             |
+| `-p, --page <n>`            | Page number (1-based)            |
 
 ## URL monitors
 
@@ -95,6 +95,28 @@ obs url-monitor delete <id> -y
 
 Create/update flags: `-n, --name`, `-d, --description`, `-u, --url`, `-i, --interval` (cron), `--alert-channel-id <id>` (repeatable), `--no-alerts` (create only, disables failure alerting).
 
+## Protocol monitors (SSL / TCP / UDP / DB)
+
+`obs ssl-monitor` (alias `ssl`), `obs tcp-monitor` (`tcp`), `obs udp-monitor` (`udp`), `obs db-monitor` (`db`). Each has the same surface as `url-monitor`: CRUD plus `run`, `runs`, `toggle`, `toggle-muted`.
+
+```bash
+obs ssl-monitor create --name "cert" --hostname example.com --port 443 --warn-days 14
+obs tcp-monitor create --name "PG" --host db.example.com --port 5432 --expect-banner "..."
+obs udp-monitor create --name "DNS" --host 1.1.1.1 --port 53 --expect-response
+obs db-monitor create --name "PG" --host db.example.com --port 5432 --protocol postgres --tls
+```
+
+Type-specific flags:
+
+| Command       | Flags                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `ssl-monitor` | `--hostname` (bare host, required), `--port` (default 443), `--warn-days` (default 30) |
+| `tcp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-banner`                      |
+| `udp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-response`                    |
+| `db-monitor`  | `--host`, `--port` (required), `--protocol` (`postgres`\|`mysql`\|`redis`), `--tls`    |
+
+Common flags (all four): `-n, --name`, `-d, --description`, `-i, --interval` (cron), `--timeout <ms>`, `--region <region>` (repeatable), `--retry-count <n>`, `--retry-interval <s>`, `--team-id <id>`, `--alert-channel-id <id>` (repeatable), `--no-alerts`.
+
 ## API checks
 
 `obs check`. Same CRUD, plus `run`, `runs`, `toggle`, `toggle-muted`.
@@ -112,16 +134,16 @@ Request flags: `-n, --name`, `-d, --description`, `-u, --url`, `-m, --method`, `
 
 Assertions can be passed as raw JSON or via shorthand flags:
 
-| Flag | Builds |
-|------|--------|
-| `--assertion <json>` (repeatable) | Raw assertion object |
-| `--assertion-file <path>` | JSON array of assertions |
-| `--status-code <v>` / `--status-code-not <v>` | Status code equals / not-equals |
+| Flag                                                       | Builds                                 |
+| ---------------------------------------------------------- | -------------------------------------- |
+| `--assertion <json>` (repeatable)                          | Raw assertion object                   |
+| `--assertion-file <path>`                                  | JSON array of assertions               |
+| `--status-code <v>` / `--status-code-not <v>`              | Status code equals / not-equals        |
 | `--response-time-under <ms>` / `--response-time-over <ms>` | Response-time less-than / greater-than |
-| `--json-path <path>` [`--json-path-value <v>`] | JSON path exists, or equals a value |
-| `--text-contains <t>` / `--text-not-contains <t>` | Body contains / does not contain |
-| `--header-exists <name>` | Response header exists |
-| `--regex-match <pattern>` | Body matches a regex |
+| `--json-path <path>` [`--json-path-value <v>`]             | JSON path exists, or equals a value    |
+| `--text-contains <t>` / `--text-not-contains <t>`          | Body contains / does not contain       |
+| `--header-exists <name>`                                   | Response header exists                 |
+| `--regex-match <pattern>`                                  | Body matches a regex                   |
 
 Assertion types: `status_code`, `response_time`, `json_path`, `text_contains`, `header`. Operators: `equals`, `not_equals`, `greater_than`, `less_than`, `contains`, `not_contains`, `exists`, `regex_match`.
 
@@ -261,6 +283,50 @@ TOKEN=$(obs suite ci webhook-token <id> -y --json | jq -r '.data.token')
 ```
 
 Each `webhook-token` call invalidates the previous token. `status` masks it as `••••<last4>`; `webhook-token` returns the full value. Your CI pipeline POSTs the token to `/webhook/playwright?token=<token>` to trigger a run.
+
+## Environments
+
+`obs environment` (alias `env`). Named sets of variables + a base URL that monitors/checks resolve against. CRUD plus a write-only `secrets` subcommand.
+
+```bash
+obs environment create --name production --base-url https://api.example.com --var REGION=us-east
+obs environment update <id> --var REGION=eu-west   # omit --var to keep variables unchanged
+obs environment secrets <id> --secret API_TOKEN=xyz --secret OLD_KEY=   # empty value deletes a key
+obs environment delete <id> -y
+```
+
+Create/update flags: `-n, --name`, `--base-url`, `--var <KEY=VALUE>` (repeatable). `--project-id <id>` is accepted on `create` only. Secret **values** are never returned by the API or printed — only key names. An `update` that omits `--var` leaves existing variables untouched.
+
+## Schedules
+
+`obs schedule` (alias `sched`). Manage autopilot test schedules (cron schedules that run a specific autopilot test). CRUD plus `stop`/`resume`, `stop-all`/`resume-all`, and a chainable `bulk` action.
+
+```bash
+obs schedule create --test-id <testId> --interval "*/30 * * * *"
+obs schedule list --test-id <testId>
+obs schedule stop <id>          # resume with `obs schedule resume <id>`
+obs schedule stop-all           # resume-all to reactivate
+obs schedule update <id> --interval "0 * * * *" --enable-alerts
+
+# Chainable bulk: IDs from repeatable --id and/or piped stdin (--stdin)
+obs schedule bulk stop --id <id1> --id <id2>
+obs schedule list --json | jq -r '.data[].id' | obs schedule bulk stop --stdin
+```
+
+Create flags: `--test-id` (required), `-i, --interval` (cron, required), `--retry-count`, `--retry-interval`, `--no-alerts`. Update flags: `-i, --interval`, `--retry-count`, `--retry-interval`, `--enable-alerts` / `--disable-alerts` (use `stop`/`resume` to pause/activate). `bulk <stop|resume>` reads IDs from `--id` (repeatable) and/or `--stdin` (whitespace- or JSON-array-separated), prints a per-ID summary, and exits non-zero if any ID failed.
+
+## Projects
+
+`obs project`. Containers that group monitors, checks, and environments. Simple CRUD (nested project sub-resources are not managed by this command).
+
+```bash
+obs project create --name "Acme prod" --description "Production monitoring"
+obs project list
+obs project update <id> --description "…"
+obs project delete <id> -y
+```
+
+Create/update flags: `-n, --name`, `-d, --description`.
 
 ## API keys
 

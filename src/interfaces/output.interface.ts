@@ -8,6 +8,7 @@ import {
   Environment,
   ProtocolMonitor,
   Schedule,
+  Project,
 } from '../types/index.js';
 
 /**
@@ -27,6 +28,7 @@ export interface IOutputService {
   formatHeartbeatList(heartbeats: Heartbeat[], verbose?: boolean): void;
   formatEnvironmentList(environments: Environment[], verbose?: boolean): void;
   formatScheduleList(schedules: Schedule[], verbose?: boolean): void;
+  formatProjectList(projects: Project[], verbose?: boolean): void;
   formatAlertChannelList(channels: AlertChannel[], verbose?: boolean): void;
   formatStatusPageList(statusPages: StatusPage[], verbose?: boolean): void;
   formatIncidentList(incidents: Incident[], verbose?: boolean): void;

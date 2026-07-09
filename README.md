@@ -141,6 +141,7 @@ obs apply -f my-stack.json      # Apply a custom file
 ```
 
 > **Notes:**
+>
 > - `incidents` are included in export as a backup artifact. `obs apply` warns and skips this block; incidents cannot be re-created from config.
 > - `suites`: `obs apply` updates metadata for existing suites only. New suites require AI generation via `obs suite generate`.
 > - Status-page attached monitors are exported but not applied. Manage them with `obs status-page add-monitor` / `remove-monitor`.
@@ -179,6 +180,26 @@ obs url-monitor delete <id> -y
 ```
 
 Flags: `-d, --description`, `--alert-channel-id <id>` (repeatable), `--no-alerts` (disable failure alerting on create).
+
+### Protocol Monitors (SSL / TCP / UDP / DB)
+
+Beyond URL monitors, the CLI manages the protocol-level check types. Each of `ssl-monitor` (alias `ssl`), `tcp-monitor` (`tcp`), `udp-monitor` (`udp`), and `db-monitor` (`db`) has the same surface as `url-monitor`: `list`, `get`, `create`, `update`, `delete`, `toggle`, `toggle-muted`, `run`, `runs`.
+
+```bash
+# SSL certificate expiry
+obs ssl-monitor create --name "example cert" --hostname example.com --port 443 --warn-days 14
+
+# TCP port reachability (optional payload + expected banner)
+obs tcp-monitor create --name "Postgres" --host db.example.com --port 5432 --expect-banner "..."
+
+# UDP port check (optional payload, optionally expect a response)
+obs udp-monitor create --name "DNS" --host 1.1.1.1 --port 53 --expect-response
+
+# Database reachability (postgres | mysql | redis)
+obs db-monitor create --name "Primary PG" --host db.example.com --port 5432 --protocol postgres --tls
+```
+
+All four share the common monitor options: `--interval`, `--timeout`, `--region` (repeatable), `--retry-count`, `--retry-interval`, `--team-id`, `--alert-channel-id` (repeatable), `--no-alerts`.
 
 ### API Checks
 
@@ -255,6 +276,51 @@ obs incident delete <id> -y
 ```
 
 `create` and `update` also accept `--assigned-to <userId>` and `--team-id <teamId>`.
+
+### Environments
+
+Environments are named sets of variables + a base URL that monitors/checks resolve against. Secrets are write-only — their values are never returned or printed, only key names.
+
+```bash
+obs environment create --name production --base-url https://api.example.com --var REGION=us-east
+obs environment list
+obs environment update <id> --var REGION=eu-west   # omit --var to leave variables unchanged
+obs environment secrets <id> --secret API_TOKEN=xyz --secret OLD_KEY=   # empty value deletes a key
+obs environment delete <id> -y
+```
+
+`--project-id` is accepted on `create` only. Alias: `env`.
+
+### Schedules
+
+Manage autopilot test schedules (cron schedules that run a specific autopilot test). Alias: `sched`.
+
+```bash
+obs schedule create --test-id <testId> --interval "*/30 * * * *"
+obs schedule list --test-id <testId>
+obs schedule stop <id>          # pause;  resume with `obs schedule resume <id>`
+obs schedule stop-all           # pause every schedule (resume-all to reactivate)
+obs schedule update <id> --interval "0 * * * *" --enable-alerts
+obs schedule delete <id> -y
+```
+
+**Chainable bulk actions** — apply `stop`/`resume` to many schedules by ID from repeatable `--id` and/or piped stdin (`--stdin`). It prints a per-ID summary and exits non-zero if any ID failed, so pipelines can detect partial failure:
+
+```bash
+obs schedule bulk stop --id <id1> --id <id2>
+obs schedule list --json | jq -r '.data[].id' | obs schedule bulk stop --stdin
+```
+
+### Projects
+
+Projects are containers that group monitors, checks, and environments.
+
+```bash
+obs project create --name "Acme prod" --description "Production monitoring"
+obs project list
+obs project update <id> --description "…"
+obs project delete <id> -y
+```
 
 ### API Keys
 
@@ -357,7 +423,7 @@ Append `--json` to any command for a strict, machine-readable `JsonEnvelope`:
 ```json
 {
   "status": "SUCCESS",
-  "data": { },
+  "data": {},
   "metadata": { "timestamp": "2026-03-11T12:00:00.000Z" }
 }
 ```
