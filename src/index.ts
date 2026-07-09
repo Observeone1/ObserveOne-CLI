@@ -32,6 +32,7 @@ import {
 import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createEnvironmentCommand } from './commands/environment.js';
+import { createScheduleCommand } from './commands/schedule.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
 import { createAlertChannelCommand } from './commands/alert-channel.js';
@@ -87,6 +88,7 @@ program.addCommand(createDbMonitorCommand(configService, apiClient, outputServic
 program.addCommand(createCheckCommand(configService, apiClient, outputService));
 program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
 program.addCommand(createEnvironmentCommand(configService, apiClient, outputService));
+program.addCommand(createScheduleCommand(configService, apiClient, outputService));
 program.addCommand(createApplyCommand(configService, apiClient, outputService));
 program.addCommand(createExportCommand(configService, apiClient, outputService));
 program.addCommand(createAlertChannelCommand(configService, apiClient, outputService));

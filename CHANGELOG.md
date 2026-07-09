@@ -5,6 +5,13 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-07-09
+
+### Added
+- **New command: `obs schedule` (alias `sched`)** — manage autopilot test schedules (cron schedules that run a specific autopilot test). Subcommands: `list [--test-id]`, `get`, `create`, `update`, `delete`, `stop`, `resume`, `stop-all`, `resume-all`.
+  - `create --test-id <id> --interval <cron> [--retry-count] [--retry-interval] [--no-alerts]`; `update` changes cron/retries/alerts (use `stop`/`resume` to pause/activate).
+  - **Chainable `bulk <stop|resume>`** — apply an action to many schedules by ID from repeatable `--id` and/or piped stdin (`--stdin`, accepts whitespace- or JSON-array-separated IDs). Composes at the end of a pipe, e.g. `obs schedule list --json | jq -r '.data[].id' | obs schedule bulk stop --stdin`. Reports a per-ID success/failure summary and exits non-zero if any ID failed, so pipelines can detect partial failure.
+
 ## [1.32.0] - 2026-07-09
 
 ### Added

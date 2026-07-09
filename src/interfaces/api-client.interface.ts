@@ -18,6 +18,8 @@ import {
   Environment,
   ProtocolMonitor,
   ProtocolMonitorKind,
+  Schedule,
+  CreateSchedulePayload,
 } from '../types/index.js';
 
 /**
@@ -112,6 +114,18 @@ export interface IApiClient {
     id: string,
     secrets: Record<string, string>
   ): Promise<{ secret_keys: string[] }>;
+
+  // Schedules (autopilot test schedules)
+  getSchedules(): Promise<Schedule[]>;
+  getTestSchedules(testId: string): Promise<Schedule[]>;
+  getSchedule(id: string): Promise<Schedule>;
+  createSchedule(data: CreateSchedulePayload): Promise<Schedule>;
+  updateSchedule(id: string, data: Partial<Schedule>): Promise<Schedule>;
+  deleteSchedule(id: string): Promise<void>;
+  stopSchedule(id: string): Promise<{ success: boolean; message: string }>;
+  resumeSchedule(id: string): Promise<{ success: boolean; message: string }>;
+  stopAllSchedules(): Promise<{ success: boolean; message: string }>;
+  resumeAllSchedules(): Promise<{ success: boolean; message: string }>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;

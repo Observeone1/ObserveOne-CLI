@@ -161,6 +161,33 @@ export interface Environment {
   updated_at: string;
 }
 
+/**
+ * Autopilot test schedule — a cron schedule that runs a specific autopilot
+ * test (`test_id`). Managed under `/schedules`.
+ */
+export interface Schedule {
+  id: string;
+  test_id: string;
+  cron_expression: string;
+  retry_count?: number | null | undefined;
+  retry_interval?: number | null | undefined;
+  alert_on_failure?: boolean | undefined;
+  is_active: boolean;
+  last_run_at?: string | null | undefined;
+  next_run_at?: string | null | undefined;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Payload for creating a schedule (the API expects camelCase here). */
+export interface CreateSchedulePayload {
+  testId: string;
+  cronExpression: string;
+  retryCount?: number | undefined;
+  retryInterval?: number | undefined;
+  alertOnFailure?: boolean | undefined;
+}
+
 export interface ResourceRun {
   id: string;
   status: string;

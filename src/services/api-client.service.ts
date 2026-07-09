@@ -25,6 +25,8 @@ import {
   Environment,
   ProtocolMonitor,
   ProtocolMonitorKind,
+  Schedule,
+  CreateSchedulePayload,
 } from '../types/index.js';
 
 /** Base REST path for each protocol-monitor kind. */
@@ -637,6 +639,77 @@ export class ApiClient implements IApiClient {
       { secrets }
     );
     return { secret_keys: response.data.secret_keys ?? [] };
+  }
+
+  // Schedules (autopilot test schedules)
+  // Legacy-shaped endpoints: list/get return bare objects, create is POST
+  // /create with a camelCase body, and stop/resume return { success, message }.
+  private unwrapSchedule(payload: unknown): Schedule {
+    const data = payload as { schedule?: Schedule; data?: Schedule };
+    return data.schedule ?? data.data ?? (payload as Schedule);
+  }
+
+  private normalizeSchedules(payload: unknown): Schedule[] {
+    if (Array.isArray(payload)) return payload as Schedule[];
+    const data = payload as { schedules?: Schedule[]; data?: Schedule[] };
+    return data.schedules ?? data.data ?? [];
+  }
+
+  async getSchedules(): Promise<Schedule[]> {
+    const response = await this.client.get('/schedules');
+    return this.normalizeSchedules(response.data);
+  }
+
+  async getTestSchedules(testId: string): Promise<Schedule[]> {
+    const response = await this.client.get(`/schedules/test/${testId}`);
+    return this.normalizeSchedules(response.data);
+  }
+
+  async getSchedule(id: string): Promise<Schedule> {
+    const response = await this.client.get<Record<string, unknown>>(`/schedules/${id}`);
+    return this.unwrapSchedule(response.data);
+  }
+
+  async createSchedule(data: CreateSchedulePayload): Promise<Schedule> {
+    const response = await this.client.post<Record<string, unknown>>('/schedules/create', data);
+    return this.unwrapSchedule(response.data);
+  }
+
+  async updateSchedule(id: string, data: Partial<Schedule>): Promise<Schedule> {
+    const response = await this.client.put<Record<string, unknown>>(`/schedules/${id}`, data);
+    return this.unwrapSchedule(response.data);
+  }
+
+  async deleteSchedule(id: string): Promise<void> {
+    await this.client.delete(`/schedules/${id}`);
+  }
+
+  async stopSchedule(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success?: boolean; message?: string }>(
+      `/schedules/${id}/stop`
+    );
+    return { success: response.data.success ?? true, message: response.data.message ?? '' };
+  }
+
+  async resumeSchedule(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success?: boolean; message?: string }>(
+      `/schedules/${id}/resume`
+    );
+    return { success: response.data.success ?? true, message: response.data.message ?? '' };
+  }
+
+  async stopAllSchedules(): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success?: boolean; message?: string }>(
+      '/schedules/stop-all'
+    );
+    return { success: response.data.success ?? true, message: response.data.message ?? '' };
+  }
+
+  async resumeAllSchedules(): Promise<{ success: boolean; message: string }> {
+    const response = await this.client.post<{ success?: boolean; message?: string }>(
+      '/schedules/resume-all'
+    );
+    return { success: response.data.success ?? true, message: response.data.message ?? '' };
   }
 
   // Alert Channels
