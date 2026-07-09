@@ -74,7 +74,20 @@ const toInt = (val: unknown): unknown => (typeof val === 'string' ? parseInt(val
 
 const toUpper = (val: unknown): unknown => (typeof val === 'string' ? val.toUpperCase() : val);
 
+const toLower = (val: unknown): unknown => (typeof val === 'string' ? val.toLowerCase() : val);
+
 const negateBool = (val: unknown): unknown => !val;
+
+/** Bare hostname (no scheme, no path) — mirrors the backend SSL-monitor refine. */
+const validateHostname = (val: unknown): boolean | string => {
+  if (typeof val !== 'string' || val.trim().length === 0) return 'Hostname is required';
+  if (/^https?:\/\//i.test(val) || val.includes('/')) {
+    return 'Enter a bare hostname without scheme or path (e.g. example.com)';
+  }
+  return true;
+};
+
+const DB_PROTOCOLS = ['postgres', 'mysql', 'redis'] as const;
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const;
 const INCIDENT_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
@@ -349,11 +362,254 @@ export const schemas: Record<string, ResourceSchema> = {
       team_id: { flagName: 'teamId' },
     },
   },
+  'ssl-monitor': {
+    description: 'SSL certificate monitor — checks TLS certificate expiry on a host:port',
+    required: ['name', 'hostname'],
+    template: {
+      name: 'My SSL Monitor',
+      hostname: 'example.com',
+      port: 443,
+      warn_days: 30,
+      timeout_ms: 30000,
+      alert_on_failure: true,
+      cron_expression: '0 0 * * *',
+      description: '',
+      regions: [],
+      channel_ids: [],
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Monitor name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      hostname: {
+        flagName: 'hostname',
+        inquirerType: 'input',
+        label: 'Hostname (bare, no scheme or path):',
+        requiredOnCreate: true,
+        validate: validateHostname,
+      },
+      port: {
+        flagName: 'port',
+        inquirerType: 'number',
+        label: 'Port:',
+        default: 443,
+        transformer: toInt,
+      },
+      warn_days: {
+        flagName: 'warnDays',
+        inquirerType: 'number',
+        label: 'Warn this many days before expiry:',
+        default: 30,
+        transformer: toInt,
+      },
+      cron_expression: { flagName: 'interval', default: '0 0 * * *' },
+      description: { flagName: 'description', default: '' },
+      alert_on_failure: { flagName: 'alerts', default: true },
+      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
+      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
+      retry_count: { flagName: 'retryCount', transformer: toInt },
+      retry_interval: { flagName: 'retryInterval', transformer: toInt },
+      team_id: { flagName: 'teamId' },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
+    },
+  },
+  'tcp-monitor': {
+    description: 'TCP port monitor — opens a TCP connection, optional payload + banner match',
+    required: ['name', 'host', 'port'],
+    template: {
+      name: 'My TCP Monitor',
+      host: 'example.com',
+      port: 5432,
+      payload_hex: '',
+      expect_banner: '',
+      timeout_ms: 30000,
+      alert_on_failure: true,
+      cron_expression: '*/5 * * * *',
+      description: '',
+      regions: [],
+      channel_ids: [],
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Monitor name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      host: {
+        flagName: 'host',
+        inquirerType: 'input',
+        label: 'Host:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Host'),
+      },
+      port: {
+        flagName: 'port',
+        inquirerType: 'number',
+        label: 'Port:',
+        requiredOnCreate: true,
+        transformer: toInt,
+      },
+      payload_hex: { flagName: 'payloadHex' },
+      expect_banner: { flagName: 'expectBanner' },
+      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
+      description: { flagName: 'description', default: '' },
+      alert_on_failure: { flagName: 'alerts', default: true },
+      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
+      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
+      retry_count: { flagName: 'retryCount', transformer: toInt },
+      retry_interval: { flagName: 'retryInterval', transformer: toInt },
+      team_id: { flagName: 'teamId' },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
+    },
+  },
+  'udp-monitor': {
+    description: 'UDP port monitor — sends an optional payload, optionally expects a response',
+    required: ['name', 'host', 'port'],
+    template: {
+      name: 'My UDP Monitor',
+      host: 'example.com',
+      port: 53,
+      payload_hex: '',
+      expect_response: false,
+      timeout_ms: 30000,
+      alert_on_failure: true,
+      cron_expression: '*/5 * * * *',
+      description: '',
+      regions: [],
+      channel_ids: [],
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Monitor name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      host: {
+        flagName: 'host',
+        inquirerType: 'input',
+        label: 'Host:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Host'),
+      },
+      port: {
+        flagName: 'port',
+        inquirerType: 'number',
+        label: 'Port:',
+        requiredOnCreate: true,
+        transformer: toInt,
+      },
+      payload_hex: { flagName: 'payloadHex' },
+      expect_response: { flagName: 'expectResponse', default: false },
+      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
+      description: { flagName: 'description', default: '' },
+      alert_on_failure: { flagName: 'alerts', default: true },
+      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
+      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
+      retry_count: { flagName: 'retryCount', transformer: toInt },
+      retry_interval: { flagName: 'retryInterval', transformer: toInt },
+      team_id: { flagName: 'teamId' },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
+    },
+  },
+  'db-monitor': {
+    description: 'Database reachability monitor — connects to postgres/mysql/redis on a host:port',
+    required: ['name', 'host', 'port', 'protocol'],
+    template: {
+      name: 'My DB Monitor',
+      host: 'example.com',
+      port: 5432,
+      protocol: 'postgres',
+      tls: false,
+      timeout_ms: 30000,
+      alert_on_failure: true,
+      cron_expression: '*/5 * * * *',
+      description: '',
+      regions: [],
+      channel_ids: [],
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Monitor name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      host: {
+        flagName: 'host',
+        inquirerType: 'input',
+        label: 'Host:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Host'),
+      },
+      port: {
+        flagName: 'port',
+        inquirerType: 'number',
+        label: 'Port:',
+        requiredOnCreate: true,
+        transformer: toInt,
+      },
+      protocol: {
+        flagName: 'protocol',
+        inquirerType: 'list',
+        label: 'Database protocol:',
+        requiredOnCreate: true,
+        choices: DB_PROTOCOLS,
+        transformer: toLower,
+      },
+      tls: { flagName: 'tls', default: false },
+      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
+      description: { flagName: 'description', default: '' },
+      alert_on_failure: { flagName: 'alerts', default: true },
+      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
+      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
+      retry_count: { flagName: 'retryCount', transformer: toInt },
+      retry_interval: { flagName: 'retryInterval', transformer: toInt },
+      team_id: { flagName: 'teamId' },
+      channel_ids: {
+        flagName: 'alertChannelId',
+        default: [],
+        treatEmptyArrayAsAbsent: true,
+        transformer: (v) =>
+          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+      },
+    },
+  },
 };
 
 const resourceAliases: Record<string, string> = {
   'api-check': 'check',
   'url-monitor': 'monitor',
+  ssl: 'ssl-monitor',
+  tcp: 'tcp-monitor',
+  udp: 'udp-monitor',
+  db: 'db-monitor',
 };
 
 export function resolveSchema(resource: string): ResourceSchema | undefined {

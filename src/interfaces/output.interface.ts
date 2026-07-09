@@ -5,6 +5,7 @@ import {
   AlertChannel,
   StatusPage,
   Incident,
+  ProtocolMonitor,
 } from '../types/index.js';
 
 /**
@@ -19,6 +20,7 @@ export interface IOutputService {
   enableJsonMode(): void;
 
   formatMonitorList(monitors: UrlMonitor[], verbose?: boolean): void;
+  formatProtocolMonitorList(monitors: ProtocolMonitor[], verbose?: boolean, label?: string): void;
   formatApiCheckList(checks: ApiCheck[], verbose?: boolean): void;
   formatHeartbeatList(heartbeats: Heartbeat[], verbose?: boolean): void;
   formatAlertChannelList(channels: AlertChannel[], verbose?: boolean): void;
