@@ -5,6 +5,14 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-07-09
+
+### Added
+- **New command: `obs environment` (alias `env`)** — manage environments, the named variable + base-URL sets that monitors/checks resolve against. Supports `list`, `get`, `create`, `update`, `delete`, plus a dedicated `secrets` subcommand.
+  - `create`/`update`: `--name`, `--base-url`, repeatable `--var KEY=VALUE` (plaintext variables); `--project-id` on create only. An `update` that omits `--var` leaves existing variables untouched.
+  - `secrets <id> --secret KEY=VALUE` (repeatable): sets write-only secrets (`--secret KEY=` deletes a key). Secret values are never returned by the API or printed — only key names.
+  - JSON-schema-driven `--file` create and `obs schema environment` are available.
+
 ## [1.31.0] - 2026-07-09
 
 ### Added
@@ -14,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `udp-monitor`: UDP port checks (`--host`, `--port`, optional `--payload-hex`, `--expect-response`).
   - `db-monitor`: database reachability for postgres/mysql/redis (`--host`, `--port`, `--protocol`, `--tls`).
   - All four share the common monitor options (`--interval`, `--timeout`, `--region`, `--retry-count`, `--retry-interval`, `--team-id`, `--alert-channel-id`, `--no-alerts`) and the JSON-schema-driven `--file` / interactive create flow. Schemas are available via `obs schema <type>`.
+
 
 ## [1.30.3] - 2026-06-30
 

@@ -31,6 +31,7 @@ import {
 } from './commands/protocol-monitor.js';
 import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
+import { createEnvironmentCommand } from './commands/environment.js';
 import { createApplyCommand } from './commands/apply.js';
 import { createExportCommand } from './commands/export.js';
 import { createAlertChannelCommand } from './commands/alert-channel.js';
@@ -85,6 +86,7 @@ program.addCommand(createUdpMonitorCommand(configService, apiClient, outputServi
 program.addCommand(createDbMonitorCommand(configService, apiClient, outputService));
 program.addCommand(createCheckCommand(configService, apiClient, outputService));
 program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
+program.addCommand(createEnvironmentCommand(configService, apiClient, outputService));
 program.addCommand(createApplyCommand(configService, apiClient, outputService));
 program.addCommand(createExportCommand(configService, apiClient, outputService));
 program.addCommand(createAlertChannelCommand(configService, apiClient, outputService));

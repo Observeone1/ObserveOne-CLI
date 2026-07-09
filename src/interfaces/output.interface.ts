@@ -5,6 +5,7 @@ import {
   AlertChannel,
   StatusPage,
   Incident,
+  Environment,
   ProtocolMonitor,
 } from '../types/index.js';
 
@@ -23,6 +24,7 @@ export interface IOutputService {
   formatProtocolMonitorList(monitors: ProtocolMonitor[], verbose?: boolean, label?: string): void;
   formatApiCheckList(checks: ApiCheck[], verbose?: boolean): void;
   formatHeartbeatList(heartbeats: Heartbeat[], verbose?: boolean): void;
+  formatEnvironmentList(environments: Environment[], verbose?: boolean): void;
   formatAlertChannelList(channels: AlertChannel[], verbose?: boolean): void;
   formatStatusPageList(statusPages: StatusPage[], verbose?: boolean): void;
   formatIncidentList(incidents: Incident[], verbose?: boolean): void;

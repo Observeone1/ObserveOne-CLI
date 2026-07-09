@@ -22,6 +22,7 @@ import {
   Team,
   TeamMember,
   IncidentEvent,
+  Environment,
   ProtocolMonitor,
   ProtocolMonitorKind,
 } from '../types/index.js';
@@ -590,6 +591,52 @@ export class ApiClient implements IApiClient {
     );
     const data = response.data as { pings?: HeartbeatPing[] };
     return data.pings || (response.data as HeartbeatPing[]);
+  }
+
+  // Environments
+  private unwrapEnvironment(payload: unknown): Environment {
+    const data = payload as { environment?: Environment; data?: Environment };
+    return data.environment ?? data.data ?? (payload as Environment);
+  }
+
+  async getEnvironments(): Promise<Environment[]> {
+    const response = await this.client.get('/environments');
+    const normalized = this.normalizePaginatedItems<Environment>(response.data, [
+      'items',
+      'environments',
+      'data',
+    ]);
+    return normalized.items;
+  }
+
+  async getEnvironment(id: string): Promise<Environment> {
+    const response = await this.client.get<Record<string, unknown>>(`/environments/${id}`);
+    return this.unwrapEnvironment(response.data);
+  }
+
+  async createEnvironment(data: Partial<Environment>): Promise<Environment> {
+    const response = await this.client.post<Record<string, unknown>>('/environments', data);
+    return this.unwrapEnvironment(response.data);
+  }
+
+  async updateEnvironment(id: string, data: Partial<Environment>): Promise<Environment> {
+    const response = await this.client.put<Record<string, unknown>>(`/environments/${id}`, data);
+    return this.unwrapEnvironment(response.data);
+  }
+
+  async deleteEnvironment(id: string): Promise<void> {
+    await this.client.delete(`/environments/${id}`);
+  }
+
+  async updateEnvironmentSecrets(
+    id: string,
+    secrets: Record<string, string>
+  ): Promise<{ secret_keys: string[] }> {
+    const response = await this.client.put<{ secret_keys?: string[] }>(
+      `/environments/${id}/secrets`,
+      { secrets }
+    );
+    return { secret_keys: response.data.secret_keys ?? [] };
   }
 
   // Alert Channels

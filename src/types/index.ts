@@ -145,6 +145,22 @@ export interface Heartbeat {
   updated_at: string;
 }
 
+export interface Environment {
+  id: string;
+  name: string;
+  base_url?: string | null | undefined;
+  project_id?: string | null | undefined;
+  /** Plaintext variables (returned by the API). */
+  variables?: Record<string, string> | undefined;
+  /**
+   * Names of write-only secrets attached to this environment. The API never
+   * returns secret values — only their keys.
+   */
+  secret_keys?: string[] | undefined;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ResourceRun {
   id: string;
   status: string;
