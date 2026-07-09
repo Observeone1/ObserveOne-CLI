@@ -11,6 +11,7 @@ import {
   Environment,
   ProtocolMonitor,
   Schedule,
+  Project,
 } from '../types/index.js';
 import { brand as c } from '../utils/theme.js';
 
@@ -229,6 +230,25 @@ export class OutputService implements IOutputService {
         if (secretCount > 0) {
           console.log(c.muted(`     Secret keys: ${(env.secret_keys ?? []).join(', ')}`));
         }
+      }
+      console.log('');
+    });
+  }
+
+  formatProjectList(projects: Project[], verbose: boolean = false): void {
+    if (projects.length === 0) {
+      this.info('No projects found.');
+      return;
+    }
+
+    console.log(chalk.bold('\nProjects'));
+    console.log(c.muted('─'.repeat(80)));
+
+    projects.forEach((project, index) => {
+      console.log(chalk.bold(`${index + 1}. ${project.name}`));
+      console.log(c.muted(`   ID: ${project.id}`));
+      if (verbose && project.description) {
+        console.log(c.muted(`   Desc: ${project.description}`));
       }
       console.log('');
     });

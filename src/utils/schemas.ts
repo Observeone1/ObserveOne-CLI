@@ -393,6 +393,24 @@ export const schemas: Record<string, ResourceSchema> = {
       },
     },
   },
+  project: {
+    description: 'Project — a container that groups monitors, checks, and environments',
+    required: ['name'],
+    template: {
+      name: 'My Project',
+      description: '',
+    },
+    fieldMetadata: {
+      name: {
+        flagName: 'name',
+        inquirerType: 'input',
+        label: 'Project name:',
+        requiredOnCreate: true,
+        validate: trimNonEmpty('Name'),
+      },
+      description: { flagName: 'description', default: '' },
+    },
+  },
   'ssl-monitor': {
     description: 'SSL certificate monitor — checks TLS certificate expiry on a host:port',
     required: ['name', 'hostname'],

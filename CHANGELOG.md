@@ -5,6 +5,11 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.0] - 2026-07-09
+
+### Added
+- **New command: `obs project`** — manage projects, the containers that group monitors, checks, and environments. Simple CRUD: `list`, `get`, `create` (`--name`, `--description`), `update`, `delete`, plus the JSON-schema-driven `--file` create and `obs schema project`. Nested project sub-resources (project environments, rules, etc.) are out of scope for this command.
+
 ## [1.33.0] - 2026-07-09
 
 ### Added

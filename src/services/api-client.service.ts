@@ -27,6 +27,7 @@ import {
   ProtocolMonitorKind,
   Schedule,
   CreateSchedulePayload,
+  Project,
 } from '../types/index.js';
 
 /** Base REST path for each protocol-monitor kind. */
@@ -710,6 +711,41 @@ export class ApiClient implements IApiClient {
       '/schedules/resume-all'
     );
     return { success: response.data.success ?? true, message: response.data.message ?? '' };
+  }
+
+  // Projects
+  private unwrapProject(payload: unknown): Project {
+    const data = payload as { project?: Project; data?: Project };
+    return data.project ?? data.data ?? (payload as Project);
+  }
+
+  async getProjects(): Promise<Project[]> {
+    const response = await this.client.get('/projects');
+    const normalized = this.normalizePaginatedItems<Project>(response.data, [
+      'items',
+      'projects',
+      'data',
+    ]);
+    return normalized.items;
+  }
+
+  async getProject(id: string): Promise<Project> {
+    const response = await this.client.get<Record<string, unknown>>(`/projects/${id}`);
+    return this.unwrapProject(response.data);
+  }
+
+  async createProject(data: Partial<Project>): Promise<Project> {
+    const response = await this.client.post<Record<string, unknown>>('/projects', data);
+    return this.unwrapProject(response.data);
+  }
+
+  async updateProject(id: string, data: Partial<Project>): Promise<Project> {
+    const response = await this.client.put<Record<string, unknown>>(`/projects/${id}`, data);
+    return this.unwrapProject(response.data);
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    await this.client.delete(`/projects/${id}`);
   }
 
   // Alert Channels

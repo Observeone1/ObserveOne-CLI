@@ -188,6 +188,15 @@ export interface CreateSchedulePayload {
   alertOnFailure?: boolean | undefined;
 }
 
+/** Project — a container that groups monitors, checks, and environments. */
+export interface Project {
+  id: string;
+  name: string;
+  description?: string | null | undefined;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ResourceRun {
   id: string;
   status: string;

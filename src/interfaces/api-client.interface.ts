@@ -20,6 +20,7 @@ import {
   ProtocolMonitorKind,
   Schedule,
   CreateSchedulePayload,
+  Project,
 } from '../types/index.js';
 
 /**
@@ -126,6 +127,13 @@ export interface IApiClient {
   resumeSchedule(id: string): Promise<{ success: boolean; message: string }>;
   stopAllSchedules(): Promise<{ success: boolean; message: string }>;
   resumeAllSchedules(): Promise<{ success: boolean; message: string }>;
+
+  // Projects
+  getProjects(): Promise<Project[]>;
+  getProject(id: string): Promise<Project>;
+  createProject(data: Partial<Project>): Promise<Project>;
+  updateProject(id: string, data: Partial<Project>): Promise<Project>;
+  deleteProject(id: string): Promise<void>;
 
   // Alert Channels
   getAlertChannels(): Promise<AlertChannel[]>;
