@@ -5,6 +5,16 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.0] - 2026-07-09
+
+### Added
+- **New monitor types: `obs ssl-monitor`, `obs tcp-monitor`, `obs udp-monitor`, `obs db-monitor`** (aliases `ssl`, `tcp`, `udp`, `db`). Each supports the full resource surface — `list`, `get`, `create`, `update`, `delete`, `toggle`, `toggle-muted`, `run`, and `runs` — matching the existing `monitor`/`check` commands.
+  - `ssl-monitor`: TLS certificate expiry checks (`--hostname`, `--port` default 443, `--warn-days` default 30).
+  - `tcp-monitor`: TCP port reachability (`--host`, `--port`, optional `--payload-hex`, `--expect-banner`).
+  - `udp-monitor`: UDP port checks (`--host`, `--port`, optional `--payload-hex`, `--expect-response`).
+  - `db-monitor`: database reachability for postgres/mysql/redis (`--host`, `--port`, `--protocol`, `--tls`).
+  - All four share the common monitor options (`--interval`, `--timeout`, `--region`, `--retry-count`, `--retry-interval`, `--team-id`, `--alert-channel-id`, `--no-alerts`) and the JSON-schema-driven `--file` / interactive create flow. Schemas are available via `obs schema <type>`.
+
 ## [1.30.3] - 2026-06-30
 
 ### Removed

@@ -22,7 +22,17 @@ import {
   Team,
   TeamMember,
   IncidentEvent,
+  ProtocolMonitor,
+  ProtocolMonitorKind,
 } from '../types/index.js';
+
+/** Base REST path for each protocol-monitor kind. */
+const PROTOCOL_MONITOR_PATHS: Record<ProtocolMonitorKind, string> = {
+  ssl: '/ssl-monitors',
+  tcp: '/tcp-monitors',
+  udp: '/udp-monitors',
+  db: '/db-monitors',
+};
 
 /**
  * API Client implementation
@@ -337,6 +347,113 @@ export class ApiClient implements IApiClient {
       message: string;
     }>(`/url-monitors/${id}/execute`);
     return response.data;
+  }
+
+  // Protocol monitors (SSL / TCP / UDP / DB)
+  // All four share an identical REST shape, so one generic surface keyed by
+  // `kind` backs every command instead of four copy-pasted method sets.
+  private unwrapProtocolMonitor(payload: unknown): ProtocolMonitor {
+    const data = payload as {
+      monitor?: ProtocolMonitor;
+      data?: ProtocolMonitor;
+    };
+    return data.monitor ?? data.data ?? (payload as ProtocolMonitor);
+  }
+
+  async getProtocolMonitors(kind: ProtocolMonitorKind): Promise<ProtocolMonitor[]> {
+    const result = await this.listProtocolMonitors(kind);
+    return result.items;
+  }
+
+  async listProtocolMonitors(
+    kind: ProtocolMonitorKind,
+    query: ListQueryOptions = {}
+  ): Promise<PaginatedListResult<ProtocolMonitor>> {
+    const response = await this.client.get(PROTOCOL_MONITOR_PATHS[kind], { params: query });
+    return this.normalizePaginatedItems<ProtocolMonitor>(response.data, [
+      'items',
+      'monitors',
+      'data',
+    ]);
+  }
+
+  async getProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<ProtocolMonitor> {
+    const response = await this.client.get<Record<string, unknown>>(
+      `${PROTOCOL_MONITOR_PATHS[kind]}/${id}`
+    );
+    return this.unwrapProtocolMonitor(response.data);
+  }
+
+  async createProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    data: Partial<ProtocolMonitor>
+  ): Promise<ProtocolMonitor> {
+    const response = await this.client.post<Record<string, unknown>>(
+      PROTOCOL_MONITOR_PATHS[kind],
+      data
+    );
+    return this.unwrapProtocolMonitor(response.data);
+  }
+
+  async updateProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string,
+    data: Partial<ProtocolMonitor>
+  ): Promise<ProtocolMonitor> {
+    const response = await this.client.put<Record<string, unknown>>(
+      `${PROTOCOL_MONITOR_PATHS[kind]}/${id}`,
+      data
+    );
+    return this.unwrapProtocolMonitor(response.data);
+  }
+
+  async deleteProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<void> {
+    await this.client.delete(`${PROTOCOL_MONITOR_PATHS[kind]}/${id}`);
+  }
+
+  async toggleProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<boolean> {
+    const response = await this.client.patch<{
+      is_active?: boolean;
+      data?: { is_active?: boolean };
+    }>(`${PROTOCOL_MONITOR_PATHS[kind]}/${id}/toggle`);
+    return response.data.is_active ?? response.data.data?.is_active ?? false;
+  }
+
+  async toggleMuteProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string
+  ): Promise<{ alert_on_failure: boolean; message: string }> {
+    const response = await this.client.patch<{ alert_on_failure: boolean; message: string }>(
+      `${PROTOCOL_MONITOR_PATHS[kind]}/${id}/toggle-muted`
+    );
+    return response.data;
+  }
+
+  async runProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string
+  ): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }> {
+    const response = await this.client.post<{
+      executions: { execution_id: number; region: string; status: string }[];
+      message: string;
+    }>(`${PROTOCOL_MONITOR_PATHS[kind]}/${id}/execute`);
+    return response.data;
+  }
+
+  async getProtocolMonitorRuns(
+    kind: ProtocolMonitorKind,
+    id: string,
+    limit: number = 20
+  ): Promise<ResourceRun[]> {
+    const response = await this.client.get<{ executions?: ResourceRun[] } | ResourceRun[]>(
+      `${PROTOCOL_MONITOR_PATHS[kind]}/${id}/executions`,
+      { params: { limit } }
+    );
+    const data = response.data as { executions?: ResourceRun[] };
+    return data.executions || (response.data as ResourceRun[]);
   }
 
   // API Checks

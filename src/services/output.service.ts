@@ -8,6 +8,7 @@ import {
   AlertChannel,
   StatusPage,
   Incident,
+  ProtocolMonitor,
 } from '../types/index.js';
 import { brand as c } from '../utils/theme.js';
 
@@ -83,6 +84,52 @@ export class OutputService implements IOutputService {
       if (verbose) {
         if (monitor.description) console.log(c.muted(`   Desc: ${monitor.description}`));
         console.log(c.muted(`   Interval: ${monitor.interval || 'Default'}`));
+        console.log(c.muted(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
+      }
+      console.log('');
+    });
+  }
+
+  formatProtocolMonitorList(
+    monitors: ProtocolMonitor[],
+    verbose: boolean = false,
+    label: string = 'Protocol'
+  ): void {
+    if (monitors.length === 0) {
+      this.info(`No ${label} monitors found.`);
+      return;
+    }
+
+    console.log(chalk.bold(`\n${label} Monitors`));
+    console.log(c.muted('─'.repeat(80)));
+
+    monitors.forEach((monitor, index) => {
+      const m = monitor as ProtocolMonitor & {
+        hostname?: string;
+        host?: string;
+        port?: number;
+        protocol?: string;
+      };
+      const statusText = (monitor.status ?? (monitor.is_active ? 'up' : 'paused')).toUpperCase();
+      const statusColor =
+        statusText === 'UP'
+          ? c.success
+          : statusText === 'DOWN'
+            ? c.error
+            : statusText === 'PAUSED'
+              ? c.warning
+              : c.accent;
+      const status = statusColor(statusText);
+      console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
+
+      const target = `${m.hostname ?? m.host ?? '?'}${m.port ? `:${m.port}` : ''}`;
+      const protocolPrefix = m.protocol ? `${m.protocol} ` : '';
+      console.log(c.muted(`   Target: ${protocolPrefix}${target}`));
+      console.log(c.muted(`   ID: ${monitor.id}`));
+
+      if (verbose) {
+        if (monitor.description) console.log(c.muted(`   Desc: ${monitor.description}`));
+        console.log(c.muted(`   Interval: ${monitor.cron_expression || 'Default'}`));
         console.log(c.muted(`   Alerts: ${monitor.alert_on_failure ? 'ON' : 'OFF'}`));
       }
       console.log('');
