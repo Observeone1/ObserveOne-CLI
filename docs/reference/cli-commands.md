@@ -13,14 +13,14 @@ Append `--json` to any command for a strict machine-readable envelope. Run `obs 
 
 Available on every command:
 
-| Flag | Purpose |
-|------|---------|
-| `-v, --verbose` | Verbose output and stack traces |
-| `--json` | Strict JSON output (suppresses human formatting) |
-| `--api-url <url>` | Override the API URL |
-| `--api-key <key>` | Override the API key |
-| `-V, --version` | Print the version |
-| `-h, --help` | Show help |
+| Flag              | Purpose                                          |
+| ----------------- | ------------------------------------------------ |
+| `-v, --verbose`   | Verbose output and stack traces                  |
+| `--json`          | Strict JSON output (suppresses human formatting) |
+| `--api-url <url>` | Override the API URL                             |
+| `--api-key <key>` | Override the API key                             |
+| `-V, --version`   | Print the version                                |
+| `-h, --help`      | Show help                                        |
 
 ## Authentication
 
@@ -68,13 +68,13 @@ obs <resource> toggle <id>         # Pause or resume (monitor, check, heartbeat)
 
 List filters (monitor, check, heartbeat):
 
-| Flag | Purpose |
-|------|---------|
-| `-s, --search <query>` | Filter by search text |
-| `-S, --status <status>` | Filter by status |
+| Flag                        | Purpose                          |
+| --------------------------- | -------------------------------- |
+| `-s, --search <query>`      | Filter by search text            |
+| `-S, --status <status>`     | Filter by status                 |
 | `--is-active <true\|false>` | Filter by active lifecycle state |
-| `-l, --limit <n>` | Max results per page |
-| `-p, --page <n>` | Page number (1-based) |
+| `-l, --limit <n>`           | Max results per page             |
+| `-p, --page <n>`            | Page number (1-based)            |
 
 ## URL monitors
 
@@ -108,12 +108,12 @@ obs db-monitor create --name "PG" --host db.example.com --port 5432 --protocol p
 
 Type-specific flags:
 
-| Command | Flags |
-|---------|-------|
+| Command       | Flags                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------- |
 | `ssl-monitor` | `--hostname` (bare host, required), `--port` (default 443), `--warn-days` (default 30) |
-| `tcp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-banner` |
-| `udp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-response` |
-| `db-monitor` | `--host`, `--port` (required), `--protocol` (`postgres`\|`mysql`\|`redis`), `--tls` |
+| `tcp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-banner`                      |
+| `udp-monitor` | `--host`, `--port` (required), `--payload-hex`, `--expect-response`                    |
+| `db-monitor`  | `--host`, `--port` (required), `--protocol` (`postgres`\|`mysql`\|`redis`), `--tls`    |
 
 Common flags (all four): `-n, --name`, `-d, --description`, `-i, --interval` (cron), `--timeout <ms>`, `--region <region>` (repeatable), `--retry-count <n>`, `--retry-interval <s>`, `--team-id <id>`, `--alert-channel-id <id>` (repeatable), `--no-alerts`.
 
@@ -134,16 +134,16 @@ Request flags: `-n, --name`, `-d, --description`, `-u, --url`, `-m, --method`, `
 
 Assertions can be passed as raw JSON or via shorthand flags:
 
-| Flag | Builds |
-|------|--------|
-| `--assertion <json>` (repeatable) | Raw assertion object |
-| `--assertion-file <path>` | JSON array of assertions |
-| `--status-code <v>` / `--status-code-not <v>` | Status code equals / not-equals |
+| Flag                                                       | Builds                                 |
+| ---------------------------------------------------------- | -------------------------------------- |
+| `--assertion <json>` (repeatable)                          | Raw assertion object                   |
+| `--assertion-file <path>`                                  | JSON array of assertions               |
+| `--status-code <v>` / `--status-code-not <v>`              | Status code equals / not-equals        |
 | `--response-time-under <ms>` / `--response-time-over <ms>` | Response-time less-than / greater-than |
-| `--json-path <path>` [`--json-path-value <v>`] | JSON path exists, or equals a value |
-| `--text-contains <t>` / `--text-not-contains <t>` | Body contains / does not contain |
-| `--header-exists <name>` | Response header exists |
-| `--regex-match <pattern>` | Body matches a regex |
+| `--json-path <path>` [`--json-path-value <v>`]             | JSON path exists, or equals a value    |
+| `--text-contains <t>` / `--text-not-contains <t>`          | Body contains / does not contain       |
+| `--header-exists <name>`                                   | Response header exists                 |
+| `--regex-match <pattern>`                                  | Body matches a regex                   |
 
 Assertion types: `status_code`, `response_time`, `json_path`, `text_contains`, `header`. Operators: `equals`, `not_equals`, `greater_than`, `less_than`, `contains`, `not_contains`, `exists`, `regex_match`.
 

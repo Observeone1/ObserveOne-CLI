@@ -141,6 +141,7 @@ obs apply -f my-stack.json      # Apply a custom file
 ```
 
 > **Notes:**
+>
 > - `incidents` are included in export as a backup artifact. `obs apply` warns and skips this block; incidents cannot be re-created from config.
 > - `suites`: `obs apply` updates metadata for existing suites only. New suites require AI generation via `obs suite generate`.
 > - Status-page attached monitors are exported but not applied. Manage them with `obs status-page add-monitor` / `remove-monitor`.
@@ -422,7 +423,7 @@ Append `--json` to any command for a strict, machine-readable `JsonEnvelope`:
 ```json
 {
   "status": "SUCCESS",
-  "data": { },
+  "data": {},
   "metadata": { "timestamp": "2026-03-11T12:00:00.000Z" }
 }
 ```
