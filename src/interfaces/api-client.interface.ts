@@ -16,6 +16,8 @@ import {
   Suite,
   SuiteCiIntegration,
   Environment,
+  ProtocolMonitor,
+  ProtocolMonitorKind,
 } from '../types/index.js';
 
 /**
@@ -40,6 +42,41 @@ export interface IApiClient {
   toggleUrlMonitor(id: string): Promise<boolean>;
   toggleMuteUrlMonitor(id: string): Promise<{ alert_on_failure: boolean; message: string }>;
   getUrlMonitorRuns(id: string, limit?: number): Promise<ResourceRun[]>;
+
+  // Protocol monitors (SSL / TCP / UDP / DB) — one generic surface keyed by `kind`
+  getProtocolMonitors(kind: ProtocolMonitorKind): Promise<ProtocolMonitor[]>;
+  listProtocolMonitors(
+    kind: ProtocolMonitorKind,
+    query?: ListQueryOptions
+  ): Promise<PaginatedListResult<ProtocolMonitor>>;
+  getProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<ProtocolMonitor>;
+  createProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    data: Partial<ProtocolMonitor>
+  ): Promise<ProtocolMonitor>;
+  updateProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string,
+    data: Partial<ProtocolMonitor>
+  ): Promise<ProtocolMonitor>;
+  deleteProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<void>;
+  toggleProtocolMonitor(kind: ProtocolMonitorKind, id: string): Promise<boolean>;
+  toggleMuteProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string
+  ): Promise<{ alert_on_failure: boolean; message: string }>;
+  runProtocolMonitor(
+    kind: ProtocolMonitorKind,
+    id: string
+  ): Promise<{
+    executions: { execution_id: number; region: string; status: string }[];
+    message: string;
+  }>;
+  getProtocolMonitorRuns(
+    kind: ProtocolMonitorKind,
+    id: string,
+    limit?: number
+  ): Promise<ResourceRun[]>;
 
   // API Checks
   getApiChecks(): Promise<ApiCheck[]>;

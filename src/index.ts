@@ -23,6 +23,12 @@ import { createLogoutCommand } from './commands/logout.js';
 import { createInitCommand } from './commands/init.js';
 import { createValidateCommand } from './commands/validate.js';
 import { createMonitorCommand } from './commands/monitor.js';
+import {
+  createSslMonitorCommand,
+  createTcpMonitorCommand,
+  createUdpMonitorCommand,
+  createDbMonitorCommand,
+} from './commands/protocol-monitor.js';
 import { createCheckCommand } from './commands/check.js';
 import { createHeartbeatCommand } from './commands/heartbeat.js';
 import { createEnvironmentCommand } from './commands/environment.js';
@@ -74,6 +80,10 @@ program.addCommand(createLoginCommand(configService, apiClient, outputService));
 program.addCommand(createLogoutCommand(configService, outputService));
 program.addCommand(createInitCommand(configService, outputService));
 program.addCommand(createMonitorCommand(configService, apiClient, outputService));
+program.addCommand(createSslMonitorCommand(configService, apiClient, outputService));
+program.addCommand(createTcpMonitorCommand(configService, apiClient, outputService));
+program.addCommand(createUdpMonitorCommand(configService, apiClient, outputService));
+program.addCommand(createDbMonitorCommand(configService, apiClient, outputService));
 program.addCommand(createCheckCommand(configService, apiClient, outputService));
 program.addCommand(createHeartbeatCommand(configService, apiClient, outputService));
 program.addCommand(createEnvironmentCommand(configService, apiClient, outputService));

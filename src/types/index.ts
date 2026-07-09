@@ -53,6 +53,57 @@ export interface UrlMonitor {
   updated_at: string;
 }
 
+/** Protocol-level monitor kinds served under `/{ssl,tcp,udp,db}-monitors`. */
+export type ProtocolMonitorKind = 'ssl' | 'tcp' | 'udp' | 'db';
+
+/** Fields shared by every protocol-level monitor (SSL/TCP/UDP/DB). */
+export interface BaseProtocolMonitor {
+  id: string;
+  name: string;
+  description?: string | undefined;
+  timeout_ms: number;
+  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
+  is_active: boolean;
+  alert_on_failure: boolean;
+  regions?: string[] | undefined;
+  channel_ids?: string[] | undefined;
+  cron_expression?: string | null | undefined;
+  retry_count?: number | undefined;
+  retry_interval?: number | undefined;
+  team_id?: string | undefined;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SslMonitor extends BaseProtocolMonitor {
+  hostname: string;
+  port: number;
+  warn_days: number;
+}
+
+export interface TcpMonitor extends BaseProtocolMonitor {
+  host: string;
+  port: number;
+  payload_hex?: string | null | undefined;
+  expect_banner?: string | null | undefined;
+}
+
+export interface UdpMonitor extends BaseProtocolMonitor {
+  host: string;
+  port: number;
+  payload_hex?: string | null | undefined;
+  expect_response: boolean;
+}
+
+export interface DbMonitor extends BaseProtocolMonitor {
+  host: string;
+  port: number;
+  protocol: 'postgres' | 'mysql' | 'redis';
+  tls: boolean;
+}
+
+export type ProtocolMonitor = SslMonitor | TcpMonitor | UdpMonitor | DbMonitor;
+
 export interface ApiCheck {
   id: string;
   name: string;
