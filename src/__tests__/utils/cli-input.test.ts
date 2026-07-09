@@ -1,5 +1,32 @@
 import { describe, it, expect } from 'vitest';
-import { parseIdList, parseKeyValuePairs } from '../../utils/cli-input.js';
+import { parseIdList, parseKeyValuePairs, parseIdsFromText } from '../../utils/cli-input.js';
+
+describe('parseIdsFromText', () => {
+  it('returns [] for empty/whitespace input', () => {
+    expect(parseIdsFromText('')).toEqual([]);
+    expect(parseIdsFromText('   \n  ')).toEqual([]);
+  });
+
+  it('splits whitespace- and newline-separated tokens', () => {
+    expect(parseIdsFromText('a b\nc\t d')).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('parses a JSON array of strings', () => {
+    expect(parseIdsFromText('["a", "b", "c"]')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('parses a JSON array of objects with an id field', () => {
+    expect(parseIdsFromText('[{"id":"a"},{"id":"b"}]')).toEqual(['a', 'b']);
+  });
+
+  it('deduplicates while preserving first-seen order', () => {
+    expect(parseIdsFromText('a b a c b')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('falls back to whitespace splitting on malformed JSON', () => {
+    expect(parseIdsFromText('[a b')).toEqual(['[a', 'b']);
+  });
+});
 
 describe('parseIdList', () => {
   it('returns undefined for empty input', () => {

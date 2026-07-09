@@ -10,6 +10,7 @@ import {
   Incident,
   Environment,
   ProtocolMonitor,
+  Schedule,
 } from '../types/index.js';
 import { brand as c } from '../utils/theme.js';
 
@@ -227,6 +228,47 @@ export class OutputService implements IOutputService {
         // Secret values are never returned by the API — only key names.
         if (secretCount > 0) {
           console.log(c.muted(`     Secret keys: ${(env.secret_keys ?? []).join(', ')}`));
+        }
+      }
+      console.log('');
+    });
+  }
+
+  formatScheduleList(schedules: Schedule[], verbose: boolean = false): void {
+    if (schedules.length === 0) {
+      this.info('No schedules found.');
+      return;
+    }
+
+    console.log(chalk.bold('\nSchedules'));
+    console.log(c.muted('─'.repeat(80)));
+
+    schedules.forEach((schedule, index) => {
+      const state = schedule.is_active ? c.success('ACTIVE') : c.warning('PAUSED');
+      console.log(chalk.bold(`${index + 1}. ${schedule.cron_expression} [${state}]`));
+      console.log(c.muted(`   ID: ${schedule.id}`));
+      console.log(c.muted(`   Test: ${schedule.test_id}`));
+
+      if (verbose) {
+        console.log(
+          c.muted(
+            `   Next run: ${schedule.next_run_at ? new Date(schedule.next_run_at).toLocaleString() : 'n/a'}`
+          )
+        );
+        console.log(
+          c.muted(
+            `   Last run: ${schedule.last_run_at ? new Date(schedule.last_run_at).toLocaleString() : 'Never'}`
+          )
+        );
+        console.log(c.muted(`   Alerts: ${schedule.alert_on_failure ? 'ON' : 'OFF'}`));
+        if (schedule.retry_count != null) {
+          console.log(
+            c.muted(
+              `   Retries: ${schedule.retry_count}${
+                schedule.retry_interval != null ? ` (every ${schedule.retry_interval}s)` : ''
+              }`
+            )
+          );
         }
       }
       console.log('');
