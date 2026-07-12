@@ -144,10 +144,3 @@ jobs:
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=observeone-cli
-            -Dsonar.projectName=observeone-cli
-            -Dsonar.sources=.
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage*/**
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info

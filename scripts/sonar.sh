@@ -10,10 +10,5 @@ set -euo pipefail
 docker run --rm --network host \
   -v "$PWD":/usr/src \
   sonarsource/sonar-scanner-cli \
-  -Dsonar.projectKey=observeone-cli \
-  -Dsonar.projectName=observeone-cli \
   -Dsonar.host.url="$SONAR_HOST_URL" \
-  -Dsonar.token="$SONAR_TOKEN" \
-  -Dsonar.sources=. \
-  -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/coverage*/**' \
-  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+  -Dsonar.token="$SONAR_TOKEN"
