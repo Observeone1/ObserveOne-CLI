@@ -26,6 +26,7 @@
     "test:unit": "vitest run",
     "test:e2e": "tsx e2e/run-tests.ts",
     "knip": "knip",
+    "sonar": "bash scripts/sonar.sh",
     "prepublishOnly": "npm run build",
     "prepare": "husky"
   },
@@ -56,6 +57,7 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.0.3",
     "husky": "^9.1.7",
     "knip": "^5.86.0",

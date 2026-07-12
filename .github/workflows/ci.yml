@@ -117,3 +117,36 @@ jobs:
         run: |
           node dist/index.js --version
           node dist/index.js --help
+
+  sonar:
+    # ubuntu-slim (used by every other job) has no Docker; the scan action
+    # needs a real runner to download its native scanner binary.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run unit tests with coverage
+        run: pnpm exec vitest run --coverage
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v8.2.0
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: SonarQube quality gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        timeout-minutes: 5
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
