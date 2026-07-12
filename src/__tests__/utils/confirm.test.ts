@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { requireConfirmation, requireTTY } from '../../utils/confirm.js';
 
+vi.mock('inquirer', () => ({ default: { prompt: vi.fn() } }));
+import inquirer from 'inquirer';
+const promptMock = inquirer.prompt as unknown as ReturnType<typeof vi.fn>;
+
 // Guard helpers must never block on an interactive prompt in a non-TTY/CI
 // pipe — they must fail fast (exit non-zero) with a clear message instead.
 
@@ -78,5 +82,30 @@ describe('requireConfirmation', () => {
       'exit:1'
     );
     expect(outputError).toHaveBeenCalledOnce();
+  });
+
+  it('prompts interactively in TTY mode and returns the answer', async () => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    promptMock.mockReset();
+    promptMock.mockResolvedValue({ confirm: true });
+    const outputError = vi.fn();
+
+    const result = await requireConfirmation('proceed?', { outputError });
+
+    expect(result).toBe(true);
+    expect(promptMock).toHaveBeenCalledWith([
+      expect.objectContaining({ type: 'confirm', name: 'confirm', message: 'proceed?' }),
+    ]);
+    expect(outputError).not.toHaveBeenCalled();
+  });
+
+  it('returns false when the user declines the interactive prompt', async () => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    promptMock.mockReset();
+    promptMock.mockResolvedValue({ confirm: false });
+
+    const result = await requireConfirmation('proceed?', { outputError: vi.fn() });
+
+    expect(result).toBe(false);
   });
 });

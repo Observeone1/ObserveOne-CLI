@@ -1,5 +1,48 @@
 import { describe, it, expect } from 'vitest';
-import { parseIdList, parseKeyValuePairs, parseIdsFromText } from '../../utils/cli-input.js';
+import {
+  parseIdList,
+  parseKeyValuePairs,
+  parseIdsFromText,
+  collectOptionValues,
+  parseJsonArrayOption,
+} from '../../utils/cli-input.js';
+
+describe('collectOptionValues', () => {
+  it('accumulates repeated flag values into an array, preserving order', () => {
+    let acc = collectOptionValues('a', []);
+    acc = collectOptionValues('b', acc);
+    expect(acc).toEqual(['a', 'b']);
+  });
+
+  it('defaults to a fresh array when no previous value is passed', () => {
+    expect(collectOptionValues('only')).toEqual(['only']);
+  });
+});
+
+describe('parseJsonArrayOption', () => {
+  it('returns undefined for empty input', () => {
+    expect(parseJsonArrayOption(undefined, 'assertions')).toBeUndefined();
+    expect(parseJsonArrayOption([], 'assertions')).toBeUndefined();
+  });
+
+  it('parses each entry as JSON and returns the array', () => {
+    const result = parseJsonArrayOption<{ type: string }>(
+      ['{"type":"status"}', '{"type":"body"}'],
+      'assertions'
+    );
+    expect(result).toEqual([{ type: 'status' }, { type: 'body' }]);
+  });
+
+  it('accepts a single non-array string input', () => {
+    expect(parseJsonArrayOption('{"a":1}', 'assertions')).toEqual([{ a: 1 }]);
+  });
+
+  it('throws with the offending entry on invalid JSON', () => {
+    expect(() => parseJsonArrayOption(['not json'], 'assertions')).toThrow(
+      /Invalid --assertions JSON: "not json"/
+    );
+  });
+});
 
 describe('parseIdsFromText', () => {
   it('returns [] for empty/whitespace input', () => {
