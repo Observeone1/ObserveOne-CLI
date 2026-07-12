@@ -65,4 +65,27 @@ describe('ApiClient auth-header host allowlist', () => {
     hoisted.requestInterceptor!(config);
     expect(config.headers['x-obs1-cli']).toBe('secret-token');
   });
+
+  it('only warns once across repeated off-host requests', () => {
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    new ApiClient(makeConfig('https://evil.example.com/api'));
+
+    hoisted.requestInterceptor!({ headers: {} });
+    hoisted.requestInterceptor!({ headers: {} });
+    hoisted.requestInterceptor!({ headers: {} });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the raw base URL in the warning when it is not a parseable URL', () => {
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    // isAllowedHost rejects this too (not a real host), and `new URL(...)` on
+    // it throws, so warnOffHost must fall back to the raw string instead of
+    // crashing.
+    new ApiClient(makeConfig('not-a-valid-url'));
+
+    hoisted.requestInterceptor!({ headers: {} });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('not-a-valid-url'));
+  });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import * as fs from 'fs';
 import { ConfigService } from '../../services/config.service.js';
 import Conf from 'conf';
 import { ObserveOneConfig } from '../../types/index.js';
@@ -10,6 +11,21 @@ vi.mock('../../services/config.service.js', async (importOriginal) => {
     ...actual,
   };
 });
+
+// The repo root has a real, committed .obs.config.json (used for local dev).
+// Stub fs so these tests exercise ConfigService's *global*-store logic in
+// isolation, unaffected by that file's actual contents.
+vi.mock('fs', async (importActual) => {
+  const actual = await importActual<typeof import('fs')>();
+  return {
+    ...actual,
+    existsSync: vi.fn().mockReturnValue(false),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+  };
+});
+
+const mockedFs = vi.mocked(fs);
 
 describe('ConfigService', () => {
   let configService: ConfigService;
@@ -39,6 +55,7 @@ describe('ConfigService', () => {
       clear: vi.fn(),
       path: '/mock/path/config.json',
     };
+    mockedFs.existsSync.mockReturnValue(false);
 
     configService = new ConfigService(mockConf as unknown as Conf<ObserveOneConfig>);
   });
@@ -145,6 +162,163 @@ describe('ConfigService', () => {
     it('returns undefined when no runtime key, env var, or stored key is set', () => {
       mockConf.get.mockReturnValue(undefined);
       expect(configService.getApiKey()).toBeUndefined();
+    });
+  });
+
+  describe('setApiUrl (persisted write, distinct from the session-only CLI override)', () => {
+    it.each([
+      ['https://example.com', 'https://example.com/api'],
+      ['https://example.com/', 'https://example.com/api'],
+      ['https://example.com/api', 'https://example.com/api'],
+      ['https://example.com/api/', 'https://example.com/api'],
+    ])('normalizes %s to %s and persists it to the global store', (input, expected) => {
+      configService.setApiUrl(input);
+      expect(mockConf.set).toHaveBeenCalledWith('apiUrl', expected);
+    });
+
+    it('round-trips through the store: a persisted URL is later read back via getApiUrl', () => {
+      let stored: string | undefined;
+      mockConf.set.mockImplementation((key: string, value: string) => {
+        if (key === 'apiUrl') stored = value;
+      });
+      mockConf.get.mockImplementation((key: string) => (key === 'apiUrl' ? stored : undefined));
+
+      configService.setApiUrl('https://round-trip.example.com');
+      expect(configService.getApiUrl()).toBe('https://round-trip.example.com/api');
+    });
+  });
+
+  describe('setApiKey (persisted write, distinct from the session-only CLI override)', () => {
+    it('persists the key to the global store', () => {
+      configService.setApiKey('persisted-key');
+      expect(mockConf.set).toHaveBeenCalledWith('apiKey', 'persisted-key');
+    });
+
+    it('round-trips through the store: a persisted key is later read back via getApiKey', () => {
+      let stored: string | undefined;
+      mockConf.set.mockImplementation((key: string, value: string) => {
+        if (key === 'apiKey') stored = value;
+      });
+      mockConf.get.mockImplementation((key: string) => (key === 'apiKey' ? stored : undefined));
+
+      configService.setApiKey('round-trip-key');
+      expect(configService.getApiKey()).toBe('round-trip-key');
+    });
+  });
+
+  describe('Project config (global + local merge)', () => {
+    it('reads the global project config when no local override exists', () => {
+      mockConf.get.mockImplementation((key: string) =>
+        key === 'project' ? { name: 'global-proj', description: 'from global' } : undefined
+      );
+      expect(configService.getProjectConfig()).toEqual({
+        name: 'global-proj',
+        description: 'from global',
+      });
+    });
+
+    it('persists project config to the global store', () => {
+      configService.setProjectConfig({ name: 'new-proj' });
+      expect(mockConf.set).toHaveBeenCalledWith('project', { name: 'new-proj' });
+    });
+
+    it('defaults to an empty object when neither global nor local project config exists', () => {
+      mockConf.get.mockReturnValue(undefined);
+      expect(configService.getProjectConfig()).toEqual({});
+    });
+  });
+
+  describe('Default options (local > global > hardcoded, per-field)', () => {
+    it('falls back to hardcoded defaults when nothing is configured', () => {
+      mockConf.get.mockReturnValue(undefined);
+      expect(configService.getDefaultOptions()).toEqual({
+        timeout: 600000,
+        retries: 3,
+        verbose: false,
+        pollIntervalMs: 2000,
+        maxAttempts: 300,
+      });
+    });
+
+    it('uses the global saved options over hardcoded defaults', () => {
+      mockConf.get.mockImplementation((key: string) =>
+        key === 'defaultOptions'
+          ? { timeout: 1000, retries: 5, verbose: true, pollIntervalMs: 500, maxAttempts: 10 }
+          : undefined
+      );
+      expect(configService.getDefaultOptions()).toEqual({
+        timeout: 1000,
+        retries: 5,
+        verbose: true,
+        pollIntervalMs: 500,
+        maxAttempts: 10,
+      });
+    });
+
+    it('persists default options to the global store', () => {
+      const options = {
+        timeout: 2000,
+        retries: 1,
+        verbose: true,
+        pollIntervalMs: 100,
+        maxAttempts: 5,
+      };
+      configService.setDefaultOptions(options);
+      expect(mockConf.set).toHaveBeenCalledWith('defaultOptions', options);
+    });
+  });
+
+  describe('reset / getConfigPath', () => {
+    it('reset clears the global store', () => {
+      configService.reset();
+      expect(mockConf.clear).toHaveBeenCalledTimes(1);
+    });
+
+    it('getConfigPath returns the underlying Conf store path', () => {
+      expect(configService.getConfigPath()).toBe('/mock/path/config.json');
+    });
+  });
+
+  describe('OBS_VERBOSE diagnostic logging (getApiKey source trace)', () => {
+    it.each([
+      [
+        'runtime --api-key flag',
+        () => configService.setCommandLineApiKey('runtime-key'),
+        'Using API key from --api-key flag (session only)',
+      ],
+      [
+        'OBS_API_KEY env var',
+        () => {
+          process.env.OBS_API_KEY = 'env-key';
+        },
+        'Using API key from Environment Variable (OBS_API_KEY)',
+      ],
+      [
+        'global OS store',
+        () =>
+          mockConf.get.mockImplementation((key: string) =>
+            key === 'apiKey' ? 'global-key' : undefined
+          ),
+        'Using API key from Global OS Store',
+      ],
+    ])('logs the source when resolved from %s', (_label, arrange, expectedSubstring) => {
+      process.env.OBS_VERBOSE = 'true';
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      arrange();
+
+      configService.getApiKey();
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(expectedSubstring));
+      delete process.env.OBS_VERBOSE;
+    });
+
+    it('does not log when OBS_VERBOSE is unset', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      process.env.OBS_API_KEY = 'env-key';
+
+      configService.getApiKey();
+
+      expect(errorSpy).not.toHaveBeenCalled();
     });
   });
 });
