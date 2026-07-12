@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deepEqual, normalizeResource, fieldChanged } from '../../utils/deep-equal.js';
+import { deepEqual, normalizeResource, fieldChanged, diffObjects } from '../../utils/deep-equal.js';
 
 describe('deepEqual', () => {
   describe('primitives', () => {
@@ -202,5 +202,32 @@ describe('fieldChanged', () => {
   it('treats null as an explicit value (distinct from undefined)', () => {
     expect(fieldChanged(null, undefined)).toBe(true);
     expect(fieldChanged(null, null)).toBe(false);
+  });
+});
+
+describe('diffObjects', () => {
+  it('returns an empty diff when both objects are equal', () => {
+    expect(diffObjects({ a: 1, b: 2 }, { a: 1, b: 2 })).toEqual({});
+  });
+
+  it('includes only keys whose values differ, with from/to values', () => {
+    const diff = diffObjects({ a: 1, b: 2 }, { a: 1, b: 3 });
+    expect(diff).toEqual({ b: { from: 2, to: 3 } });
+  });
+
+  it('covers keys present on only one side', () => {
+    const diff = diffObjects({ a: 1 }, { a: 1, b: 2 });
+    expect(diff).toEqual({ b: { from: undefined, to: 2 } });
+
+    const diff2 = diffObjects({ a: 1, c: 3 }, { a: 1 });
+    expect(diff2).toEqual({ c: { from: 3, to: undefined } });
+  });
+
+  it('deep-compares nested values before flagging a diff', () => {
+    const diff = diffObjects(
+      { config: { url: 'https://a.com' } },
+      { config: { url: 'https://a.com' } }
+    );
+    expect(diff).toEqual({});
   });
 });
