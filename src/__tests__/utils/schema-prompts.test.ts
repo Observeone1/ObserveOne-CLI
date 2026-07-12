@@ -127,6 +127,22 @@ describe('buildDefaultCreatePrompts', () => {
 
     expect(payload).toHaveProperty('method', 'POST');
   });
+
+  it('builds a list-type question with choices for a required list field (alert-channel type)', async () => {
+    promptMock.mockResolvedValueOnce({ name: 'Ops Alerts', type: 'email' });
+    const generator = buildDefaultCreatePrompts(schemas['alert-channel']!);
+
+    const payload = await generator({});
+
+    expect(promptMock).toHaveBeenCalledTimes(1);
+    const questions = promptMock.mock.calls[0]![0] as Array<{
+      name: string;
+      choices?: readonly string[];
+    }>;
+    const typeQuestion = questions.find((q) => q.name === 'type')!;
+    expect(typeQuestion.choices).toEqual(schemas['alert-channel']!.fieldMetadata!.type!.choices);
+    expect(payload).toEqual(expect.objectContaining({ name: 'Ops Alerts', type: 'email' }));
+  });
 });
 
 describe('buildDefaultUpdatePrompts', () => {
@@ -184,6 +200,25 @@ describe('buildDefaultUpdatePrompts', () => {
     } as never);
 
     expect(payload).toEqual(expect.objectContaining({ name: 'hb', period: 600, grace_period: 60 }));
+  });
+
+  it('treats an extraUpdateTrigger flag (e.g. --email) as satisfying "at least one field" even though it maps to no fieldMetadata entry', async () => {
+    const outputService = stubOutputService();
+    const generator = buildDefaultUpdatePrompts(schemas['alert-channel']!, outputService);
+
+    // No fieldMetadata-backed flag passed (name/type absent) — only an
+    // extraUpdateTriggers flag (`email`, which composes into `config`
+    // elsewhere and isn't itself a schema field).
+    const payload = await generator(1, { email: 'new@example.com' }, {
+      id: 1,
+      name: 'existing',
+      type: 'email',
+    } as never);
+
+    expect(outputService.error).not.toHaveBeenCalled();
+    // The extra trigger itself never lands in the payload (it has no
+    // fieldMetadata entry) — existing values are preserved instead.
+    expect(payload).toEqual(expect.objectContaining({ name: 'existing', type: 'email' }));
   });
 });
 

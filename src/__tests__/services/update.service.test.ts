@@ -108,4 +108,56 @@ describe('UpdateService.checkForUpdates', () => {
     await expect(service.checkForUpdates(stubOutput())).resolves.toBeUndefined();
     expect(console.log).not.toHaveBeenCalled();
   });
+
+  describe('detectPackageManager fallbacks (npm_config_user_agent unset)', () => {
+    it('detects pnpm from npm_execpath when the user agent is unset', async () => {
+      process.env.npm_execpath = '/usr/local/lib/node_modules/pnpm/bin/pnpm.cjs';
+      axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+      const service = new UpdateService('1.0.0');
+      await service.checkForUpdates(stubOutput());
+      expect(loggedLines()).toContain('pnpm add -g @observeone/cli');
+    });
+
+    it('detects yarn from npm_execpath when the user agent is unset', async () => {
+      process.env.npm_execpath = '/usr/local/lib/node_modules/yarn/bin/yarn.js';
+      axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+      const service = new UpdateService('1.0.0');
+      await service.checkForUpdates(stubOutput());
+      expect(loggedLines()).toContain('yarn global add @observeone/cli');
+    });
+
+    it('detects bun from npm_execpath when the user agent is unset', async () => {
+      process.env.npm_execpath = '/usr/local/lib/node_modules/bun/bin/bun';
+      axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+      const service = new UpdateService('1.0.0');
+      await service.checkForUpdates(stubOutput());
+      expect(loggedLines()).toContain('bun add -g @observeone/cli');
+    });
+
+    it('falls back to argv when neither user agent nor npm_execpath identify a manager', async () => {
+      const originalArgv = process.argv;
+      process.argv = ['/opt/.pnpm/node', '/opt/.pnpm/cli.js'];
+      try {
+        axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+        const service = new UpdateService('1.0.0');
+        await service.checkForUpdates(stubOutput());
+        expect(loggedLines()).toContain('pnpm add -g @observeone/cli');
+      } finally {
+        process.argv = originalArgv;
+      }
+    });
+
+    it('falls back to npm when nothing identifies a package manager at all', async () => {
+      const originalArgv = process.argv;
+      process.argv = ['/usr/bin/node', '/usr/bin/some-cli.js'];
+      try {
+        axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+        const service = new UpdateService('1.0.0');
+        await service.checkForUpdates(stubOutput());
+        expect(loggedLines()).toContain('npm install -g @observeone/cli');
+      } finally {
+        process.argv = originalArgv;
+      }
+    });
+  });
 });

@@ -91,3 +91,34 @@ describe('tcp/udp/db-monitor channel_ids transformers', () => {
     ).toEqual(['a', 'b']);
   });
 });
+
+describe('check/ssl-monitor channel_ids transformers', () => {
+  it('check.channel_ids parses the repeatable flag, and falls back to [] for undefined', () => {
+    const transformer = resolveSchema('check')!.fieldMetadata!.channel_ids!.transformer!;
+    expect(transformer(['a', 'b'])).toEqual(['a', 'b']);
+    expect(transformer(undefined)).toEqual([]);
+  });
+
+  it('ssl-monitor.channel_ids parses the repeatable flag, and falls back to [] for undefined', () => {
+    const transformer = resolveSchema('ssl-monitor')!.fieldMetadata!.channel_ids!.transformer!;
+    expect(transformer(['a', 'b'])).toEqual(['a', 'b']);
+    expect(transformer(undefined)).toEqual([]);
+  });
+});
+
+describe('api-collection headers transformer', () => {
+  it('parses key=value pairs into a map', () => {
+    const transformer = resolveSchema('api-collection')!.fieldMetadata!.headers!.transformer!;
+    expect(transformer(['X-Env=prod'])).toEqual({ 'X-Env': 'prod' });
+  });
+});
+
+describe('trimNonEmpty validator (shared by several "Name"/"Slug" fields)', () => {
+  it('rejects blank/whitespace-only values and accepts a non-empty string', () => {
+    const validate = resolveSchema('api-collection')!.fieldMetadata!.name!.validate!;
+    expect(validate('')).toBe('Name is required');
+    expect(validate('   ')).toBe('Name is required');
+    expect(validate(123)).toBe('Name is required');
+    expect(validate('My Collection')).toBe(true);
+  });
+});

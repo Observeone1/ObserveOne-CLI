@@ -173,6 +173,11 @@ describe('OutputService', () => {
       expect(out).toContain('Never');
     });
 
+    it('formatEnvironmentList prints an empty-state info message when there are no environments', () => {
+      outputService.formatEnvironmentList([]);
+      expect(loggedLines()).toContain('No environments found.');
+    });
+
     it('formatEnvironmentList shows variable/secret counts and, when verbose, their values', () => {
       const environments: Environment[] = [
         {
