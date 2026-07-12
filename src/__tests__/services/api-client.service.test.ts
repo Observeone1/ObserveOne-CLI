@@ -1,38 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient } from '../../services/api-client.service.js';
-import { IConfigService } from '../../interfaces/config.interface.js';
 import { AxiosInstance } from 'axios';
+import { createMockConfigService } from './api-client-test-support.js';
 
 // Mock axios instance to avoid real requests
-vi.mock('axios', () => {
-  return {
-    default: {
-      create: vi.fn().mockReturnValue({
-        interceptors: {
-          request: { use: vi.fn() },
-          response: { use: vi.fn() },
-        },
-        defaults: { headers: {} },
-        get: vi.fn(),
-      }),
-    },
-  };
+vi.mock('axios', async () => {
+  const { createAxiosMock } = await import('./api-client-test-support.js');
+  return createAxiosMock();
 });
 
 describe('ApiClient', () => {
   let apiClient: ApiClient;
-  let mockConfigService: IConfigService;
 
   beforeEach(() => {
-    mockConfigService = {
-      getApiKey: vi.fn().mockReturnValue('test-key'),
-      getApiUrl: vi.fn().mockReturnValue('http://test-api/api'),
-      isDevelopment: vi.fn().mockReturnValue(true),
-      getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
-    } as unknown as IConfigService;
-
-    apiClient = new ApiClient(mockConfigService);
+    apiClient = new ApiClient(createMockConfigService());
   });
+
+  // The constructor registers the response interceptor via the mocked
+  // `client.interceptors.response.use(onFulfilled, onRejected)`. Pull the
+  // rejection handler back out so tests can drive it directly.
+  function getRejectionHandler(): (error: unknown) => unknown {
+    const useMock = (
+      apiClient as unknown as {
+        client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
+      }
+    ).client.interceptors.response.use;
+    const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
+    return lastCall[1] as (error: unknown) => unknown;
+  }
 
   describe('Response Normalization', () => {
     it('normalizes getUrlMonitors returning {monitors: []}', async () => {
@@ -125,19 +120,6 @@ describe('ApiClient', () => {
   });
 
   describe('response interceptor (no auth-token leak on client errors)', () => {
-    // The constructor registers the response interceptor via the mocked
-    // `client.interceptors.response.use(onFulfilled, onRejected)`. Pull the
-    // rejection handler back out so we can drive it directly.
-    function getRejectionHandler(): (error: unknown) => unknown {
-      const useMock = (
-        apiClient as unknown as {
-          client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
-        }
-      ).client.interceptors.response.use;
-      const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
-      return lastCall[1] as (error: unknown) => unknown;
-    }
-
     it('surfaces a 422 as a clean Error with the server message and no auth header attached', () => {
       const onRejected = getRejectionHandler();
       const axiosError = {
@@ -221,6 +203,228 @@ describe('ApiClient', () => {
       expect(result).toBe(true);
       // The candidate key must NOT be left attached to the shared client.
       expect(mockClient.defaults.headers['x-obs1-cli']).toBeUndefined();
+    });
+
+    it('restores the PRIOR key (not undefined) after validating a different candidate', async () => {
+      const mockClient = (
+        apiClient as unknown as {
+          client: { defaults: { headers: Record<string, unknown> }; get: ReturnType<typeof vi.fn> };
+        }
+      ).client;
+
+      mockClient.defaults.headers['x-obs1-cli'] = 'existing-session-key';
+      mockClient.get = vi.fn().mockResolvedValue({ data: { valid: true } });
+
+      await apiClient.validateApiKey('candidate-key');
+
+      // The original session key must be back in place, not left as the
+      // candidate and not wiped to undefined.
+      expect(mockClient.defaults.headers['x-obs1-cli']).toBe('existing-session-key');
+    });
+
+    it('returns false and still restores the header when the request rejects', async () => {
+      const mockClient = (
+        apiClient as unknown as {
+          client: { defaults: { headers: Record<string, unknown> }; get: ReturnType<typeof vi.fn> };
+        }
+      ).client;
+
+      mockClient.defaults.headers['x-obs1-cli'] = 'existing-session-key';
+      mockClient.get = vi.fn().mockRejectedValue(new Error('network down'));
+
+      const result = await apiClient.validateApiKey('candidate-key');
+
+      expect(result).toBe(false);
+      expect(mockClient.defaults.headers['x-obs1-cli']).toBe('existing-session-key');
+    });
+  });
+
+  describe('validateToken (session key check)', () => {
+    it('returns false immediately without a request when no apiKey is set', async () => {
+      const mockGet = vi.fn();
+      (apiClient as unknown as { apiKey: string | undefined }).apiKey = undefined;
+      (apiClient as unknown as { client: AxiosInstance }).client.get = mockGet;
+
+      expect(await apiClient.validateToken()).toBe(false);
+      expect(mockGet).not.toHaveBeenCalled();
+    });
+
+    it('returns true when the API reports the token valid', async () => {
+      (apiClient as unknown as { apiKey: string | undefined }).apiKey = 'a-key';
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi
+        .fn()
+        .mockResolvedValue({ data: { valid: true } });
+
+      expect(await apiClient.validateToken()).toBe(true);
+    });
+
+    it('returns false when the request rejects (expired/invalid token)', async () => {
+      (apiClient as unknown as { apiKey: string | undefined }).apiKey = 'a-key';
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi
+        .fn()
+        .mockRejectedValue({ response: { status: 401 } });
+
+      expect(await apiClient.validateToken()).toBe(false);
+    });
+  });
+
+  describe('provisionHeadlessAuth', () => {
+    it('returns the api_key on success', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockResolvedValue({ data: { api_key: 'provisioned-key' } });
+
+      const result = await apiClient.provisionHeadlessAuth('a@b.com', 'pw');
+      expect(result).toEqual({ api_key: 'provisioned-key' });
+    });
+
+    it('maps ECONNREFUSED to a clear connection-failure message including the attempted URL', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockRejectedValue({ code: 'ECONNREFUSED' });
+
+      await expect(apiClient.provisionHeadlessAuth()).rejects.toThrow(
+        /Failed to connect to ObserveOne API.*https:\/\/test-api\/api/
+      );
+    });
+
+    it('maps a "Network Error" message the same way as ECONNREFUSED', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockRejectedValue({ message: 'Network Error' });
+
+      await expect(apiClient.provisionHeadlessAuth()).rejects.toThrow(
+        /Failed to connect to ObserveOne API/
+      );
+    });
+
+    it('re-throws any other error unchanged', async () => {
+      const other = new Error('validation failed: bad email');
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockRejectedValue(other);
+
+      await expect(apiClient.provisionHeadlessAuth()).rejects.toBe(other);
+    });
+  });
+
+  describe('setApiKey (in-memory + shared client default header)', () => {
+    it('updates the in-memory apiKey and the client default header', () => {
+      const mockClient = (
+        apiClient as unknown as { client: { defaults: { headers: Record<string, unknown> } } }
+      ).client;
+
+      apiClient.setApiKey('fresh-key');
+
+      expect((apiClient as unknown as { apiKey: string }).apiKey).toBe('fresh-key');
+      expect(mockClient.defaults.headers['x-obs1-cli']).toBe('fresh-key');
+    });
+  });
+
+  describe('createApiKey (envelope unwrap)', () => {
+    it('unwraps { apiKey: T }', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockResolvedValue({ data: { apiKey: { id: 'k1', name: 'ci' } } });
+      expect(await apiClient.createApiKey('ci')).toEqual({ id: 'k1', name: 'ci' });
+    });
+
+    it('falls back to the bare response when there is no apiKey wrapper', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockResolvedValue({ data: { id: 'k1', name: 'ci' } });
+      expect(await apiClient.createApiKey('ci')).toEqual({ id: 'k1', name: 'ci' });
+    });
+  });
+
+  describe('runSuite (optional test_ids filter)', () => {
+    it('sends { test_ids } when a non-empty list is given', async () => {
+      const post = vi.fn().mockResolvedValue({ data: { execution_id: 'e1' } });
+      (apiClient as unknown as { client: { post: typeof post } }).client.post = post;
+
+      await apiClient.runSuite('suite-1', ['t1', 't2']);
+
+      expect(post).toHaveBeenCalledWith('/playwright-autopilot/suites/suite-1/run', {
+        test_ids: ['t1', 't2'],
+      });
+    });
+
+    it.each([[undefined], [[]]])(
+      'sends {} when testIds is %s (run the full suite)',
+      async (testIds) => {
+        const post = vi.fn().mockResolvedValue({ data: { execution_id: 'e1' } });
+        (apiClient as unknown as { client: { post: typeof post } }).client.post = post;
+
+        await apiClient.runSuite('suite-1', testIds);
+
+        expect(post).toHaveBeenCalledWith('/playwright-autopilot/suites/suite-1/run', {});
+      }
+    );
+  });
+
+  describe('getSuiteCiIntegration (delegates to mapSuiteCiIntegration)', () => {
+    it('returns null when there is no CI integration configured', async () => {
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi
+        .fn()
+        .mockResolvedValue({ data: null });
+      expect(await apiClient.getSuiteCiIntegration('suite-1')).toBeNull();
+    });
+
+    it('maps a configured integration payload through to the typed result', async () => {
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi.fn().mockResolvedValue({
+        data: { provider: 'github', repo_slug: 'org/repo', connected: true },
+      });
+      const result = await apiClient.getSuiteCiIntegration('suite-1');
+      expect(result).not.toBeNull();
+    });
+  });
+
+  describe('generic get/post passthrough', () => {
+    it('post returns response.data', async () => {
+      (apiClient as unknown as { client: { post: ReturnType<typeof vi.fn> } }).client.post = vi
+        .fn()
+        .mockResolvedValue({ data: { ok: true } });
+      expect(await apiClient.post('/anything', { a: 1 })).toEqual({ ok: true });
+    });
+
+    it('get returns response.data', async () => {
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi
+        .fn()
+        .mockResolvedValue({ data: { ok: true } });
+      expect(await apiClient.get('/anything')).toEqual({ ok: true });
+    });
+  });
+
+  describe('response interceptor status mapping', () => {
+    it.each([
+      [401, 'Authentication failed. Run "obs login"'],
+      [403, 'Access denied. You do not have permission to perform this action.'],
+      [500, 'Server error: 500'],
+      [503, 'Server error: 503'],
+    ])('maps HTTP %s to the expected message', (status, expectedSubstring) => {
+      const onRejected = getRejectionHandler();
+      // toThrowError does a substring match on a plain string — no need to
+      // hand-build a RegExp (and escape it) for this.
+      expect(() => onRejected({ response: { status } })).toThrowError(expectedSubstring);
+    });
+
+    it('maps 404 to a not-found message including the attempted URL', () => {
+      const onRejected = getRejectionHandler();
+      expect(() =>
+        onRejected({
+          response: { status: 404 },
+          config: { baseURL: 'https://api.observeone.com/api', url: '/url-monitors/xyz' },
+        })
+      ).toThrowError(
+        'Resource not found. (Attempted API URL: https://api.observeone.com/api/url-monitors/xyz)'
+      );
+    });
+
+    it('maps 404 with no config to "unknown" attempted URL', () => {
+      const onRejected = getRejectionHandler();
+      expect(() => onRejected({ response: { status: 404 } })).toThrowError(
+        'Resource not found. (Attempted API URL: unknown)'
+      );
     });
   });
 });
