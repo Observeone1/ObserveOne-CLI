@@ -1,37 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient } from '../../services/api-client.service.js';
-import { IConfigService } from '../../interfaces/config.interface.js';
 import { AxiosInstance } from 'axios';
+import { createMockConfigService } from './api-client-test-support.js';
 
 // Mock axios instance to avoid real requests
-vi.mock('axios', () => {
-  return {
-    default: {
-      create: vi.fn().mockReturnValue({
-        interceptors: {
-          request: { use: vi.fn() },
-          response: { use: vi.fn() },
-        },
-        defaults: { headers: {} },
-        get: vi.fn(),
-      }),
-    },
-  };
+vi.mock('axios', async () => {
+  const { createAxiosMock } = await import('./api-client-test-support.js');
+  return createAxiosMock();
 });
 
 describe('ApiClient', () => {
   let apiClient: ApiClient;
-  let mockConfigService: IConfigService;
 
   beforeEach(() => {
-    mockConfigService = {
-      getApiKey: vi.fn().mockReturnValue('test-key'),
-      getApiUrl: vi.fn().mockReturnValue('http://test-api/api'),
-      isDevelopment: vi.fn().mockReturnValue(true),
-      getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
-    } as unknown as IConfigService;
-
-    apiClient = new ApiClient(mockConfigService);
+    apiClient = new ApiClient(createMockConfigService());
   });
 
   // The constructor registers the response interceptor via the mocked
@@ -302,7 +284,7 @@ describe('ApiClient', () => {
         .mockRejectedValue({ code: 'ECONNREFUSED' });
 
       await expect(apiClient.provisionHeadlessAuth()).rejects.toThrow(
-        /Failed to connect to ObserveOne API.*http:\/\/test-api\/api/
+        /Failed to connect to ObserveOne API.*https:\/\/test-api\/api/
       );
     });
 

@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import { ConfigService } from '../../services/config.service.js';
 import Conf from 'conf';
 import { ObserveOneConfig } from '../../types/index.js';
+import { createMockConf, MockConf } from './config-service-test-support.js';
 
 // Mock only the fs functions ConfigService uses so these tests never touch the
 // real .obs.config.json in cwd, mirroring the pattern in
@@ -19,14 +20,6 @@ vi.mock('node:fs', async (importActual) => {
 
 const mockedFs = vi.mocked(fs);
 
-interface MockConf {
-  get: ReturnType<typeof vi.fn>;
-  set: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  clear: ReturnType<typeof vi.fn>;
-  path: string;
-}
-
 describe('ConfigService local .obs.config.json handling', () => {
   let mockConf: MockConf;
 
@@ -34,13 +27,7 @@ describe('ConfigService local .obs.config.json handling', () => {
     delete process.env.OBS_API_KEY;
     delete process.env.OBS_API_URL;
     delete process.env.NODE_ENV;
-    mockConf = {
-      get: vi.fn().mockReturnValue(undefined),
-      set: vi.fn(),
-      delete: vi.fn(),
-      clear: vi.fn(),
-      path: '/mock/path/config.json',
-    };
+    mockConf = createMockConf();
     mockedFs.existsSync.mockReset();
     mockedFs.readFileSync.mockReset();
     mockedFs.writeFileSync.mockReset();
