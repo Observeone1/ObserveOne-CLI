@@ -34,6 +34,19 @@ describe('ApiClient', () => {
     apiClient = new ApiClient(mockConfigService);
   });
 
+  // The constructor registers the response interceptor via the mocked
+  // `client.interceptors.response.use(onFulfilled, onRejected)`. Pull the
+  // rejection handler back out so tests can drive it directly.
+  function getRejectionHandler(): (error: unknown) => unknown {
+    const useMock = (
+      apiClient as unknown as {
+        client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
+      }
+    ).client.interceptors.response.use;
+    const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
+    return lastCall[1] as (error: unknown) => unknown;
+  }
+
   describe('Response Normalization', () => {
     it('normalizes getUrlMonitors returning {monitors: []}', async () => {
       const mockGet = vi
@@ -125,19 +138,6 @@ describe('ApiClient', () => {
   });
 
   describe('response interceptor (no auth-token leak on client errors)', () => {
-    // The constructor registers the response interceptor via the mocked
-    // `client.interceptors.response.use(onFulfilled, onRejected)`. Pull the
-    // rejection handler back out so we can drive it directly.
-    function getRejectionHandler(): (error: unknown) => unknown {
-      const useMock = (
-        apiClient as unknown as {
-          client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
-        }
-      ).client.interceptors.response.use;
-      const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
-      return lastCall[1] as (error: unknown) => unknown;
-    }
-
     it('surfaces a 422 as a clean Error with the server message and no auth header attached', () => {
       const onRejected = getRejectionHandler();
       const axiosError = {
@@ -414,16 +414,6 @@ describe('ApiClient', () => {
   });
 
   describe('response interceptor status mapping', () => {
-    function getRejectionHandler(): (error: unknown) => unknown {
-      const useMock = (
-        apiClient as unknown as {
-          client: { interceptors: { response: { use: ReturnType<typeof vi.fn> } } };
-        }
-      ).client.interceptors.response.use;
-      const lastCall = useMock.mock.calls[useMock.mock.calls.length - 1];
-      return lastCall[1] as (error: unknown) => unknown;
-    }
-
     it.each([
       [401, 'Authentication failed. Run "obs login"'],
       [403, 'Access denied. You do not have permission to perform this action.'],
@@ -431,9 +421,9 @@ describe('ApiClient', () => {
       [503, 'Server error: 503'],
     ])('maps HTTP %s to the expected message', (status, expectedSubstring) => {
       const onRejected = getRejectionHandler();
-      expect(() => onRejected({ response: { status } })).toThrowError(
-        new RegExp(expectedSubstring.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      );
+      // toThrowError does a substring match on a plain string — no need to
+      // hand-build a RegExp (and escape it) for this.
+      expect(() => onRejected({ response: { status } })).toThrowError(expectedSubstring);
     });
 
     it('maps 404 to a not-found message including the attempted URL', () => {

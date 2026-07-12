@@ -1,40 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient } from '../../services/api-client.service.js';
-import { IConfigService } from '../../interfaces/config.interface.js';
+import { createMockConfigService, mockClientMethods } from './api-client-test-support.js';
 
-vi.mock('axios', () => {
-  return {
-    default: {
-      create: vi.fn().mockReturnValue({
-        interceptors: {
-          request: { use: vi.fn() },
-          response: { use: vi.fn() },
-        },
-        defaults: { headers: {} },
-        get: vi.fn(),
-      }),
-    },
-  };
+vi.mock('axios', async () => {
+  const { createAxiosMock } = await import('./api-client-test-support.js');
+  return createAxiosMock();
 });
 
 describe('ApiClient list-response normalization (array vs wrapped-key envelope)', () => {
   let apiClient: ApiClient;
-  let mockConfigService: IConfigService;
 
-  const mockClient = (overrides: Partial<Record<string, unknown>>) => {
-    const client = (apiClient as unknown as { client: Record<string, unknown> }).client;
-    Object.assign(client, overrides);
-  };
+  const mockClient = (overrides: Partial<Record<string, unknown>>) =>
+    mockClientMethods(apiClient, overrides);
 
   beforeEach(() => {
-    mockConfigService = {
-      getApiKey: vi.fn().mockReturnValue('test-key'),
-      getApiUrl: vi.fn().mockReturnValue('http://test-api/api'),
-      isDevelopment: vi.fn().mockReturnValue(true),
-      getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
-    } as unknown as IConfigService;
-
-    apiClient = new ApiClient(mockConfigService);
+    apiClient = new ApiClient(createMockConfigService());
   });
 
   // Each of these list endpoints accepts either a bare array or an object

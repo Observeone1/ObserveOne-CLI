@@ -43,7 +43,8 @@ describe('ApiClient auth-header host allowlist', () => {
   });
 
   it('attaches x-obs1-cli for an allowlisted host', () => {
-    new ApiClient(makeConfig('https://api.observeone.com/api'));
+    const client = new ApiClient(makeConfig('https://api.observeone.com/api'));
+    expect(client).toBeInstanceOf(ApiClient);
     const config: ReqConfig = { headers: {} };
     hoisted.requestInterceptor!(config);
     expect(config.headers['x-obs1-cli']).toBe('secret-token');
@@ -51,7 +52,8 @@ describe('ApiClient auth-header host allowlist', () => {
 
   it('strips x-obs1-cli and warns for a non-allowlisted host', () => {
     const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    new ApiClient(makeConfig('https://evil.example.com/api'));
+    const client = new ApiClient(makeConfig('https://evil.example.com/api'));
+    expect(client).toBeInstanceOf(ApiClient);
     // Simulate the token already present via client.defaults.headers merge.
     const config: ReqConfig = { headers: { 'x-obs1-cli': 'leaked' } };
     hoisted.requestInterceptor!(config);
@@ -60,7 +62,8 @@ describe('ApiClient auth-header host allowlist', () => {
   });
 
   it('attaches the token for a loopback host (local dev / e2e)', () => {
-    new ApiClient(makeConfig('http://localhost:8080/api'));
+    const client = new ApiClient(makeConfig('http://localhost:8080/api'));
+    expect(client).toBeInstanceOf(ApiClient);
     const config: ReqConfig = { headers: {} };
     hoisted.requestInterceptor!(config);
     expect(config.headers['x-obs1-cli']).toBe('secret-token');
@@ -68,7 +71,8 @@ describe('ApiClient auth-header host allowlist', () => {
 
   it('only warns once across repeated off-host requests', () => {
     const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    new ApiClient(makeConfig('https://evil.example.com/api'));
+    const client = new ApiClient(makeConfig('https://evil.example.com/api'));
+    expect(client).toBeInstanceOf(ApiClient);
 
     hoisted.requestInterceptor!({ headers: {} });
     hoisted.requestInterceptor!({ headers: {} });
@@ -82,7 +86,8 @@ describe('ApiClient auth-header host allowlist', () => {
     // isAllowedHost rejects this too (not a real host), and `new URL(...)` on
     // it throws, so warnOffHost must fall back to the raw string instead of
     // crashing.
-    new ApiClient(makeConfig('not-a-valid-url'));
+    const client = new ApiClient(makeConfig('not-a-valid-url'));
+    expect(client).toBeInstanceOf(ApiClient);
 
     hoisted.requestInterceptor!({ headers: {} });
 

@@ -1,36 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient } from '../../services/api-client.service.js';
-import { IConfigService } from '../../interfaces/config.interface.js';
 import { Suite } from '../../types/index.js';
+import { createMockConfigService } from './api-client-test-support.js';
 
-vi.mock('axios', () => {
-  return {
-    default: {
-      create: vi.fn().mockReturnValue({
-        interceptors: {
-          request: { use: vi.fn() },
-          response: { use: vi.fn() },
-        },
-        defaults: { headers: {} },
-        get: vi.fn(),
-      }),
-    },
-  };
+vi.mock('axios', async () => {
+  const { createAxiosMock } = await import('./api-client-test-support.js');
+  return createAxiosMock();
 });
 
 describe('ApiClient suite polling loops', () => {
   let apiClient: ApiClient;
-  let mockConfigService: IConfigService;
 
   beforeEach(() => {
-    mockConfigService = {
-      getApiKey: vi.fn().mockReturnValue('test-key'),
-      getApiUrl: vi.fn().mockReturnValue('http://test-api/api'),
-      isDevelopment: vi.fn().mockReturnValue(true),
-      getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
-    } as unknown as IConfigService;
-
-    apiClient = new ApiClient(mockConfigService);
+    apiClient = new ApiClient(createMockConfigService());
   });
 
   const setGetSuite = (impl: (id: string) => Promise<Suite>) => {

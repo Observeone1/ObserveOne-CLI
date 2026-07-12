@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { ConfigService } from '../../services/config.service.js';
 import Conf from 'conf';
 import { ObserveOneConfig } from '../../types/index.js';
@@ -7,8 +7,8 @@ import { ObserveOneConfig } from '../../types/index.js';
 // Mock only the fs functions ConfigService uses so these tests never touch the
 // real .obs.config.json in cwd, mirroring the pattern in
 // config.service.logout.test.ts.
-vi.mock('fs', async (importActual) => {
-  const actual = await importActual<typeof import('fs')>();
+vi.mock('node:fs', async (importActual) => {
+  const actual = await importActual<typeof import('node:fs')>();
   return {
     ...actual,
     existsSync: vi.fn(),

@@ -15,9 +15,15 @@ vi.mock('conf', () => ({
     get() {
       return undefined;
     }
-    set() {}
-    delete() {}
-    clear() {}
+    set() {
+      // no-op: these tests only assert on the constructor's seeded defaults
+    }
+    delete() {
+      // no-op: these tests only assert on the constructor's seeded defaults
+    }
+    clear() {
+      // no-op: these tests only assert on the constructor's seeded defaults
+    }
     get path() {
       return '/mock/path/config.json';
     }
@@ -25,8 +31,8 @@ vi.mock('conf', () => ({
 }));
 
 // Mock fs so the constructor's local-config read never touches a real file.
-vi.mock('fs', async (importActual) => {
-  const actual = await importActual<typeof import('fs')>();
+vi.mock('node:fs', async (importActual) => {
+  const actual = await importActual<typeof import('node:fs')>();
   return {
     ...actual,
     existsSync: vi.fn().mockReturnValue(false),
@@ -50,7 +56,8 @@ describe('ConfigService default Conf initialization (no injected store)', () => 
 
   it('seeds the global store with the production API URL when not in development', async () => {
     const { ConfigService } = await import('../../services/config.service.js');
-    new ConfigService();
+    const service = new ConfigService();
+    expect(service).toBeInstanceOf(ConfigService);
 
     expect(ConfMock).toHaveBeenCalledTimes(1);
     const options = ConfMock.mock.calls[0][0] as { defaults: { apiUrl: string } };
@@ -60,7 +67,8 @@ describe('ConfigService default Conf initialization (no injected store)', () => 
   it('seeds the global store with the localhost dev API URL when NODE_ENV=development', async () => {
     process.env.NODE_ENV = 'development';
     const { ConfigService } = await import('../../services/config.service.js');
-    new ConfigService();
+    const service = new ConfigService();
+    expect(service).toBeInstanceOf(ConfigService);
 
     const options = ConfMock.mock.calls[0][0] as { defaults: { apiUrl: string } };
     expect(options.defaults.apiUrl).toBe('http://localhost:8080/api');
@@ -69,7 +77,8 @@ describe('ConfigService default Conf initialization (no injected store)', () => 
   it('OBS_API_URL env var overrides the computed default when seeding the store', async () => {
     process.env.OBS_API_URL = 'https://env-seeded.example.com/api';
     const { ConfigService } = await import('../../services/config.service.js');
-    new ConfigService();
+    const service = new ConfigService();
+    expect(service).toBeInstanceOf(ConfigService);
 
     const options = ConfMock.mock.calls[0][0] as { defaults: { apiUrl: string } };
     expect(options.defaults.apiUrl).toBe('https://env-seeded.example.com/api');
@@ -77,7 +86,8 @@ describe('ConfigService default Conf initialization (no injected store)', () => 
 
   it('seeds hardcoded default options (timeout, retries, etc.) on first run', async () => {
     const { ConfigService } = await import('../../services/config.service.js');
-    new ConfigService();
+    const service = new ConfigService();
+    expect(service).toBeInstanceOf(ConfigService);
 
     const options = ConfMock.mock.calls[0][0] as {
       defaults: { defaultOptions: Record<string, unknown> };

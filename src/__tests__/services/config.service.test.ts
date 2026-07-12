@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { ConfigService } from '../../services/config.service.js';
 import Conf from 'conf';
 import { ObserveOneConfig } from '../../types/index.js';
@@ -15,8 +15,8 @@ vi.mock('../../services/config.service.js', async (importOriginal) => {
 // The repo root has a real, committed .obs.config.json (used for local dev).
 // Stub fs so these tests exercise ConfigService's *global*-store logic in
 // isolation, unaffected by that file's actual contents.
-vi.mock('fs', async (importActual) => {
-  const actual = await importActual<typeof import('fs')>();
+vi.mock('node:fs', async (importActual) => {
+  const actual = await importActual<typeof import('node:fs')>();
   return {
     ...actual,
     existsSync: vi.fn().mockReturnValue(false),

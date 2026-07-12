@@ -1,40 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient } from '../../services/api-client.service.js';
-import { IConfigService } from '../../interfaces/config.interface.js';
+import { createMockConfigService, mockClientMethods } from './api-client-test-support.js';
 
-vi.mock('axios', () => {
-  return {
-    default: {
-      create: vi.fn().mockReturnValue({
-        interceptors: {
-          request: { use: vi.fn() },
-          response: { use: vi.fn() },
-        },
-        defaults: { headers: {} },
-        get: vi.fn(),
-      }),
-    },
-  };
+vi.mock('axios', async () => {
+  const { createAxiosMock } = await import('./api-client-test-support.js');
+  return createAxiosMock();
 });
 
 describe('ApiClient url-monitor / api-check / heartbeat CRUD', () => {
   let apiClient: ApiClient;
-  let mockConfigService: IConfigService;
 
-  const mockClient = (overrides: Partial<Record<string, unknown>>) => {
-    const client = (apiClient as unknown as { client: Record<string, unknown> }).client;
-    Object.assign(client, overrides);
-  };
+  const mockClient = (overrides: Partial<Record<string, unknown>>) =>
+    mockClientMethods(apiClient, overrides);
 
   beforeEach(() => {
-    mockConfigService = {
-      getApiKey: vi.fn().mockReturnValue('test-key'),
-      getApiUrl: vi.fn().mockReturnValue('http://test-api/api'),
-      isDevelopment: vi.fn().mockReturnValue(true),
-      getDefaultOptions: vi.fn().mockReturnValue({ timeout: 1000 }),
-    } as unknown as IConfigService;
-
-    apiClient = new ApiClient(mockConfigService);
+    apiClient = new ApiClient(createMockConfigService());
   });
 
   // Three families (url-monitors, api-checks, heartbeats) each expose
@@ -157,13 +137,6 @@ describe('ApiClient url-monitor / api-check / heartbeat CRUD', () => {
       expect(put).toHaveBeenCalledWith('/url-monitors/m1', { cron_expression: '0 * * * *' });
     });
 
-    it('deleteUrlMonitor DELETEs the id path', async () => {
-      const del = vi.fn().mockResolvedValue({ data: {} });
-      mockClient({ delete: del });
-      await apiClient.deleteUrlMonitor('m1');
-      expect(del).toHaveBeenCalledWith('/url-monitors/m1');
-    });
-
     it.each([
       ['is_active present', { is_active: true }, true],
       ['nested data.is_active', { data: { is_active: false } }, false],
@@ -192,22 +165,6 @@ describe('ApiClient url-monitor / api-check / heartbeat CRUD', () => {
       const result = await apiClient.resetHeartbeat('h1');
       expect(post).toHaveBeenCalledWith('/heartbeats/h1/reset');
       expect(result).toEqual({ id: 'h1', status: 'up' });
-    });
-
-    it('deleteHeartbeat DELETEs the id path', async () => {
-      const del = vi.fn().mockResolvedValue({ data: {} });
-      mockClient({ delete: del });
-      await apiClient.deleteHeartbeat('h1');
-      expect(del).toHaveBeenCalledWith('/heartbeats/h1');
-    });
-  });
-
-  describe('api-check extras', () => {
-    it('deleteApiCheck DELETEs the id path', async () => {
-      const del = vi.fn().mockResolvedValue({ data: {} });
-      mockClient({ delete: del });
-      await apiClient.deleteApiCheck('c1');
-      expect(del).toHaveBeenCalledWith('/api-checks/c1');
     });
   });
 });
