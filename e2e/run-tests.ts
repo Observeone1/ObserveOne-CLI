@@ -5,9 +5,9 @@ if (process.argv.includes('--ci')) {
   process.env.FORCE_COLOR = '0';
 }
 
-import { readdirSync, statSync } from 'fs';
-import { join, relative } from 'path';
-import { pathToFileURL } from 'url';
+import { readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import chalk from 'chalk';
 import { brand } from '../src/utils/theme.js';
 import { runCLI } from './lib/test-runner.js';

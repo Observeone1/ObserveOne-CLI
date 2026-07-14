@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
 import chalk from 'chalk';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 // Import services
 import { ConfigService } from './services/config.service.js';

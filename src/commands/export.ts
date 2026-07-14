@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
-import { writeFileSync } from 'fs';
+import { writeFileSync } from 'node:fs';
 import {
   UrlMonitor,
   ApiCheck,

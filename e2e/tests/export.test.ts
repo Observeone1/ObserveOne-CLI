@@ -1,7 +1,7 @@
 import { runCLI, assertSuccess, assertJSON } from '../lib/test-runner.js';
 import { ResourcePreview } from '../lib/types.js';
-import { unlinkSync, existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { unlinkSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * E2E test for Declarative Export Workflow

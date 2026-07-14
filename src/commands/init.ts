@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { existsSync, writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { resolveSchema, resourceNames } from '../utils/schemas.js';

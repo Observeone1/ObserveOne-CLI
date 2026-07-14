@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { resolveSchema, resourceNames } from '../utils/schemas.js';
 
