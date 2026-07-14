@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { buildJsonSchema, resourceNames } from '../utils/schemas.js';
 

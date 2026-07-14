@@ -1,6 +1,6 @@
 import Conf from 'conf';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { IConfigService } from '../interfaces/config.interface.js';
 import {
   ObserveOneConfig,

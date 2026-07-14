@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { ApiClient } from '../../services/api-client.service.js';
 import { IConfigService } from '../../interfaces/config.interface.js';
 import { IOutputService } from '../../interfaces/output.interface.js';

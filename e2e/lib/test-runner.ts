@@ -1,5 +1,5 @@
-import { spawn, SpawnOptions } from 'child_process';
-import { join } from 'path';
+import { spawn, SpawnOptions } from 'node:child_process';
+import { join } from 'node:path';
 
 // Load environment variables from root .env file for test runner
 // The CLI also loads .env separately when it runs

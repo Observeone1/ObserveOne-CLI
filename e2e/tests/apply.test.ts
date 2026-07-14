@@ -1,7 +1,7 @@
 import { runCLI, assertSuccess, assertContains, assertJSON } from '../lib/test-runner.js';
 import { ResourcePreview } from '../lib/types.js';
-import { writeFileSync, unlinkSync, existsSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 export async function testApplyDryRun() {
   const timestamp = Date.now();

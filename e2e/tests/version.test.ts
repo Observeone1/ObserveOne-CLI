@@ -1,6 +1,6 @@
 import { runCLI, assertSuccess, assertContains } from '../lib/test-runner.js';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export async function testVersionCommand() {
   const packagePath = join(process.cwd(), 'package.json');
