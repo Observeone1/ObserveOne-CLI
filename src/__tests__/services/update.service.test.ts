@@ -16,6 +16,7 @@ function loggedLines(): string {
 
 describe('UpdateService.checkForUpdates', () => {
   const originalEnv = { ...process.env };
+  const originalArgv = process.argv;
 
   beforeEach(() => {
     axiosGetMock.mockReset();
@@ -30,6 +31,7 @@ describe('UpdateService.checkForUpdates', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.env = originalEnv;
+    process.argv = originalArgv;
   });
 
   it('skips the network check entirely when OBS_JSON_OUTPUT=true', async () => {
@@ -107,5 +109,48 @@ describe('UpdateService.checkForUpdates', () => {
     const service = new UpdateService('1.0.0');
     await expect(service.checkForUpdates(stubOutput())).resolves.toBeUndefined();
     expect(console.log).not.toHaveBeenCalled();
+  });
+
+  // Package-manager detection fallbacks: when npm_config_user_agent is absent,
+  // detectPackageManager falls back to npm_execpath, then to argv inspection,
+  // then defaults to npm.
+  it('falls back to npm_execpath (pnpm) when the user agent is unset', async () => {
+    process.env.npm_execpath = '/home/u/Library/pnpm/store/pnpm.cjs';
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    const service = new UpdateService('1.0.0');
+    await service.checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain('pnpm add -g @observeone/cli');
+  });
+
+  it('falls back to npm_execpath (yarn) when the user agent is unset', async () => {
+    process.env.npm_execpath = '/usr/local/bin/yarn.js';
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    const service = new UpdateService('1.0.0');
+    await service.checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain('yarn global add @observeone/cli');
+  });
+
+  it('falls back to npm_execpath (bun) when the user agent is unset', async () => {
+    process.env.npm_execpath = '/usr/local/bin/bun';
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    const service = new UpdateService('1.0.0');
+    await service.checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain('bun add -g @observeone/cli');
+  });
+
+  it('falls back to argv inspection when neither user agent nor execpath match', async () => {
+    process.argv = ['/usr/bin/node', '/home/u/.pnpm/@observeone/cli/bin/obs.js'];
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    const service = new UpdateService('1.0.0');
+    await service.checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain('pnpm add -g @observeone/cli');
+  });
+
+  it('defaults to npm when no package manager can be detected', async () => {
+    process.argv = ['/usr/bin/node', '/tmp/standalone-script.js'];
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    const service = new UpdateService('1.0.0');
+    await service.checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain('npm install -g @observeone/cli');
   });
 });
