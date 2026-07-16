@@ -22,7 +22,9 @@ export function createSuiteScheduleCommand(
           throw new Error('Cannot use --enable and --disable together');
         }
 
-        const schedule_active = options.enable ? true : options.disable ? false : undefined;
+        let schedule_active: boolean | undefined;
+        if (options.enable) schedule_active = true;
+        else if (options.disable) schedule_active = false;
 
         const suite = await apiClient.updateSuiteSchedule(id, {
           ...(schedule_active !== undefined && { schedule_active }),

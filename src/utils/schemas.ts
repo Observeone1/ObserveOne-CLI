@@ -196,7 +196,7 @@ export const schemas: Record<string, ResourceSchema> = {
       headers: {
         flagName: 'header',
         treatEmptyArrayAsAbsent: true,
-        transformer: (v) => parseKeyValuePairs(v as string | string[] | undefined, 'header'),
+        transformer: (v) => parseKeyValuePairs(v as CliListInput, 'header'),
       },
       regions: { flagName: 'regions', treatEmptyArrayAsAbsent: true },
       retry_count: { flagName: 'retryCount', transformer: toInt },
@@ -431,7 +431,7 @@ export const schemas: Record<string, ResourceSchema> = {
       headers: {
         flagName: 'header',
         treatEmptyArrayAsAbsent: true,
-        transformer: (v) => parseKeyValuePairs(v as string | string[] | undefined, 'header'),
+        transformer: (v) => parseKeyValuePairs(v as CliListInput, 'header'),
       },
     },
   },
