@@ -124,7 +124,7 @@ Examples:
           if (options.planOnly) {
             spinner.succeed(
               chalk.green(
-                `Plan ready  •  ${plannedFiles.length} test${plannedFiles.length === 1 ? '' : 's'} planned`
+                `Plan ready  •  ${plannedFiles.length} test${plannedFiles.length !== 1 ? 's' : ''} planned`
               )
             );
             console.log('');
@@ -144,7 +144,7 @@ Examples:
             return;
           }
 
-          spinner.text = `Generating ${plannedFiles.length} test${plannedFiles.length === 1 ? '' : 's'}...`;
+          spinner.text = `Generating ${plannedFiles.length} test${plannedFiles.length !== 1 ? 's' : ''}...`;
           await Promise.all(plannedFiles.map((file) => apiClient.generateTest(planned.id, file)));
 
           const done = await apiClient.pollSuiteTests(planned.id, plannedFiles.length);
