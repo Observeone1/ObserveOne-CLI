@@ -272,7 +272,7 @@ export class ApiClient implements IApiClient {
 
   private unwrapMonitorEnvelope(data: Record<string, unknown>): Record<string, unknown> {
     const envelope = data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> };
-    return envelope.monitor || envelope.data || data;
+    return envelope.monitor ?? envelope.data ?? data;
   }
 
   async getUrlMonitor(id: string): Promise<UrlMonitor> {
