@@ -76,10 +76,9 @@ export function createSuitePushCommand(
         }
 
         if (!suiteJson || !folderPath) {
-          const pullCmd = chalk.cyan(`obs suite pull ${id}`);
           console.error(
             chalk.red(`❌ No pulled suite found for id ${id} in ${baseDir}`) +
-              `\n  Run ${pullCmd} first.`
+              `\n  Run ${chalk.cyan(`obs suite pull ${id}`)} first.`
           );
           process.exit(1);
         }
@@ -100,10 +99,9 @@ export function createSuitePushCommand(
           updated++;
         }
 
-        const suiteLabel = chalk.bold(`"${suiteName}"`);
         console.log(
           chalk.green('✔') +
-            ` Pushed ${suiteLabel} — ${updated} test${updated !== 1 ? 's' : ''} updated` +
+            ` Pushed ${chalk.bold(`"${suiteName}"`)} — ${updated} test${updated !== 1 ? 's' : ''} updated` +
             (skipped > 0 ? chalk.yellow(` (${skipped} skipped)`) : '')
         );
       } catch (err: unknown) {
