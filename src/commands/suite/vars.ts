@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import inquirer from 'inquirer';
 
 function normalizeKey(key: string): string {
-  return key.trim().toUpperCase().replace(/\s+/g, '_');
+  return key.trim().toUpperCase().replaceAll(/\s+/g, '_');
 }
 
 /**
@@ -42,7 +42,7 @@ export function parseVarFile(filePath: string): Record<string, string> {
     const idx = trimmed.indexOf('=');
     if (idx === -1) continue;
     const key = normalizeKey(trimmed.slice(0, idx));
-    const value = trimmed.slice(idx + 1).replace(/^["']|["']$/g, '');
+    const value = trimmed.slice(idx + 1).replaceAll(/^["']|["']$/g, '');
     result[key] = value;
   }
   return result;

@@ -15,8 +15,8 @@ interface SuiteJson {
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-|-$/g, '');
 }
 
 export function createSuitePushCommand(
@@ -76,9 +76,10 @@ export function createSuitePushCommand(
         }
 
         if (!suiteJson || !folderPath) {
+          const pullCmd = chalk.cyan(`obs suite pull ${id}`);
           console.error(
             chalk.red(`❌ No pulled suite found for id ${id} in ${baseDir}`) +
-              `\n  Run ${chalk.cyan(`obs suite pull ${id}`)} first.`
+              `\n  Run ${pullCmd} first.`
           );
           process.exit(1);
         }
@@ -99,9 +100,10 @@ export function createSuitePushCommand(
           updated++;
         }
 
+        const suiteLabel = chalk.bold(`"${suiteName}"`);
         console.log(
           chalk.green('✔') +
-            ` Pushed ${chalk.bold(`"${suiteName}"`)} — ${updated} test${updated !== 1 ? 's' : ''} updated` +
+            ` Pushed ${suiteLabel} — ${updated} test${updated !== 1 ? 's' : ''} updated` +
             (skipped > 0 ? chalk.yellow(` (${skipped} skipped)`) : '')
         );
       } catch (err: unknown) {

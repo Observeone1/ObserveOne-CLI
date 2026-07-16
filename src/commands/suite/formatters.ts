@@ -38,8 +38,9 @@ export function printSuiteList(suites: Suite[]): void {
   suites.forEach((suite, i) => {
     const tests = chalk.gray(`${suite.test_count} tests`);
     const schedule = formatCron(suite.cron_expression, suite.schedule_active);
+    const position = chalk.bold(`${i + 1}.`);
     console.log(
-      ` ${chalk.bold(`${i + 1}.`)} ${chalk.bold(suite.suite_name.padEnd(30))} ${suiteStatusColor(suite.status).padEnd(20)} ${tests.padEnd(10)} ${schedule}`
+      ` ${position} ${chalk.bold(suite.suite_name.padEnd(30))} ${suiteStatusColor(suite.status).padEnd(20)} ${tests.padEnd(10)} ${schedule}`
     );
     console.log(chalk.gray(`    ${suite.target_url}  id: ${suite.id}`));
     console.log('');

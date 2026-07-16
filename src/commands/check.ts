@@ -57,7 +57,7 @@ function buildAssertions(
     assertions.push({
       type: 'response_time',
       operator: 'less_than',
-      value: String(parseInt(responseTimeUnder)),
+      value: String(Number.parseInt(responseTimeUnder)),
     });
   }
 
@@ -66,7 +66,7 @@ function buildAssertions(
     assertions.push({
       type: 'response_time',
       operator: 'greater_than',
-      value: String(parseInt(responseTimeOver)),
+      value: String(Number.parseInt(responseTimeOver)),
     });
   }
 

@@ -9,8 +9,8 @@ import { IOutputService } from '../../interfaces/output.interface.js';
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-|-$/g, '');
 }
 
 export function createSuitePullCommand(
@@ -66,9 +66,10 @@ export function createSuitePullCommand(
         if (suite.plan_markdown) parts.push('PLAN.md');
         parts.push(`${scripts.tests.length} test${scripts.tests.length !== 1 ? 's' : ''}`);
 
+        const suiteLabel = chalk.bold(`"${suite.suite_name}"`);
         console.log(
           chalk.green('✔') +
-            ` Pulled ${chalk.bold(`"${suite.suite_name}"`)} → ${chalk.cyan(path.relative(process.cwd(), folderPath) + '/')}`
+            ` Pulled ${suiteLabel} → ${chalk.cyan(path.relative(process.cwd(), folderPath) + '/')}`
         );
         console.log(`  ${parts.join('  ')}`);
       } catch (err: unknown) {

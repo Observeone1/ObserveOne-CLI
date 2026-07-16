@@ -44,9 +44,9 @@ const PROTOCOL_MONITOR_PATHS: Record<ProtocolMonitorKind, string> = {
  * Handles HTTP communication with ObserveOne backend
  */
 export class ApiClient implements IApiClient {
-  private client: AxiosInstance;
+  private readonly client: AxiosInstance;
   private apiKey: string | undefined;
-  private configService: IConfigService;
+  private readonly configService: IConfigService;
   private offHostWarned = false;
 
   constructor(configService: IConfigService, version: string = '1.0.1') {
