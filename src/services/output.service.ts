@@ -60,6 +60,19 @@ export class OutputService implements IOutputService {
     console.log(c.accent(message));
   }
 
+  private statusColorFor(statusText: string): (text: string) => string {
+    if (statusText === 'UP') return c.success;
+    if (statusText === 'DOWN') return c.error;
+    if (statusText === 'PAUSED') return c.warning;
+    return c.accent;
+  }
+
+  private heartbeatStatusColor(status: string): (text: string) => string {
+    if (status === 'up') return c.success;
+    if (status === 'down') return c.error;
+    return c.warning;
+  }
+
   formatMonitorList(monitors: UrlMonitor[], verbose: boolean = false): void {
     if (monitors.length === 0) {
       this.info('No URL monitors found.');
@@ -71,14 +84,7 @@ export class OutputService implements IOutputService {
 
     monitors.forEach((monitor, index) => {
       const statusText = (monitor.status ?? (monitor.is_active ? 'up' : 'paused')).toUpperCase();
-      const statusColor =
-        statusText === 'UP'
-          ? c.success
-          : statusText === 'DOWN'
-            ? c.error
-            : statusText === 'PAUSED'
-              ? c.warning
-              : c.accent;
+      const statusColor = this.statusColorFor(statusText);
       const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
 
@@ -115,14 +121,7 @@ export class OutputService implements IOutputService {
         protocol?: string;
       };
       const statusText = (monitor.status ?? (monitor.is_active ? 'up' : 'paused')).toUpperCase();
-      const statusColor =
-        statusText === 'UP'
-          ? c.success
-          : statusText === 'DOWN'
-            ? c.error
-            : statusText === 'PAUSED'
-              ? c.warning
-              : c.accent;
+      const statusColor = this.statusColorFor(statusText);
       const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
 
@@ -152,14 +151,7 @@ export class OutputService implements IOutputService {
 
     checks.forEach((check, index) => {
       const statusText = (check.status ?? (check.is_active ? 'up' : 'paused')).toUpperCase();
-      const statusColor =
-        statusText === 'UP'
-          ? c.success
-          : statusText === 'DOWN'
-            ? c.error
-            : statusText === 'PAUSED'
-              ? c.warning
-              : c.accent;
+      const statusColor = this.statusColorFor(statusText);
       const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${check.name} [${status}]`));
 
@@ -184,8 +176,7 @@ export class OutputService implements IOutputService {
     console.log(c.muted('─'.repeat(80)));
 
     heartbeats.forEach((hb, index) => {
-      const statusColor =
-        hb.status === 'up' ? c.success : hb.status === 'down' ? c.error : c.warning;
+      const statusColor = this.heartbeatStatusColor(hb.status);
       const status = statusColor(hb.status.toUpperCase());
 
       console.log(chalk.bold(`${index + 1}. ${hb.name} - ${status}`));
@@ -312,7 +303,7 @@ export class OutputService implements IOutputService {
           console.log(
             c.muted(
               `   Retries: ${schedule.retry_count}${
-                schedule.retry_interval != null ? ` (every ${schedule.retry_interval}s)` : ''
+                schedule.retry_interval == null ? '' : ` (every ${schedule.retry_interval}s)`
               }`
             )
           );

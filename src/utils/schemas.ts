@@ -1,4 +1,4 @@
-import { parseKeyValuePairs, parseIdList } from './cli-input.js';
+import { parseKeyValuePairs, parseIdList, type CliListInput } from './cli-input.js';
 
 export type InquirerType = 'input' | 'list' | 'number' | 'confirm';
 
@@ -144,8 +144,7 @@ export const schemas: Record<string, ResourceSchema> = {
         flagName: 'alertChannelId',
         default: [],
         treatEmptyArrayAsAbsent: true,
-        transformer: (v) =>
-          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
+        transformer: (v) => parseIdList(v as CliListInput, 'alert-channel-id') ?? [],
       },
     },
   },

@@ -270,13 +270,14 @@ export class ApiClient implements IApiClient {
     };
   }
 
+  private unwrapMonitorEnvelope(data: Record<string, unknown>): Record<string, unknown> {
+    const envelope = data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> };
+    return envelope.monitor || envelope.data || data;
+  }
+
   async getUrlMonitor(id: string): Promise<UrlMonitor> {
     const response = await this.client.get<Record<string, unknown>>(`/url-monitors/${id}`);
-    const raw =
-      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
-        .monitor ||
-      (response.data as { data?: Record<string, unknown> }).data ||
-      (response.data as Record<string, unknown>);
+    const raw = this.unwrapMonitorEnvelope(response.data);
     return this.mapMonitor(raw);
   }
 
@@ -284,11 +285,7 @@ export class ApiClient implements IApiClient {
     const { interval, ...rest } = data;
     const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
     const response = await this.client.post<Record<string, unknown>>('/url-monitors', payload);
-    const raw =
-      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
-        .monitor ||
-      (response.data as { data?: Record<string, unknown> }).data ||
-      (response.data as Record<string, unknown>);
+    const raw = this.unwrapMonitorEnvelope(response.data);
     return this.mapMonitor(raw);
   }
 
@@ -296,11 +293,7 @@ export class ApiClient implements IApiClient {
     const { interval, ...rest } = data;
     const payload = { ...rest, ...(interval !== undefined && { cron_expression: interval }) };
     const response = await this.client.put<Record<string, unknown>>(`/url-monitors/${id}`, payload);
-    const raw =
-      (response.data as { monitor?: Record<string, unknown>; data?: Record<string, unknown> })
-        .monitor ||
-      (response.data as { data?: Record<string, unknown> }).data ||
-      (response.data as Record<string, unknown>);
+    const raw = this.unwrapMonitorEnvelope(response.data);
     return this.mapMonitor(raw);
   }
 

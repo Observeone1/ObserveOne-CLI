@@ -180,8 +180,8 @@ export class ConfigService implements IConfigService {
   getProjectConfig(): ProjectConfig {
     // Merge local project config with global
     return {
-      ...(this.config.get('project') || {}),
-      ...(this.localConfig.project || {}),
+      ...this.config.get('project'),
+      ...this.localConfig.project,
     };
   }
 
