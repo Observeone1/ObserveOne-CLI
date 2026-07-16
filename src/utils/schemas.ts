@@ -101,6 +101,55 @@ const ALERT_CHANNEL_TYPES = [
   'webhook',
 ] as const;
 
+/** `name` field shared by every protocol-monitor schema (ssl/tcp/udp/db). */
+const monitorNameField: FieldSchema = {
+  flagName: 'name',
+  inquirerType: 'input',
+  label: 'Monitor name:',
+  requiredOnCreate: true,
+  validate: trimNonEmpty('Name'),
+};
+
+/** `host` field shared by the tcp/udp/db monitor schemas. */
+const monitorHostField: FieldSchema = {
+  flagName: 'host',
+  inquirerType: 'input',
+  label: 'Host:',
+  requiredOnCreate: true,
+  validate: trimNonEmpty('Host'),
+};
+
+/** Required `port` field shared by the tcp/udp/db monitor schemas. */
+const monitorPortField: FieldSchema = {
+  flagName: 'port',
+  inquirerType: 'number',
+  label: 'Port:',
+  requiredOnCreate: true,
+  transformer: toInt,
+};
+
+/**
+ * Common fieldMetadata tail shared by the ssl/tcp/udp/db monitor schemas.
+ * Spread LAST in each schema so prompt/key order stays identical to the
+ * previous hand-written literals. Only the cron default differs per schema.
+ */
+const protocolMonitorCommonFields = (defaultCron: string): Record<string, FieldSchema> => ({
+  cron_expression: { flagName: 'interval', default: defaultCron },
+  description: { flagName: 'description', default: '' },
+  alert_on_failure: { flagName: 'alerts', default: true },
+  timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
+  regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
+  retry_count: { flagName: 'retryCount', transformer: toInt },
+  retry_interval: { flagName: 'retryInterval', transformer: toInt },
+  team_id: { flagName: 'teamId' },
+  channel_ids: {
+    flagName: 'alertChannelId',
+    default: [],
+    treatEmptyArrayAsAbsent: true,
+    transformer: (v) => parseIdList(v as CliListInput, 'alert-channel-id') ?? [],
+  },
+});
+
 export const schemas: Record<string, ResourceSchema> = {
   monitor: {
     description: 'URL monitor — pings an HTTP endpoint on a cron schedule',
@@ -451,13 +500,7 @@ export const schemas: Record<string, ResourceSchema> = {
       channel_ids: [],
     },
     fieldMetadata: {
-      name: {
-        flagName: 'name',
-        inquirerType: 'input',
-        label: 'Monitor name:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Name'),
-      },
+      name: monitorNameField,
       hostname: {
         flagName: 'hostname',
         inquirerType: 'input',
@@ -479,21 +522,7 @@ export const schemas: Record<string, ResourceSchema> = {
         default: 30,
         transformer: toInt,
       },
-      cron_expression: { flagName: 'interval', default: '0 0 * * *' },
-      description: { flagName: 'description', default: '' },
-      alert_on_failure: { flagName: 'alerts', default: true },
-      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
-      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
-      retry_count: { flagName: 'retryCount', transformer: toInt },
-      retry_interval: { flagName: 'retryInterval', transformer: toInt },
-      team_id: { flagName: 'teamId' },
-      channel_ids: {
-        flagName: 'alertChannelId',
-        default: [],
-        treatEmptyArrayAsAbsent: true,
-        transformer: (v) =>
-          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
-      },
+      ...protocolMonitorCommonFields('0 0 * * *'),
     },
   },
   'tcp-monitor': {
@@ -513,44 +542,12 @@ export const schemas: Record<string, ResourceSchema> = {
       channel_ids: [],
     },
     fieldMetadata: {
-      name: {
-        flagName: 'name',
-        inquirerType: 'input',
-        label: 'Monitor name:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Name'),
-      },
-      host: {
-        flagName: 'host',
-        inquirerType: 'input',
-        label: 'Host:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Host'),
-      },
-      port: {
-        flagName: 'port',
-        inquirerType: 'number',
-        label: 'Port:',
-        requiredOnCreate: true,
-        transformer: toInt,
-      },
+      name: monitorNameField,
+      host: monitorHostField,
+      port: monitorPortField,
       payload_hex: { flagName: 'payloadHex' },
       expect_banner: { flagName: 'expectBanner' },
-      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
-      description: { flagName: 'description', default: '' },
-      alert_on_failure: { flagName: 'alerts', default: true },
-      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
-      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
-      retry_count: { flagName: 'retryCount', transformer: toInt },
-      retry_interval: { flagName: 'retryInterval', transformer: toInt },
-      team_id: { flagName: 'teamId' },
-      channel_ids: {
-        flagName: 'alertChannelId',
-        default: [],
-        treatEmptyArrayAsAbsent: true,
-        transformer: (v) =>
-          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
-      },
+      ...protocolMonitorCommonFields('*/5 * * * *'),
     },
   },
   'udp-monitor': {
@@ -570,44 +567,12 @@ export const schemas: Record<string, ResourceSchema> = {
       channel_ids: [],
     },
     fieldMetadata: {
-      name: {
-        flagName: 'name',
-        inquirerType: 'input',
-        label: 'Monitor name:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Name'),
-      },
-      host: {
-        flagName: 'host',
-        inquirerType: 'input',
-        label: 'Host:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Host'),
-      },
-      port: {
-        flagName: 'port',
-        inquirerType: 'number',
-        label: 'Port:',
-        requiredOnCreate: true,
-        transformer: toInt,
-      },
+      name: monitorNameField,
+      host: monitorHostField,
+      port: monitorPortField,
       payload_hex: { flagName: 'payloadHex' },
       expect_response: { flagName: 'expectResponse', default: false },
-      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
-      description: { flagName: 'description', default: '' },
-      alert_on_failure: { flagName: 'alerts', default: true },
-      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
-      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
-      retry_count: { flagName: 'retryCount', transformer: toInt },
-      retry_interval: { flagName: 'retryInterval', transformer: toInt },
-      team_id: { flagName: 'teamId' },
-      channel_ids: {
-        flagName: 'alertChannelId',
-        default: [],
-        treatEmptyArrayAsAbsent: true,
-        transformer: (v) =>
-          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
-      },
+      ...protocolMonitorCommonFields('*/5 * * * *'),
     },
   },
   'db-monitor': {
@@ -627,27 +592,9 @@ export const schemas: Record<string, ResourceSchema> = {
       channel_ids: [],
     },
     fieldMetadata: {
-      name: {
-        flagName: 'name',
-        inquirerType: 'input',
-        label: 'Monitor name:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Name'),
-      },
-      host: {
-        flagName: 'host',
-        inquirerType: 'input',
-        label: 'Host:',
-        requiredOnCreate: true,
-        validate: trimNonEmpty('Host'),
-      },
-      port: {
-        flagName: 'port',
-        inquirerType: 'number',
-        label: 'Port:',
-        requiredOnCreate: true,
-        transformer: toInt,
-      },
+      name: monitorNameField,
+      host: monitorHostField,
+      port: monitorPortField,
       protocol: {
         flagName: 'protocol',
         inquirerType: 'list',
@@ -657,21 +604,7 @@ export const schemas: Record<string, ResourceSchema> = {
         transformer: toLower,
       },
       tls: { flagName: 'tls', default: false },
-      cron_expression: { flagName: 'interval', default: '*/5 * * * *' },
-      description: { flagName: 'description', default: '' },
-      alert_on_failure: { flagName: 'alerts', default: true },
-      timeout_ms: { flagName: 'timeout', default: 30000, transformer: toInt },
-      regions: { flagName: 'region', treatEmptyArrayAsAbsent: true },
-      retry_count: { flagName: 'retryCount', transformer: toInt },
-      retry_interval: { flagName: 'retryInterval', transformer: toInt },
-      team_id: { flagName: 'teamId' },
-      channel_ids: {
-        flagName: 'alertChannelId',
-        default: [],
-        treatEmptyArrayAsAbsent: true,
-        transformer: (v) =>
-          parseIdList(v as string | string[] | undefined, 'alert-channel-id') ?? [],
-      },
+      ...protocolMonitorCommonFields('*/5 * * * *'),
     },
   },
 };
