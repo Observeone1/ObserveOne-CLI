@@ -192,5 +192,5 @@ function assertChoice(field: string, meta: FieldSchema, value: unknown): void {
 
 /** camelCase → kebab-case for help-message rendering of flag names. */
 function kebab(name: string): string {
-  return name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+  return name.replaceAll(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }

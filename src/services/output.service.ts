@@ -126,7 +126,8 @@ export class OutputService implements IOutputService {
       const status = statusColor(statusText);
       console.log(chalk.bold(`${index + 1}. ${monitor.name} [${status}]`));
 
-      const target = `${m.hostname ?? m.host ?? '?'}${m.port ? `:${m.port}` : ''}`;
+      const portSuffix = m.port ? `:${m.port}` : '';
+      const target = `${m.hostname ?? m.host ?? '?'}${portSuffix}`;
       const protocolPrefix = m.protocol ? `${m.protocol} ` : '';
       console.log(c.muted(`   Target: ${protocolPrefix}${target}`));
       console.log(c.muted(`   ID: ${monitor.id}`));
@@ -410,7 +411,7 @@ export class OutputService implements IOutputService {
   }
 
   private escapeXml(unsafe: string): string {
-    return unsafe.replace(/[<>&'"]/g, function (c) {
+    return unsafe.replaceAll(/[<>&'"]/g, function (c) {
       switch (c) {
         case '<':
           return '&lt;';

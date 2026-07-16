@@ -87,7 +87,7 @@ Examples:
           const payload: Parameters<typeof apiClient.generateSuite>[0] = {
             target_url: url,
             suite_name: suiteName,
-            max_tests: Math.min(30, Math.max(1, parseInt(options.maxTests || '10', 10))),
+            max_tests: Math.min(30, Math.max(1, Number.parseInt(options.maxTests || '10', 10))),
           };
           if (options.cron) {
             payload.cron_expression = options.cron;

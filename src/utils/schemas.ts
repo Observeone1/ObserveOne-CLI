@@ -70,7 +70,7 @@ const validateMinLength =
     typeof val === 'string' && val.trim().length >= min ? true : `${label} is required`;
 
 /** Coerce CLI strings to integers; leave inquirer numbers untouched. */
-const toInt = (val: unknown): unknown => (typeof val === 'string' ? parseInt(val, 10) : val);
+const toInt = (val: unknown): unknown => (typeof val === 'string' ? Number.parseInt(val, 10) : val);
 
 const toUpper = (val: unknown): unknown => (typeof val === 'string' ? val.toUpperCase() : val);
 
