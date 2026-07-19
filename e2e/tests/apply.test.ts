@@ -191,7 +191,7 @@ export async function testDeclarativeApply() {
     if (monitorListResult.exitCode === 0) {
       const monitors = JSON.parse(monitorListResult.stdout).data?.items || [];
       const m = monitors.find((m: ResourcePreview) => m.name === configContent.monitors[0].name);
-      if (m && m.id) {
+      if (m?.id) {
         await runCLI(['monitor', 'delete', m.id.toString(), '-y', '--json']);
       }
     }
@@ -200,7 +200,7 @@ export async function testDeclarativeApply() {
     if (checkListResult.exitCode === 0) {
       const checks = JSON.parse(checkListResult.stdout).data?.items || [];
       const c = checks.find((c: ResourcePreview) => c.name === configContent.api_checks[0].name);
-      if (c && c.id) {
+      if (c?.id) {
         await runCLI(['check', 'delete', c.id.toString(), '-y', '--json']);
       }
     }

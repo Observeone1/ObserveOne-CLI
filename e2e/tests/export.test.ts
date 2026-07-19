@@ -70,7 +70,7 @@ export async function testDeclarativeExport() {
     // v1.25.0: monitors carry a bundle-local surrogate `id` so a status
     // page's `monitor_id` reference resolves on import.
     if (typeof (foundMonitor as { id?: unknown }).id !== 'string') {
-      throw new Error('Exported monitor must carry its bundle-local `id`');
+      throw new TypeError('Exported monitor must carry its bundle-local `id`');
     }
 
     const foundCheck = exportedData.api_checks?.find((c: ResourcePreview) => c.name === checkName);
@@ -78,7 +78,7 @@ export async function testDeclarativeExport() {
       throw new Error('Created test API check was not found in exported file');
     }
     if (typeof (foundCheck as { id?: unknown }).id !== 'string') {
-      throw new Error('Exported api_check must carry its bundle-local `id`');
+      throw new TypeError('Exported api_check must carry its bundle-local `id`');
     }
   } finally {
     // Cleanup: Remove the exported file
@@ -169,9 +169,9 @@ export async function testDeclarativeExportExtendedCoverage() {
 
     // 5. Assert each new top-level key is present and contains our test resource
     if (!Array.isArray(data.alert_channels)) {
-      throw new Error('Expected `alert_channels` array in export');
+      throw new TypeError('Expected `alert_channels` array in export');
     }
-    if (!data.alert_channels.find((c: ResourcePreview) => c.name === channelName)) {
+    if (!data.alert_channels.some((c: ResourcePreview) => c.name === channelName)) {
       throw new Error('Created alert channel missing from export');
     }
     // v1.25.0 contract: alert channels now carry a bundle-local surrogate
@@ -179,28 +179,28 @@ export async function testDeclarativeExportExtendedCoverage() {
     // DB-owned fields (created_at, user_id, ...) are still stripped.
     const ac = data.alert_channels.find((c: ResourcePreview) => c.name === channelName);
     if (typeof (ac as { id?: unknown }).id !== 'string') {
-      throw new Error('Alert channel export must carry its bundle-local `id`');
+      throw new TypeError('Alert channel export must carry its bundle-local `id`');
     }
     if ('created_at' in ac) {
       throw new Error('Alert channel export should still strip DB-owned `created_at`');
     }
 
     if (!Array.isArray(data.status_pages)) {
-      throw new Error('Expected `status_pages` array in export');
+      throw new TypeError('Expected `status_pages` array in export');
     }
-    if (!data.status_pages.find((s: ResourcePreview) => s.slug === statusPageSlug)) {
+    if (!data.status_pages.some((s: ResourcePreview) => s.slug === statusPageSlug)) {
       throw new Error('Created status page missing from export');
     }
 
     if (!Array.isArray(data.incidents)) {
-      throw new Error('Expected `incidents` array in export');
+      throw new TypeError('Expected `incidents` array in export');
     }
-    if (!data.incidents.find((i: ResourcePreview) => i.title === incidentTitle)) {
+    if (!data.incidents.some((i: ResourcePreview) => i.title === incidentTitle)) {
       throw new Error('Created incident missing from export');
     }
 
     if (!Array.isArray(data.suites)) {
-      throw new Error('Expected `suites` array in export (may be empty)');
+      throw new TypeError('Expected `suites` array in export (may be empty)');
     }
   } finally {
     if (existsSync(testExportFile)) {
@@ -241,7 +241,7 @@ export async function testExportIncludeScripts() {
     }
     const defaultData = JSON.parse(readFileSync(defaultFile, 'utf-8'));
     if (!Array.isArray(defaultData.suites)) {
-      throw new Error('Expected suites array in default export');
+      throw new TypeError('Expected suites array in default export');
     }
     const suitesWithTests = defaultData.suites.filter(
       (s: { tests?: unknown[] }) => Array.isArray(s.tests) && s.tests.length > 0
@@ -249,7 +249,7 @@ export async function testExportIncludeScripts() {
     for (const s of suitesWithTests) {
       for (const t of s.tests) {
         if (typeof t.name !== 'string' || typeof t.script !== 'string' || !t.script.length) {
-          throw new Error(
+          throw new TypeError(
             `Inlined suite test missing name/script: ${JSON.stringify(t).slice(0, 200)}`
           );
         }
@@ -358,10 +358,10 @@ export async function testExportApplyRoundTrip() {
     const m = (exported.monitors ?? []).find((x: ResourcePreview) => x.name === monitorName);
     const c = (exported.alert_channels ?? []).find((x: ResourcePreview) => x.name === channelName);
     if (!m || typeof (m as { id?: unknown }).id !== 'string') {
-      throw new Error('Round-trip export missing monitor or its surrogate id');
+      throw new TypeError('Round-trip export missing monitor or its surrogate id');
     }
     if (!c || typeof (c as { id?: unknown }).id !== 'string') {
-      throw new Error('Round-trip export missing alert channel or its surrogate id');
+      throw new TypeError('Round-trip export missing alert channel or its surrogate id');
     }
     writeFileSync(minimalFile, JSON.stringify({ monitors: [m], alert_channels: [c] }, null, 2));
 
