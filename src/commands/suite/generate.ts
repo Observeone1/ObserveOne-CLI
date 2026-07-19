@@ -16,6 +16,7 @@ type GenerateOptions = {
   allowFormSubmit?: boolean;
   planOnly?: boolean;
   wait?: boolean;
+  instructions?: string;
 };
 
 function extractPlannedFiles(planMarkdown: string): string[] {
@@ -53,6 +54,7 @@ async function buildGeneratePayload(
   }
   if (secrets) payload.secrets = secrets;
   if (options.allowFormSubmit) payload.allow_form_submit = true;
+  if (options.instructions) payload.planner_instructions = options.instructions;
 
   return payload;
 }
@@ -164,6 +166,10 @@ export function createSuiteGenerateCommand(
       'Load variables from an uncommitted .env file (safer than inline values)'
     )
     .option('--allow-form-submit', 'Allow AI agents to submit non-auth forms')
+    .option(
+      '--instructions <text>',
+      'Extra guidance appended to the planner prompt (max 4000 characters)'
+    )
     .option('--plan-only', 'Stop after the planning phase; do not generate test scripts')
     .addOption(
       new Option('-w, --wait', 'Deprecated: test generation is now the default').hideHelp()
