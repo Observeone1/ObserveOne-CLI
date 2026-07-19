@@ -122,7 +122,7 @@ async function runFile(
   try {
     testModule = await import(pathToFileURL(join(testsDir, file)).href);
   } catch (err: unknown) {
-    const msg = (err as Error)?.message || String(err);
+    const msg = err instanceof Error ? err.message : JSON.stringify(err);
     onEvent({ kind: 'file-import-error', file, error: msg });
     return {
       file,
@@ -148,7 +148,7 @@ async function runFile(
       onEvent({ kind: 'test-done', file, result });
     } catch (error: unknown) {
       const duration = Date.now() - start;
-      const msg = (error as Error)?.message || String(error);
+      const msg = error instanceof Error ? error.message : JSON.stringify(error);
       const result: TestResult = { name, passed: false, error: msg, duration };
       results.push(result);
       onEvent({ kind: 'test-done', file, result });
@@ -171,7 +171,7 @@ async function runWithConcurrency(
 
   async function worker() {
     while (queue.length > 0) {
-      const file = queue.shift()!;
+      const file = queue.shift();
       const result = await runFile(file, testsDir, onEvent, testNameFilter);
       onFileDone(result);
     }
@@ -199,7 +199,7 @@ function parseCliArgs(): CliArgs {
   return {
     isList: process.argv.includes('--list'),
     concurrency: concurrencyArg ? Number.parseInt(concurrencyArg.split('=')[1], 10) : 4,
-    testNameFilter: testArgIdx !== -1 ? process.argv[testArgIdx + 1] : undefined,
+    testNameFilter: testArgIdx === -1 ? undefined : process.argv[testArgIdx + 1],
     filters: process.argv.slice(2).filter((a) => !a.startsWith('--')),
     skipPatterns: [...skipArgs, ...skipEnv],
   };
