@@ -9,8 +9,8 @@ export async function testJsonOutputFormat() {
     const output = result.stdout;
     // Find the first occurrence of [{ or { to locate JSON
     const jsonStartIndex = Math.min(
-      output.indexOf('[') !== -1 ? output.indexOf('[') : Infinity,
-      output.indexOf('{') !== -1 ? output.indexOf('{') : Infinity
+      output.includes('[') ? output.indexOf('[') : Infinity,
+      output.includes('{') ? output.indexOf('{') : Infinity
     );
 
     if (jsonStartIndex !== Infinity) {
@@ -22,14 +22,14 @@ export async function testJsonOutputFormat() {
           `JSON format: Output should contain valid JSON after progress indicators: ${jsonPart}`
         );
       }
+    } else if (
+      output.toLowerCase().includes('error') ||
+      output.toLowerCase().includes('not found')
+    ) {
+      // This is OK too - means the command executed but failed in expected way
+      return;
     } else {
-      // If no JSON found, check if it's because we got an error instead
-      if (output.toLowerCase().includes('error') || output.toLowerCase().includes('not found')) {
-        // This is OK too - means the command executed but failed in expected way
-        return;
-      } else {
-        throw new Error(`JSON format: Expected JSON output but got: ${output}`);
-      }
+      throw new Error(`JSON format: Expected JSON output but got: ${output}`);
     }
   } else {
     // If it fails due to auth or other expected errors, that's OK - it means the --format option was parsed correctly
@@ -55,8 +55,8 @@ export async function testGlobalJsonOutput() {
     const output = result.stdout;
     // Find the first occurrence of [{ or { to locate JSON
     const jsonStartIndex = Math.min(
-      output.indexOf('[') !== -1 ? output.indexOf('[') : Infinity,
-      output.indexOf('{') !== -1 ? output.indexOf('{') : Infinity
+      output.includes('[') ? output.indexOf('[') : Infinity,
+      output.includes('{') ? output.indexOf('{') : Infinity
     );
 
     if (jsonStartIndex !== Infinity) {
@@ -68,14 +68,14 @@ export async function testGlobalJsonOutput() {
           `Global JSON: Output should contain valid JSON after progress indicators: ${jsonPart}`
         );
       }
+    } else if (
+      output.toLowerCase().includes('error') ||
+      output.toLowerCase().includes('not found')
+    ) {
+      // This is OK too - means the command executed but failed in expected way
+      return;
     } else {
-      // If no JSON found, check if it's because we got an error instead
-      if (output.toLowerCase().includes('error') || output.toLowerCase().includes('not found')) {
-        // This is OK too - means the command executed but failed in expected way
-        return;
-      } else {
-        throw new Error(`Global JSON: Expected JSON output but got: ${output}`);
-      }
+      throw new Error(`Global JSON: Expected JSON output but got: ${output}`);
     }
   } else {
     // If it fails due to auth or other expected errors, that's OK - it means the --format option was parsed correctly

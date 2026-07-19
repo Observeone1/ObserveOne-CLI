@@ -49,7 +49,9 @@ try {
   console.log('🔧 Setting executable permissions...');
   const mainFile = path.join('dist', 'index.js');
   if (fs.existsSync(mainFile)) {
-    fs.chmodSync(mainFile, '755');
+    // Owner/group read+execute only — no "others" bits (S2612: avoid
+    // world-accessible file permissions on a shipped executable).
+    fs.chmodSync(mainFile, 0o750);
   }
 
   // Copy README to dist

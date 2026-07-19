@@ -104,6 +104,23 @@ describe('ConfigService logout / credential clearing', () => {
     expect(service.hasEnvApiKey()).toBe(true);
   });
 
+  it('warns to stderr when rewriting the local config during clearLocalApiKey fails, under OBS_VERBOSE', () => {
+    process.env.OBS_VERBOSE = 'true';
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.readFileSync.mockReturnValue(JSON.stringify({ apiKey: 'local-secret' }));
+    mockedFs.writeFileSync.mockImplementation(() => {
+      throw new Error('disk full');
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const service = newService();
+    expect(() => service.clearLocalApiKey()).not.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('disk full'));
+    errorSpy.mockRestore();
+    delete process.env.OBS_VERBOSE;
+  });
+
   it('env key still authenticates even after clearApiKey (logout must warn, not silently fail)', () => {
     mockedFs.existsSync.mockReturnValue(false);
     process.env.OBS_API_KEY = 'env-secret';

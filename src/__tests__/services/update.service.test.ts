@@ -8,7 +8,7 @@ vi.mock('axios', () => ({
 import axios from 'axios';
 const axiosGetMock = axios.get as unknown as ReturnType<typeof vi.fn>;
 
-const stubOutput = () => ({}) as unknown as IOutputService;
+const stubOutput = () => ({ warning: vi.fn() }) as unknown as IOutputService;
 
 function loggedLines(): string {
   return (console.log as Mock).mock.calls.map((call) => String(call[0])).join('\n');
@@ -25,6 +25,7 @@ describe('UpdateService.checkForUpdates', () => {
     delete process.env.OBS_SKIP_UPDATE_CHECK;
     delete process.env.npm_config_user_agent;
     delete process.env.npm_execpath;
+    delete process.env.OBS_VERBOSE;
   });
 
   afterEach(() => {
@@ -102,10 +103,31 @@ describe('UpdateService.checkForUpdates', () => {
     expect(console.log).not.toHaveBeenCalled();
   });
 
-  it('silently swallows a failed registry request', async () => {
+  it('never disrupts the workflow on a failed registry request', async () => {
     axiosGetMock.mockRejectedValue(new Error('network down'));
     const service = new UpdateService('1.0.0');
     await expect(service.checkForUpdates(stubOutput())).resolves.toBeUndefined();
     expect(console.log).not.toHaveBeenCalled();
+  });
+
+  it('warns to stderr about a failed registry request under OBS_VERBOSE', async () => {
+    process.env.OBS_VERBOSE = 'true';
+    axiosGetMock.mockRejectedValue(new Error('network down'));
+    const service = new UpdateService('1.0.0');
+    const output = stubOutput();
+
+    await service.checkForUpdates(output);
+
+    expect(output.warning).toHaveBeenCalledWith(expect.stringContaining('network down'));
+  });
+
+  it('stays silent about a failed registry request when OBS_VERBOSE is unset', async () => {
+    axiosGetMock.mockRejectedValue(new Error('network down'));
+    const service = new UpdateService('1.0.0');
+    const output = stubOutput();
+
+    await service.checkForUpdates(output);
+
+    expect(output.warning).not.toHaveBeenCalled();
   });
 });

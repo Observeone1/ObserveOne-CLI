@@ -12,11 +12,93 @@ interface SuiteJson {
   tests: Array<{ id: string; name: string; file: string }>;
 }
 
+interface LocatedSuite {
+  suiteJson: SuiteJson;
+  folderPath: string;
+}
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/g, '-')
     .replaceAll(/^-|-$/g, '');
+}
+
+/** Search baseDir's immediate subfolders for a suite.json whose id matches. */
+function findSuiteByScan(baseDir: string, id: string): LocatedSuite | null {
+  const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const candidate = path.join(baseDir, entry.name, 'suite.json');
+    if (!fs.existsSync(candidate)) continue;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8')) as SuiteJson;
+      if (parsed.id === id) {
+        return { suiteJson: parsed, folderPath: path.join(baseDir, entry.name) };
+      }
+    } catch {
+      // skip malformed suite.json
+    }
+  }
+  return null;
+}
+
+/** Fallback: fetch the suite name from the API to build the expected pulled-folder path directly. */
+async function findSuiteByExpectedPath(
+  apiClient: ApiClient,
+  baseDir: string,
+  id: string
+): Promise<LocatedSuite | null> {
+  try {
+    const suite = await apiClient.getSuite(id);
+    const folderName = `${slugify(suite.suite_name)}-${suite.id}`;
+    const expectedPath = path.join(baseDir, folderName);
+    const jsonPath = path.join(expectedPath, 'suite.json');
+    if (fs.existsSync(jsonPath)) {
+      const suiteJson = JSON.parse(fs.readFileSync(jsonPath, 'utf8')) as SuiteJson;
+      return { suiteJson, folderPath: expectedPath };
+    }
+  } catch {
+    // ignore — caller reports "not found" below
+  }
+  return null;
+}
+
+async function locateSuite(
+  apiClient: ApiClient,
+  baseDir: string,
+  id: string
+): Promise<LocatedSuite | null> {
+  return findSuiteByScan(baseDir, id) ?? (await findSuiteByExpectedPath(apiClient, baseDir, id));
+}
+
+/** Push each test's local file content back, skipping any that vanished locally. */
+async function pushTestFiles(
+  apiClient: ApiClient,
+  folderPath: string,
+  tests: SuiteJson['tests']
+): Promise<{ updated: number; skipped: number }> {
+  let updated = 0;
+  let skipped = 0;
+
+  for (const t of tests) {
+    const filePath = path.join(folderPath, t.file);
+    if (!fs.existsSync(filePath)) {
+      console.warn(chalk.yellow(`  ⚠ Skipping "${t.name}" — file not found: ${t.file}`));
+      skipped++;
+      continue;
+    }
+    const code = fs.readFileSync(filePath, 'utf8');
+    await apiClient.updateTestScript(t.id, code);
+    updated++;
+  }
+
+  return { updated, skipped };
+}
+
+function testsWord(count: number): string {
+  return count === 1 ? 'test' : 'tests';
 }
 
 export function createSuitePushCommand(
@@ -30,78 +112,31 @@ export function createSuitePushCommand(
     .option('--from <dir>', 'Base directory containing pulled suites', './suites')
     .action(async (id: string, options: { from: string }) => {
       try {
-        // Locate the suite folder — find by suite.json id field rather than parsing folder name
         const baseDir = path.resolve(options.from);
         if (!fs.existsSync(baseDir)) {
           console.error(chalk.red(`❌ Directory not found: ${baseDir}`));
           process.exit(1);
         }
 
-        // Search for a suite.json with matching id
-        const entries = fs.readdirSync(baseDir, { withFileTypes: true });
-        let suiteJson: SuiteJson | null = null;
-        let folderPath = '';
-
-        for (const entry of entries) {
-          if (!entry.isDirectory()) continue;
-          const candidate = path.join(baseDir, entry.name, 'suite.json');
-          if (!fs.existsSync(candidate)) continue;
-          try {
-            const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8')) as SuiteJson;
-            if (parsed.id === id) {
-              suiteJson = parsed;
-              folderPath = path.join(baseDir, entry.name);
-              break;
-            }
-          } catch {
-            // skip malformed suite.json
-          }
-        }
-
-        // Fallback: check the expected folder name directly
-        if (!suiteJson) {
-          // We don't have the suite name here, so attempt to fetch it to build the expected path
-          try {
-            const suite = await apiClient.getSuite(id);
-            const folderName = `${slugify(suite.suite_name)}-${suite.id}`;
-            const expectedPath = path.join(baseDir, folderName);
-            const jsonPath = path.join(expectedPath, 'suite.json');
-            if (fs.existsSync(jsonPath)) {
-              suiteJson = JSON.parse(fs.readFileSync(jsonPath, 'utf8')) as SuiteJson;
-              folderPath = expectedPath;
-            }
-          } catch {
-            // ignore — will fail below
-          }
-        }
-
-        if (!suiteJson || !folderPath) {
+        const located = await locateSuite(apiClient, baseDir, id);
+        if (!located) {
+          const pullHint = `obs suite pull ${id}`;
+          const pullHintColored = chalk.cyan(pullHint);
           console.error(
             chalk.red(`❌ No pulled suite found for id ${id} in ${baseDir}`) +
-              `\n  Run ${chalk.cyan(`obs suite pull ${id}`)} first.`
+              `\n  Run ${pullHintColored} first.`
           );
           process.exit(1);
         }
 
+        const { suiteJson, folderPath } = located;
         const { tests, name: suiteName } = suiteJson;
-        let updated = 0;
-        let skipped = 0;
+        const { updated, skipped } = await pushTestFiles(apiClient, folderPath, tests);
 
-        for (const t of tests) {
-          const filePath = path.join(folderPath, t.file);
-          if (!fs.existsSync(filePath)) {
-            console.warn(chalk.yellow(`  ⚠ Skipping "${t.name}" — file not found: ${t.file}`));
-            skipped++;
-            continue;
-          }
-          const code = fs.readFileSync(filePath, 'utf8');
-          await apiClient.updateTestScript(t.id, code);
-          updated++;
-        }
-
+        const suiteNameColored = chalk.bold(`"${suiteName}"`);
         console.log(
           chalk.green('✔') +
-            ` Pushed ${chalk.bold(`"${suiteName}"`)} — ${updated} test${updated !== 1 ? 's' : ''} updated` +
+            ` Pushed ${suiteNameColored} — ${updated} ${testsWord(updated)} updated` +
             (skipped > 0 ? chalk.yellow(` (${skipped} skipped)`) : '')
         );
       } catch (err: unknown) {

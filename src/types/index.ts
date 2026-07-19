@@ -97,10 +97,12 @@ export interface UdpMonitor extends BaseProtocolMonitor {
   expect_response: boolean;
 }
 
+export type DbProtocol = 'postgres' | 'mysql' | 'redis';
+
 export interface DbMonitor extends BaseProtocolMonitor {
   host: string;
   port: number;
-  protocol: 'postgres' | 'mysql' | 'redis';
+  protocol: DbProtocol;
   tls: boolean;
 }
 

@@ -14,7 +14,7 @@ export class UpdateService {
    * Check for updates on npm and notify the user if a newer version exists.
    * This is a non-blocking background check.
    */
-  async checkForUpdates(_outputService: IOutputService): Promise<void> {
+  async checkForUpdates(outputService: IOutputService): Promise<void> {
     // Skip update check in JSON mode or if disabled via environment variable
     if (process.env.OBS_JSON_OUTPUT === 'true' || process.env.OBS_SKIP_UPDATE_CHECK === 'true') {
       return;
@@ -62,8 +62,12 @@ export class UpdateService {
         console.log(renderLine(line2));
         console.log(border(`└${'─'.repeat(contentWidth + 4)}┘\n`));
       }
-    } catch (_error: unknown) {
-      // Silently fail to avoid disrupting the user's workflow
+    } catch (error: unknown) {
+      // Never disrupt the user's workflow over a failed update check, but
+      // surface why under OBS_VERBOSE so it's diagnosable.
+      if (process.env.OBS_VERBOSE === 'true') {
+        outputService.warning(`Update check failed: ${(error as Error).message}`);
+      }
     }
   }
 
