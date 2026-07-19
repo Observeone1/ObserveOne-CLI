@@ -6,8 +6,12 @@ import { join } from 'node:path';
 try {
   const dotenv = await import('dotenv');
   dotenv.config({ path: join(process.cwd(), '.env') });
-} catch (_e) {
-  // dotenv might not be available in all contexts, that's ok
+} catch (e) {
+  // dotenv might not be available in all contexts, that's ok — but surface it
+  // under a debug flag so a genuinely broken .env load isn't silently invisible.
+  if (process.env.OBS_E2E_DEBUG === 'true') {
+    console.warn(`[test-runner] dotenv load skipped: ${(e as Error).message}`);
+  }
 }
 
 export interface CLIResult {
@@ -129,7 +133,7 @@ export function assert(condition: boolean, message: string): void {
 export function assertSuccess(result: CLIResult, message: string): void {
   if (result.exitCode !== 0) {
     throw new Error(
-      `${message}\\nExpected exit code 0, got ${result.exitCode}\\nStderr: ${result.stderr}`
+      String.raw`${message}\nExpected exit code 0, got ${result.exitCode}\nStderr: ${result.stderr}`
     );
   }
 }
@@ -139,7 +143,9 @@ export function assertSuccess(result: CLIResult, message: string): void {
  */
 export function assertFailure(result: CLIResult, message: string): void {
   if (result.exitCode === 0) {
-    throw new Error(`${message}\\nExpected non-zero exit code, got 0\\nStdout: ${result.stdout}`);
+    throw new Error(
+      String.raw`${message}\nExpected non-zero exit code, got 0\nStdout: ${result.stdout}`
+    );
   }
 }
 
@@ -149,7 +155,7 @@ export function assertFailure(result: CLIResult, message: string): void {
 export function assertContains(output: string, text: string, message?: string): void {
   if (!output.includes(text)) {
     throw new Error(
-      `${message || 'Output should contain text'}\\nExpected to find: "${text}"\\nGot: ${output}`
+      String.raw`${message || 'Output should contain text'}\nExpected to find: "${text}"\nGot: ${output}`
     );
   }
 }
@@ -169,8 +175,10 @@ export function assertJSON(output: string, message?: string): void {
 
     const jsonStr = output.substring(start, end + 1);
     JSON.parse(jsonStr);
-  } catch (_error) {
-    throw new Error(`${message || 'Output should be valid JSON'}\\nGot: ${output}`);
+  } catch (error) {
+    throw new Error(String.raw`${message || 'Output should be valid JSON'}\nGot: ${output}`, {
+      cause: error,
+    });
   }
 }
 

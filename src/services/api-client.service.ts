@@ -153,7 +153,12 @@ export class ApiClient implements IApiClient {
       const response = await this.client.get<{ valid: boolean }>('/cli/auth/verify');
 
       return response.data.valid === true;
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
+      if (process.env.OBS_VERBOSE === 'true') {
+        console.error(
+          `  [ApiClient] API key validation request failed: ${(error as Error).message}`
+        );
+      }
       return false;
     } finally {
       if (previousHeader === undefined) {
@@ -169,7 +174,12 @@ export class ApiClient implements IApiClient {
       if (!this.apiKey) return false;
       const response = await this.client.get<{ valid: boolean }>('/cli/auth/verify');
       return response.data.valid === true;
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
+      if (process.env.OBS_VERBOSE === 'true') {
+        console.error(
+          `  [ApiClient] Session token validation request failed: ${(error as Error).message}`
+        );
+      }
       return false;
     }
   }

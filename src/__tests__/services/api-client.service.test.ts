@@ -237,6 +237,23 @@ describe('ApiClient', () => {
       expect(result).toBe(false);
       expect(mockClient.defaults.headers['x-obs1-cli']).toBe('existing-session-key');
     });
+
+    it('logs the failure reason to stderr under OBS_VERBOSE instead of swallowing it silently', async () => {
+      process.env.OBS_VERBOSE = 'true';
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const mockClient = (
+        apiClient as unknown as {
+          client: { defaults: { headers: Record<string, unknown> }; get: ReturnType<typeof vi.fn> };
+        }
+      ).client;
+      mockClient.get = vi.fn().mockRejectedValue(new Error('network down'));
+
+      await apiClient.validateApiKey('candidate-key');
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('network down'));
+      errorSpy.mockRestore();
+      delete process.env.OBS_VERBOSE;
+    });
   });
 
   describe('validateToken (session key check)', () => {
@@ -265,6 +282,21 @@ describe('ApiClient', () => {
         .mockRejectedValue({ response: { status: 401 } });
 
       expect(await apiClient.validateToken()).toBe(false);
+    });
+
+    it('logs the failure reason to stderr under OBS_VERBOSE instead of swallowing it silently', async () => {
+      process.env.OBS_VERBOSE = 'true';
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      (apiClient as unknown as { apiKey: string | undefined }).apiKey = 'a-key';
+      (apiClient as unknown as { client: AxiosInstance }).client.get = vi
+        .fn()
+        .mockRejectedValue(new Error('expired token'));
+
+      await apiClient.validateToken();
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('expired token'));
+      errorSpy.mockRestore();
+      delete process.env.OBS_VERBOSE;
     });
   });
 

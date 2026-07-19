@@ -56,47 +56,45 @@ function addCheckOptions(cmd: Command): void {
   }
 }
 
-/**
- * Build assertions from short flags, --assertion-file, and --assertion
- */
-function buildAssertions(
-  options: Record<string, unknown>
-): NonNullable<ApiCheck['assertions']> | undefined {
-  const assertions: NonNullable<ApiCheck['assertions']> = [];
+type Assertion = NonNullable<ApiCheck['assertions']>[number];
 
-  // From --assertion-file
+/** Assertions loaded from --assertion-file (a JSON array on disk). */
+function assertionsFromFile(options: Record<string, unknown>): Assertion[] {
   const assertionFile = options['assertion-file'] as string | undefined;
-  if (assertionFile) {
-    try {
-      const fileContent = readFileSync(assertionFile, 'utf-8');
-      const fileAssertions = JSON.parse(fileContent);
-      if (Array.isArray(fileAssertions)) {
-        assertions.push(...fileAssertions);
-      }
-    } catch (err) {
-      throw new Error(`Failed to read assertion-file: ${err}`);
-    }
-  }
+  if (!assertionFile) return [];
 
-  // From --assertion (raw JSON)
-  const rawAssertions = parseJsonArrayOption<NonNullable<ApiCheck['assertions']>[number]>(
+  try {
+    const fileContent = readFileSync(assertionFile, 'utf-8');
+    const fileAssertions = JSON.parse(fileContent);
+    return Array.isArray(fileAssertions) ? fileAssertions : [];
+  } catch (err) {
+    throw new Error(`Failed to read assertion-file: ${err}`);
+  }
+}
+
+/** Assertions passed as raw --assertion JSON objects. */
+function assertionsFromRawJson(options: Record<string, unknown>): Assertion[] {
+  const rawAssertions = parseJsonArrayOption<Assertion>(
     options.assertion as string[] | string | undefined,
     'assertion'
   );
-  if (rawAssertions) assertions.push(...rawAssertions);
+  return rawAssertions ?? [];
+}
 
-  // From short flags
-  const statusCode = options['status-code'] as string | undefined;
-  if (statusCode) {
-    assertions.push({ type: 'status_code', operator: 'equals', value: statusCode });
-  }
+/** Assertions expressed via the short convenience flags (--status-code, --json-path, ...). */
+function assertionsFromShortFlags(options: Record<string, unknown>): Assertion[] {
+  const assertions: Assertion[] = [];
+  const flag = (key: string): string | undefined => options[key] as string | undefined;
 
-  const statusCodeNot = options['status-code-not'] as string | undefined;
+  const statusCode = flag('status-code');
+  if (statusCode) assertions.push({ type: 'status_code', operator: 'equals', value: statusCode });
+
+  const statusCodeNot = flag('status-code-not');
   if (statusCodeNot) {
     assertions.push({ type: 'status_code', operator: 'not_equals', value: statusCodeNot });
   }
 
-  const responseTimeUnder = options['response-time-under'] as string | undefined;
+  const responseTimeUnder = flag('response-time-under');
   if (responseTimeUnder) {
     assertions.push({
       type: 'response_time',
@@ -105,7 +103,7 @@ function buildAssertions(
     });
   }
 
-  const responseTimeOver = options['response-time-over'] as string | undefined;
+  const responseTimeOver = flag('response-time-over');
   if (responseTimeOver) {
     assertions.push({
       type: 'response_time',
@@ -114,8 +112,8 @@ function buildAssertions(
     });
   }
 
-  const jsonPath = options['json-path'] as string | undefined;
-  const jsonPathValue = options['json-path-value'] as string | undefined;
+  const jsonPath = flag('json-path');
+  const jsonPathValue = flag('json-path-value');
   if (jsonPath && jsonPathValue) {
     assertions.push({
       type: 'json_path',
@@ -127,25 +125,40 @@ function buildAssertions(
     assertions.push({ type: 'json_path', operator: 'exists', path: jsonPath, value: '' });
   }
 
-  const textContains = options['text-contains'] as string | undefined;
+  const textContains = flag('text-contains');
   if (textContains) {
     assertions.push({ type: 'text_contains', operator: 'contains', value: textContains });
   }
 
-  const textNotContains = options['text-not-contains'] as string | undefined;
+  const textNotContains = flag('text-not-contains');
   if (textNotContains) {
     assertions.push({ type: 'text_contains', operator: 'not_contains', value: textNotContains });
   }
 
-  const headerExists = options['header-exists'] as string | undefined;
+  const headerExists = flag('header-exists');
   if (headerExists) {
     assertions.push({ type: 'header', operator: 'exists', path: headerExists, value: '' });
   }
 
-  const regexMatch = options['regex-match'] as string | undefined;
+  const regexMatch = flag('regex-match');
   if (regexMatch) {
     assertions.push({ type: 'text_contains', operator: 'regex_match', value: regexMatch });
   }
+
+  return assertions;
+}
+
+/**
+ * Build assertions from short flags, --assertion-file, and --assertion
+ */
+function buildAssertions(
+  options: Record<string, unknown>
+): NonNullable<ApiCheck['assertions']> | undefined {
+  const assertions: Assertion[] = [
+    ...assertionsFromFile(options),
+    ...assertionsFromRawJson(options),
+    ...assertionsFromShortFlags(options),
+  ];
 
   return assertions.length > 0 ? assertions : undefined;
 }

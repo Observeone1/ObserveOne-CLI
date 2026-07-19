@@ -250,7 +250,7 @@ export async function testApiCheckFieldParity() {
       '--assertion',
       '{"type":"status_code","operator":"equals","value":"200"}',
       '--assertion',
-      '{"type":"json_path","operator":"equals","path":"$.status","value":"\\"ok\\""}',
+      String.raw`{"type":"json_path","operator":"equals","path":"$.status","value":"\"ok\""}`,
       '--json',
     ]);
     assertSuccess(createResult, 'API check parity create failed');

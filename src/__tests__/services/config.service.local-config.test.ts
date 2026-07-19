@@ -106,4 +106,29 @@ describe('ConfigService local .obs.config.json handling', () => {
     expect(service.getProjectConfig()).toEqual({});
     expect(mockedFs.readFileSync).not.toHaveBeenCalled();
   });
+
+  it('warns to stderr about a corrupt local config file when OBS_VERBOSE is set', () => {
+    process.env.OBS_VERBOSE = 'true';
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.readFileSync.mockReturnValue('{ this is not valid JSON');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    newService();
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Ignoring invalid local config'));
+    errorSpy.mockRestore();
+    delete process.env.OBS_VERBOSE;
+  });
+
+  it('stays silent about a corrupt local config file when OBS_VERBOSE is unset', () => {
+    delete process.env.OBS_VERBOSE;
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.readFileSync.mockReturnValue('{ this is not valid JSON');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    newService();
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });

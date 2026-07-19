@@ -36,7 +36,7 @@ export async function testSuiteHeal() {
   const parsed = JSON.parse(result.stdout);
   const heals = parsed.heals || parsed.data?.heals;
   if (!Array.isArray(heals)) {
-    throw new Error(`Expected heals array in response, got: ${result.stdout}`);
+    throw new TypeError(`Expected heals array in response, got: ${result.stdout}`);
   }
   console.log(`      - Heal returned ${heals.length} heal(s).`);
 }

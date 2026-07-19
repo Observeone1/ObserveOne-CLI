@@ -63,8 +63,12 @@ export class ConfigService implements IConfigService {
       try {
         const rawData = readFileSync(this.localConfigPath, 'utf8');
         this.localConfig = JSON.parse(rawData);
-      } catch (_error) {
-        // Silently fail or log if invalid JSON
+      } catch (error) {
+        if (process.env.OBS_VERBOSE === 'true') {
+          console.error(
+            `  [Config] Ignoring invalid local config at ${this.localConfigPath}: ${(error as Error).message}`
+          );
+        }
       }
     }
   }
@@ -168,8 +172,13 @@ export class ConfigService implements IConfigService {
       if (parsed.apiKey === undefined) return;
       delete parsed.apiKey;
       writeFileSync(this.localConfigPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8');
-    } catch (_error) {
+    } catch (error) {
       // Best effort — never throw out of logout because of a local-file issue.
+      if (process.env.OBS_VERBOSE === 'true') {
+        console.error(
+          `  [Config] Failed to clear API key from local config: ${(error as Error).message}`
+        );
+      }
     }
   }
 
@@ -179,10 +188,9 @@ export class ConfigService implements IConfigService {
 
   getProjectConfig(): ProjectConfig {
     // Merge local project config with global
-    return {
-      ...this.config.get('project'),
-      ...this.localConfig.project,
-    };
+    const merged: ProjectConfig = {};
+    Object.assign(merged, this.config.get('project'), this.localConfig.project);
+    return merged;
   }
 
   setProjectConfig(projectConfig: ProjectConfig): void {

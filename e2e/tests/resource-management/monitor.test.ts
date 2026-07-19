@@ -350,7 +350,7 @@ export async function testMonitorFieldParity() {
     assertSuccess(getAfterSwap, 'Monitor fetch after channel swap failed');
     const monitorAfterSwap = (JSON.parse(getAfterSwap.stdout).data ||
       JSON.parse(getAfterSwap.stdout)) as { channels?: Array<{ id: number }> };
-    const swapIds = (monitorAfterSwap.channels ?? []).map((c) => c.id).sort();
+    const swapIds = (monitorAfterSwap.channels ?? []).map((c) => c.id).sort((a, b) => a - b);
     if (swapIds.length !== 1 || swapIds[0] !== channelId2) {
       throw new Error(
         `Expected only channel ${channelId2} after swap update, got ${JSON.stringify(swapIds)}`
@@ -376,8 +376,8 @@ export async function testMonitorFieldParity() {
     assertSuccess(getAfterMulti, 'Monitor fetch after multi-channel update failed');
     const monitorAfterMulti = (JSON.parse(getAfterMulti.stdout).data ||
       JSON.parse(getAfterMulti.stdout)) as { channels?: Array<{ id: number }> };
-    const multiIds = (monitorAfterMulti.channels ?? []).map((c) => c.id).sort();
-    const expected = [channelId, channelId2].sort();
+    const multiIds = (monitorAfterMulti.channels ?? []).map((c) => c.id).sort((a, b) => a - b);
+    const expected = [channelId, channelId2].sort((a, b) => a - b);
     if (multiIds.length !== 2 || multiIds[0] !== expected[0] || multiIds[1] !== expected[1]) {
       throw new Error(
         `Expected channels ${JSON.stringify(expected)} after repeatable update, got ${JSON.stringify(multiIds)}`

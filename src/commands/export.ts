@@ -23,6 +23,263 @@ interface ExportConfig {
   suites?: Array<Partial<Suite> & { tests?: Array<{ name: string; script: string }> }>;
 }
 
+// Helper: GET responses populate `channels` as full objects;
+// CREATE/UPDATE wire format expects `channel_ids` as numeric IDs.
+function extractChannelIds(r: {
+  channels?: Array<{ id: string }> | undefined;
+  channel_ids?: string[] | undefined;
+}): string[] | undefined {
+  if (Array.isArray(r.channels) && r.channels.length > 0) {
+    return r.channels.map((c) => c.id);
+  }
+  return r.channel_ids;
+}
+
+// Helper: GET responses include DB-owned fields (id, created_at,
+// api_check_id) on assertions; apply wire format takes only the
+// authored fields.
+function stripAssertionDbFields<T extends { type?: unknown }>(
+  assertions: T[] | undefined
+): Array<Pick<T, 'type'> & Record<string, unknown>> | undefined {
+  if (!Array.isArray(assertions) || assertions.length === 0) return undefined;
+  return assertions.map((a) => {
+    const { type, operator, path, value } = a as unknown as {
+      type: string;
+      operator: string;
+      path?: string | null;
+      value: string;
+    };
+    const authored: Record<string, unknown> = { type, operator, value };
+    if (path !== null && path !== undefined) authored.path = path;
+    return authored as Pick<T, 'type'> & Record<string, unknown>;
+  });
+}
+
+function mapMonitors(monitors: UrlMonitor[]): Partial<UrlMonitor>[] {
+  return monitors.map((m) => {
+    const extended = m as UrlMonitor & {
+      channels?: Array<{ id: string }>;
+      cron_expression?: string;
+    };
+    const channel_ids = extractChannelIds(extended);
+    return {
+      // Bundle-local surrogate key: lets status_pages[].monitors[].monitor_id
+      // resolve to this monitor on import. Not a real id in any target.
+      ...(m.id !== undefined && { id: m.id }),
+      name: m.name,
+      ...(m.description !== undefined && { description: m.description }),
+      url: m.url,
+      interval: m.interval || extended.cron_expression,
+      timeout_ms: m.timeout_ms,
+      alert_on_failure: m.alert_on_failure,
+      ...(channel_ids !== undefined && channel_ids.length > 0 && { channel_ids }),
+    };
+  }) as Partial<UrlMonitor>[];
+}
+
+function mapApiChecks(apiChecks: ApiCheck[]): Partial<ApiCheck>[] {
+  return apiChecks.map((c) => {
+    const extended = c as ApiCheck & {
+      channels?: Array<{ id: string }>;
+      interval?: string;
+    };
+    const channel_ids = extractChannelIds(extended);
+    const assertions = stripAssertionDbFields(c.assertions);
+    return {
+      // Bundle-local surrogate key (see monitors): resolves
+      // status_pages[].monitors[].monitor_id on import.
+      ...(c.id !== undefined && { id: c.id }),
+      name: c.name,
+      ...(c.description !== undefined && { description: c.description }),
+      url: c.url,
+      method: c.method,
+      ...(c.headers !== undefined && { headers: c.headers }),
+      ...(c.body !== undefined && c.body !== null && { body: c.body }),
+      timeout_ms: c.timeout_ms,
+      ...(c.cron_expression !== undefined || extended.interval !== undefined
+        ? { cron_expression: c.cron_expression || extended.interval }
+        : {}),
+      alert_on_failure: c.alert_on_failure,
+      ...(channel_ids !== undefined && channel_ids.length > 0 && { channel_ids }),
+      ...(assertions !== undefined && { assertions }),
+    } as Partial<ApiCheck>;
+  });
+}
+
+// Heartbeats. ping_key rides along so the self-host import can re-use it as
+// the heartbeat token — preserves the public ping URL across migration, so
+// services that POST to /heartbeat/:token don't silently stop working.
+function mapHeartbeats(heartbeats: Heartbeat[]): Partial<Heartbeat>[] {
+  return heartbeats.map((h) => ({
+    name: h.name,
+    ...(h.description !== undefined && { description: h.description }),
+    period: h.period,
+    grace_period: h.grace_period,
+    ping_key: h.ping_key,
+    alert_on_failure: h.alert_on_failure,
+  }));
+}
+
+function mapAlertChannels(alertChannels: AlertChannel[]): Partial<AlertChannel>[] {
+  return alertChannels.map((c) => ({
+    // Bundle-local surrogate key: lets monitors/api_checks `channel_ids`
+    // resolve to this channel on import. Not a real id in any target.
+    ...(c.id !== undefined && { id: c.id }),
+    name: c.name,
+    type: c.type,
+    config: c.config,
+  }));
+}
+
+function mapStatusPages(
+  statusPages: StatusPage[]
+): Array<Partial<StatusPage> & { monitors?: unknown[] }> {
+  return statusPages.map((sp) => {
+    const extended = sp as StatusPage & {
+      monitors?: Array<{
+        monitor_type?: string;
+        monitor_id?: number;
+        display_name?: string;
+        display_order?: number;
+      }>;
+    };
+    const monitorEntries =
+      Array.isArray(extended.monitors) && extended.monitors.length > 0
+        ? extended.monitors.map((m) => ({
+            monitor_type: m.monitor_type,
+            monitor_id: m.monitor_id,
+            display_name: m.display_name,
+            ...(m.display_order !== undefined && { display_order: m.display_order }),
+          }))
+        : undefined;
+    return {
+      slug: sp.slug,
+      name: sp.name,
+      ...(sp.description !== undefined && { description: sp.description }),
+      ...(sp.logo_url !== undefined && { logo_url: sp.logo_url }),
+      ...(sp.custom_domain !== undefined && { custom_domain: sp.custom_domain }),
+      is_public: sp.is_public,
+      show_incident_history: sp.show_incident_history,
+      show_uptime_percentage: sp.show_uptime_percentage,
+      ...(sp.theme_primary_color !== undefined && {
+        theme_primary_color: sp.theme_primary_color,
+      }),
+      ...(sp.theme_background_color !== undefined && {
+        theme_background_color: sp.theme_background_color,
+      }),
+      ...(monitorEntries !== undefined && { monitors: monitorEntries }),
+    };
+  });
+}
+
+// Incidents are runtime state, not config; included as a backup/audit
+// artifact. `obs apply` does not currently re-create incidents.
+function mapIncidents(incidents: Incident[]): Partial<Incident>[] {
+  return incidents.map((i) => ({
+    title: i.title,
+    ...(i.description !== undefined && { description: i.description }),
+    status: i.status,
+    priority: i.priority,
+    ...(i.assigned_to !== undefined && i.assigned_to !== null && { assigned_to: i.assigned_to }),
+    ...(i.team_id !== undefined && { team_id: i.team_id }),
+  }));
+}
+
+async function fetchSuiteScripts(
+  apiClient: IApiClient,
+  suites: Suite[]
+): Promise<Record<string, Array<{ name: string; script: string }>>> {
+  const scriptsBySuiteId: Record<string, Array<{ name: string; script: string }>> = {};
+  await Promise.all(
+    suites
+      .filter((s) => s.test_count > 0)
+      .map(async (s) => {
+        try {
+          const resp = await apiClient.getSuiteScripts(s.id);
+          scriptsBySuiteId[s.id] = resp.tests.map((t) => ({ name: t.name, script: t.code }));
+        } catch {
+          scriptsBySuiteId[s.id] = [];
+        }
+      })
+  );
+  return scriptsBySuiteId;
+}
+
+async function mapSuites(
+  apiClient: IApiClient,
+  suites: Suite[],
+  includeScripts: boolean
+): Promise<Array<Partial<Suite> & { tests?: Array<{ name: string; script: string }> }>> {
+  const scriptsBySuiteId = includeScripts ? await fetchSuiteScripts(apiClient, suites) : {};
+  return suites.map((s) => ({
+    suite_name: s.suite_name,
+    target_url: s.target_url,
+    cron_expression: s.cron_expression,
+    schedule_active: s.schedule_active,
+    max_tests: s.max_tests,
+    is_public: s.is_public,
+    allow_form_submit: s.allow_form_submit,
+    ...(Array.isArray(s.secret_keys) && s.secret_keys.length > 0 && { secret_keys: s.secret_keys }),
+    ...(includeScripts && scriptsBySuiteId[s.id]?.length && { tests: scriptsBySuiteId[s.id] }),
+  }));
+}
+
+/** Fetch list endpoints, then hydrate per-resource where the list omits fields (see callers). */
+async function fetchResourceLists(apiClient: IApiClient) {
+  return Promise.all([
+    apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
+    apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
+    apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
+    apiClient.getAlertChannels().catch(() => [] as AlertChannel[]),
+    apiClient.getStatusPages().catch(() => [] as StatusPage[]),
+    apiClient.getIncidents().catch(() => [] as Incident[]),
+    apiClient.listSuites().catch(() => [] as Suite[]),
+  ]);
+}
+
+async function hydrateStatusPages(
+  apiClient: IApiClient,
+  statusPageList: StatusPage[]
+): Promise<StatusPage[]> {
+  return Promise.all(
+    statusPageList.map((sp) =>
+      apiClient
+        .getStatusPage(sp.id)
+        .then((detail) => ({ ...sp, ...(detail as Partial<StatusPage>) }))
+        .catch(() => sp)
+    )
+  );
+}
+
+async function hydrateMonitorsAndChecks(
+  apiClient: IApiClient,
+  monitorList: UrlMonitor[],
+  apiCheckList: ApiCheck[]
+): Promise<[UrlMonitor[], ApiCheck[]]> {
+  return Promise.all([
+    Promise.all(
+      monitorList.map((m) =>
+        apiClient
+          .getUrlMonitor(m.id)
+          .then((detail) => ({ ...m, ...(detail as Partial<UrlMonitor>) }))
+          .catch(() => m)
+      )
+    ),
+    Promise.all(
+      apiCheckList.map((c) =>
+        apiClient
+          .getApiCheck(c.id)
+          .then((resp) => {
+            // getApiCheck returns { apiCheck, ...stats }; merge the nested shape.
+            const nested = (resp as { apiCheck?: ApiCheck }).apiCheck;
+            return nested ? { ...c, ...nested } : { ...c, ...(resp as Partial<ApiCheck>) };
+          })
+          .catch(() => c)
+      )
+    ),
+  ]);
+}
+
 export function createExportCommand(
   configService: IConfigService,
   apiClient: IApiClient,
@@ -76,252 +333,26 @@ Examples:
           statusPageList,
           incidents,
           suites,
-        ] = await Promise.all([
-          apiClient.getUrlMonitors().catch(() => [] as UrlMonitor[]),
-          apiClient.getApiChecks().catch(() => [] as ApiCheck[]),
-          apiClient.getHeartbeats().catch(() => [] as Heartbeat[]),
-          apiClient.getAlertChannels().catch(() => [] as AlertChannel[]),
-          apiClient.getStatusPages().catch(() => [] as StatusPage[]),
-          apiClient.getIncidents().catch(() => [] as Incident[]),
-          apiClient.listSuites().catch(() => [] as Suite[]),
-        ]);
+        ] = await fetchResourceLists(apiClient);
 
         // Status pages need hydration: list endpoint omits attached monitors.
-        const statusPages = await Promise.all(
-          statusPageList.map((sp) =>
-            apiClient
-              .getStatusPage(sp.id)
-              .then((detail) => ({ ...sp, ...(detail as Partial<StatusPage>) }))
-              .catch(() => sp)
-          )
-        );
+        const statusPages = await hydrateStatusPages(apiClient, statusPageList);
 
-        const [monitors, apiChecks] = await Promise.all([
-          Promise.all(
-            monitorList.map((m) =>
-              apiClient
-                .getUrlMonitor(m.id)
-                .then((detail) => ({ ...m, ...(detail as Partial<UrlMonitor>) }))
-                .catch(() => m)
-            )
-          ),
-          Promise.all(
-            apiCheckList.map((c) =>
-              apiClient
-                .getApiCheck(c.id)
-                .then((resp) => {
-                  // getApiCheck returns { apiCheck, ...stats }; merge the nested shape.
-                  const nested = (resp as { apiCheck?: ApiCheck }).apiCheck;
-                  return nested ? { ...c, ...nested } : { ...c, ...(resp as Partial<ApiCheck>) };
-                })
-                .catch(() => c)
-            )
-          ),
-        ]);
+        const [monitors, apiChecks] = await hydrateMonitorsAndChecks(
+          apiClient,
+          monitorList,
+          apiCheckList
+        );
 
         const config: ExportConfig = {};
 
-        // Helper: GET responses populate `channels` as full objects;
-        // CREATE/UPDATE wire format expects `channel_ids` as numeric IDs.
-        const extractChannelIds = (r: {
-          channels?: Array<{ id: string }> | undefined;
-          channel_ids?: string[] | undefined;
-        }): string[] | undefined => {
-          if (Array.isArray(r.channels) && r.channels.length > 0) {
-            return r.channels.map((c) => c.id);
-          }
-          return r.channel_ids;
-        };
-
-        // Helper: GET responses include DB-owned fields (id, created_at,
-        // api_check_id) on assertions; apply wire format takes only the
-        // authored fields.
-        const stripAssertionDbFields = <T extends { type?: unknown }>(
-          assertions: T[] | undefined
-        ): Array<Pick<T, 'type'> & Record<string, unknown>> | undefined => {
-          if (!Array.isArray(assertions) || assertions.length === 0) return undefined;
-          return assertions.map((a) => {
-            const { type, operator, path, value } = a as unknown as {
-              type: string;
-              operator: string;
-              path?: string | null;
-              value: string;
-            };
-            const authored: Record<string, unknown> = { type, operator, value };
-            if (path !== null && path !== undefined) authored.path = path;
-            return authored as Pick<T, 'type'> & Record<string, unknown>;
-          });
-        };
-
-        // 1. Map Monitors
-        if (monitors.length > 0) {
-          config.monitors = monitors.map((m) => {
-            const extended = m as UrlMonitor & {
-              channels?: Array<{ id: string }>;
-              cron_expression?: string;
-            };
-            const channel_ids = extractChannelIds(extended);
-            return {
-              // Bundle-local surrogate key: lets status_pages[].monitors[].monitor_id
-              // resolve to this monitor on import. Not a real id in any target.
-              ...(m.id !== undefined && { id: m.id }),
-              name: m.name,
-              ...(m.description !== undefined && { description: m.description }),
-              url: m.url,
-              interval: m.interval || extended.cron_expression,
-              timeout_ms: m.timeout_ms,
-              alert_on_failure: m.alert_on_failure,
-              ...(channel_ids !== undefined && channel_ids.length > 0 && { channel_ids }),
-            };
-          }) as Partial<UrlMonitor>[];
-        }
-
-        // 2. Map API Checks
-        if (apiChecks.length > 0) {
-          config.api_checks = apiChecks.map((c) => {
-            const extended = c as ApiCheck & {
-              channels?: Array<{ id: string }>;
-              interval?: string;
-            };
-            const channel_ids = extractChannelIds(extended);
-            const assertions = stripAssertionDbFields(c.assertions);
-            return {
-              // Bundle-local surrogate key (see monitors): resolves
-              // status_pages[].monitors[].monitor_id on import.
-              ...(c.id !== undefined && { id: c.id }),
-              name: c.name,
-              ...(c.description !== undefined && { description: c.description }),
-              url: c.url,
-              method: c.method,
-              ...(c.headers !== undefined && { headers: c.headers }),
-              ...(c.body !== undefined && c.body !== null && { body: c.body }),
-              timeout_ms: c.timeout_ms,
-              ...(c.cron_expression !== undefined || extended.interval !== undefined
-                ? { cron_expression: c.cron_expression || extended.interval }
-                : {}),
-              alert_on_failure: c.alert_on_failure,
-              ...(channel_ids !== undefined && channel_ids.length > 0 && { channel_ids }),
-              ...(assertions !== undefined && { assertions }),
-            } as Partial<ApiCheck>;
-          });
-        }
-
-        // 3. Map Heartbeats. ping_key rides along so the self-host import
-        // can re-use it as the heartbeat token — preserves the public ping
-        // URL across migration, so services that POST to /heartbeat/:token
-        // don't silently stop working.
-        if (heartbeats.length > 0) {
-          config.heartbeats = heartbeats.map((h) => ({
-            name: h.name,
-            ...(h.description !== undefined && { description: h.description }),
-            period: h.period,
-            grace_period: h.grace_period,
-            ping_key: h.ping_key,
-            alert_on_failure: h.alert_on_failure,
-          }));
-        }
-
-        // 4. Map Alert Channels
-        if (alertChannels.length > 0) {
-          config.alert_channels = alertChannels.map((c) => ({
-            // Bundle-local surrogate key: lets monitors/api_checks `channel_ids`
-            // resolve to this channel on import. Not a real id in any target.
-            ...(c.id !== undefined && { id: c.id }),
-            name: c.name,
-            type: c.type,
-            config: c.config,
-          }));
-        }
-
-        // 5. Map Status Pages (with attached monitors)
-        if (statusPages.length > 0) {
-          config.status_pages = statusPages.map((sp) => {
-            const extended = sp as StatusPage & {
-              monitors?: Array<{
-                monitor_type?: string;
-                monitor_id?: number;
-                display_name?: string;
-                display_order?: number;
-              }>;
-            };
-            const monitorEntries =
-              Array.isArray(extended.monitors) && extended.monitors.length > 0
-                ? extended.monitors.map((m) => ({
-                    monitor_type: m.monitor_type,
-                    monitor_id: m.monitor_id,
-                    display_name: m.display_name,
-                    ...(m.display_order !== undefined && { display_order: m.display_order }),
-                  }))
-                : undefined;
-            return {
-              slug: sp.slug,
-              name: sp.name,
-              ...(sp.description !== undefined && { description: sp.description }),
-              ...(sp.logo_url !== undefined && { logo_url: sp.logo_url }),
-              ...(sp.custom_domain !== undefined && { custom_domain: sp.custom_domain }),
-              is_public: sp.is_public,
-              show_incident_history: sp.show_incident_history,
-              show_uptime_percentage: sp.show_uptime_percentage,
-              ...(sp.theme_primary_color !== undefined && {
-                theme_primary_color: sp.theme_primary_color,
-              }),
-              ...(sp.theme_background_color !== undefined && {
-                theme_background_color: sp.theme_background_color,
-              }),
-              ...(monitorEntries !== undefined && { monitors: monitorEntries }),
-            };
-          });
-        }
-
-        // 6. Map Incidents
-        // Incidents are runtime state, not config; included as a backup/audit
-        // artifact. `obs apply` does not currently re-create incidents.
-        if (incidents.length > 0) {
-          config.incidents = incidents.map((i) => ({
-            title: i.title,
-            ...(i.description !== undefined && { description: i.description }),
-            status: i.status,
-            priority: i.priority,
-            ...(i.assigned_to !== undefined &&
-              i.assigned_to !== null && { assigned_to: i.assigned_to }),
-            ...(i.team_id !== undefined && { team_id: i.team_id }),
-          }));
-        }
-
-        // 7. Map Suites
-        if (suites.length > 0) {
-          const scriptsBySuiteId: Record<string, Array<{ name: string; script: string }>> = {};
-          if (includeScripts) {
-            await Promise.all(
-              suites
-                .filter((s) => s.test_count > 0)
-                .map(async (s) => {
-                  try {
-                    const resp = await apiClient.getSuiteScripts(s.id);
-                    scriptsBySuiteId[s.id] = resp.tests.map((t) => ({
-                      name: t.name,
-                      script: t.code,
-                    }));
-                  } catch {
-                    scriptsBySuiteId[s.id] = [];
-                  }
-                })
-            );
-          }
-          config.suites = suites.map((s) => ({
-            suite_name: s.suite_name,
-            target_url: s.target_url,
-            cron_expression: s.cron_expression,
-            schedule_active: s.schedule_active,
-            max_tests: s.max_tests,
-            is_public: s.is_public,
-            allow_form_submit: s.allow_form_submit,
-            ...(Array.isArray(s.secret_keys) &&
-              s.secret_keys.length > 0 && { secret_keys: s.secret_keys }),
-            ...(includeScripts &&
-              scriptsBySuiteId[s.id]?.length && { tests: scriptsBySuiteId[s.id] }),
-          }));
-        }
+        if (monitors.length > 0) config.monitors = mapMonitors(monitors);
+        if (apiChecks.length > 0) config.api_checks = mapApiChecks(apiChecks);
+        if (heartbeats.length > 0) config.heartbeats = mapHeartbeats(heartbeats);
+        if (alertChannels.length > 0) config.alert_channels = mapAlertChannels(alertChannels);
+        if (statusPages.length > 0) config.status_pages = mapStatusPages(statusPages);
+        if (incidents.length > 0) config.incidents = mapIncidents(incidents);
+        if (suites.length > 0) config.suites = await mapSuites(apiClient, suites, includeScripts);
 
         // Write to file
         const targetFile = options.file as string;
