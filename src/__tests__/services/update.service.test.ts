@@ -16,6 +16,7 @@ function loggedLines(): string {
 
 describe('UpdateService.checkForUpdates', () => {
   const originalEnv = { ...process.env };
+  const originalArgv = process.argv;
 
   beforeEach(() => {
     axiosGetMock.mockReset();
@@ -31,6 +32,7 @@ describe('UpdateService.checkForUpdates', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.env = originalEnv;
+    process.argv = originalArgv;
   });
 
   it('skips the network check entirely when OBS_JSON_OUTPUT=true', async () => {
@@ -129,5 +131,36 @@ describe('UpdateService.checkForUpdates', () => {
     await service.checkForUpdates(output);
 
     expect(output.warning).not.toHaveBeenCalled();
+  });
+
+  // Package-manager detection fallbacks: with npm_config_user_agent absent,
+  // detectPackageManager falls back to npm_execpath, then to argv inspection,
+  // then defaults to npm. Table-driven so the near-identical arrange/act/assert
+  // lives in one place.
+  const expectDetectedCommand = async (fragment: string) => {
+    axiosGetMock.mockResolvedValue({ data: { version: '2.0.0' } });
+    await new UpdateService('1.0.0').checkForUpdates(stubOutput());
+    expect(loggedLines()).toContain(fragment);
+  };
+
+  it.each([
+    ['pnpm', '/home/u/Library/pnpm/store/pnpm.cjs', 'pnpm add -g @observeone/cli'],
+    ['yarn', '/usr/local/bin/yarn.js', 'yarn global add @observeone/cli'],
+    ['bun', '/usr/local/bin/bun', 'bun add -g @observeone/cli'],
+  ])('detects %s from npm_execpath when the user agent is unset', async (_pm, execPath, cmd) => {
+    process.env.npm_execpath = execPath;
+    await expectDetectedCommand(cmd);
+  });
+
+  it.each([
+    ['pnpm via argv', '/home/u/.pnpm/@observeone/cli/bin/obs.js', 'pnpm add -g @observeone/cli'],
+    [
+      'npm as the default',
+      '/home/u/projects/standalone-script.js',
+      'npm install -g @observeone/cli',
+    ],
+  ])('detects %s when neither user agent nor execpath match', async (_label, scriptPath, cmd) => {
+    process.argv = ['/usr/bin/node', scriptPath];
+    await expectDetectedCommand(cmd);
   });
 });
