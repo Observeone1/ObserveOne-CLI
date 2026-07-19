@@ -34,13 +34,15 @@ export interface LocalProjectConfig {
   project?: ProjectConfig | undefined;
 }
 
+export type MonitorStatus = 'up' | 'down' | 'paused' | 'pending' | 'degraded';
+
 export interface UrlMonitor {
   id: string;
   name: string;
   description?: string | undefined;
   url: string;
   timeout_ms: number;
-  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
+  status?: MonitorStatus | undefined;
   is_active: boolean;
   alert_on_failure: boolean;
   channel_ids?: string[] | undefined;
@@ -62,7 +64,7 @@ export interface BaseProtocolMonitor {
   name: string;
   description?: string | undefined;
   timeout_ms: number;
-  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
+  status?: MonitorStatus | undefined;
   is_active: boolean;
   alert_on_failure: boolean;
   regions?: string[] | undefined;
@@ -110,7 +112,7 @@ export interface ApiCheck {
   description?: string | undefined;
   url: string;
   method: string;
-  status?: 'up' | 'down' | 'paused' | 'pending' | 'degraded' | undefined;
+  status?: MonitorStatus | undefined;
   headers?: Record<string, string> | undefined;
   body?: string | undefined;
   timeout_ms: number;
@@ -439,7 +441,7 @@ export interface JsonEnvelope<T = unknown> {
   error?:
     | {
         message: string;
-        details?: unknown | undefined;
+        details?: unknown;
       }
     | undefined;
   metadata: {

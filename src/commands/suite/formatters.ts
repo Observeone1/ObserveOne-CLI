@@ -96,16 +96,16 @@ export function printExecutionResults(execution: SuiteExecution): void {
   console.log('');
 }
 
+function testStatusIcon(status: SuiteTestResult['status']): string {
+  if (status === 'PASSED') return chalk.green('PASSED ');
+  if (status === 'FAILED') return chalk.red('FAILED ');
+  if (status === 'SKIPPED') return chalk.yellow('SKIPPED');
+  return chalk.gray('PENDING');
+}
+
 function printTestRow(r: SuiteTestResult): void {
-  const icon =
-    r.status === 'PASSED'
-      ? chalk.green('PASSED ')
-      : r.status === 'FAILED'
-        ? chalk.red('FAILED ')
-        : r.status === 'SKIPPED'
-          ? chalk.yellow('SKIPPED')
-          : chalk.gray('PENDING');
-  const dur = r.duration_ms != null ? chalk.gray(`  ${(r.duration_ms / 1000).toFixed(1)}s`) : '';
+  const icon = testStatusIcon(r.status);
+  const dur = r.duration_ms == null ? '' : chalk.gray(`  ${(r.duration_ms / 1000).toFixed(1)}s`);
   const err = r.error ? chalk.red(`  → ${r.error}`) : '';
   console.log(` ${icon}   ${r.name.padEnd(40)}${dur}${err}`);
 }

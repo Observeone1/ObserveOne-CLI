@@ -64,7 +64,7 @@ export function createSuitePullCommand(
 
         const parts: string[] = [];
         if (suite.plan_markdown) parts.push('PLAN.md');
-        parts.push(`${scripts.tests.length} test${scripts.tests.length !== 1 ? 's' : ''}`);
+        parts.push(`${scripts.tests.length} test${scripts.tests.length === 1 ? '' : 's'}`);
 
         const suiteLabel = chalk.bold(`"${suite.suite_name}"`);
         console.log(

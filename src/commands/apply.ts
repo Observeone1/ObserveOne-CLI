@@ -378,7 +378,7 @@ Examples:
                     summary.monitors.created++;
                     const w = likelyRenameWarning(
                       'monitor',
-                      monitorConfig.name!,
+                      monitorConfig.name,
                       Array.from(existingByName.keys())
                     );
                     if (w) renameWarnings.push(w);
@@ -386,7 +386,7 @@ Examples:
                       dryRunEntries.push({
                         type: 'create',
                         resource: 'monitor',
-                        name: monitorConfig.name!,
+                        name: monitorConfig.name,
                       });
                       return;
                     }
@@ -547,7 +547,7 @@ Examples:
                     summary.apiChecks.created++;
                     const w = likelyRenameWarning(
                       'API check',
-                      checkConfig.name!,
+                      checkConfig.name,
                       Array.from(existingByName.keys())
                     );
                     if (w) renameWarnings.push(w);
@@ -555,7 +555,7 @@ Examples:
                       dryRunEntries.push({
                         type: 'create',
                         resource: 'api-check',
-                        name: checkConfig.name!,
+                        name: checkConfig.name,
                       });
                       return;
                     }
@@ -651,7 +651,7 @@ Examples:
                     summary.heartbeats.created++;
                     const w = likelyRenameWarning(
                       'heartbeat',
-                      hbConfig.name!,
+                      hbConfig.name,
                       Array.from(existingByName.keys())
                     );
                     if (w) renameWarnings.push(w);
@@ -659,7 +659,7 @@ Examples:
                       dryRunEntries.push({
                         type: 'create',
                         resource: 'heartbeat',
-                        name: hbConfig.name!,
+                        name: hbConfig.name,
                       });
                       return;
                     }
@@ -748,7 +748,7 @@ Examples:
                     summary.alertChannels.created++;
                     const w = likelyRenameWarning(
                       'alert channel',
-                      chConfig.name!,
+                      chConfig.name,
                       Array.from(existingByName.keys())
                     );
                     if (w) renameWarnings.push(w);
@@ -756,7 +756,7 @@ Examples:
                       dryRunEntries.push({
                         type: 'create',
                         resource: 'alert-channel',
-                        name: chConfig.name!,
+                        name: chConfig.name,
                       });
                       return;
                     }
@@ -863,7 +863,7 @@ Examples:
                     summary.statusPages.created++;
                     const w = likelyRenameWarning(
                       'status page',
-                      spConfig.slug!,
+                      spConfig.slug,
                       Array.from(existingBySlug.keys())
                     );
                     if (w) renameWarnings.push(w);
@@ -871,7 +871,7 @@ Examples:
                       dryRunEntries.push({
                         type: 'create',
                         resource: 'status-page',
-                        name: spConfig.slug!,
+                        name: spConfig.slug,
                       });
                       return;
                     }

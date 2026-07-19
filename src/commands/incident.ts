@@ -82,7 +82,7 @@ export function createIncidentCommand(
           message = answers.message as string;
         }
 
-        const event = await apiClient.addIncidentComment(incidentId, message!);
+        const event = await apiClient.addIncidentComment(incidentId, message);
         if (isJson) {
           outputService.formatJsonOutput({ event });
           return;

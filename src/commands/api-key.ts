@@ -76,7 +76,7 @@ export function createApiKeyCommand(
           ]);
           name = answers.name as string;
         }
-        const apiKey = await apiClient.createApiKey(name!);
+        const apiKey = await apiClient.createApiKey(name);
         if (isJson) {
           outputService.formatJsonOutput({ apiKey });
           return;

@@ -13,6 +13,50 @@ import { schemas } from '../utils/schemas.js';
 import { buildDefaultCreatePrompts, buildDefaultUpdatePrompts } from '../utils/schema-prompts.js';
 
 /**
+ * Option set shared verbatim by `check create` and `check update`, as
+ * [flags, description, repeatable?] rows. Rows marked repeatable are
+ * registered with the collectOptionValues collector and an empty default,
+ * exactly as the previous hand-written chains did. Registration order is
+ * the help order — do not reorder.
+ */
+const CHECK_OPTIONS: ReadonlyArray<readonly [string, string, true?]> = [
+  ['-n, --name <name>', 'Check name'],
+  ['-d, --description <description>', 'Check description'],
+  ['-u, --url <url>', 'API URL'],
+  ['-m, --method <method>', 'HTTP Method'],
+  ['-i, --interval <interval>', 'Cron expression interval'],
+  ['--header <KEY=VALUE>', 'HTTP header to send with the request (repeatable)', true],
+  ['--assertion <json>', 'Assertion JSON object (repeatable)', true],
+  ['--assertion-file <path>', 'File containing assertions JSON array'],
+  ['--status-code <value>', 'Assert status code equals value'],
+  ['--status-code-not <value>', 'Assert status code not equals value'],
+  ['--response-time-under <ms>', 'Assert response time less than value (ms)'],
+  ['--response-time-over <ms>', 'Assert response time greater than value (ms)'],
+  ['--json-path <path>', 'JSON path to assert (use with --json-path-value)'],
+  ['--json-path-value <value>', 'Expected value for --json-path'],
+  ['--text-contains <text>', 'Assert response contains text'],
+  ['--text-not-contains <text>', 'Assert response does not contain text'],
+  ['--header-exists <name>', 'Assert header exists'],
+  ['--regex-match <pattern>', 'Assert response matches regex'],
+  ['--body <text>', 'Request body for POST/PUT/PATCH'],
+  ['--regions <region>', 'Regions to run in (repeatable)', true],
+  ['--retry-count <count>', 'Number of retry attempts on failure'],
+  ['--retry-interval <ms>', 'Retry interval in milliseconds'],
+  ['--alert-channel-id <id>', 'Attach an alert channel to this check (repeatable)', true],
+  ['--no-alerts', 'Disable alerts'],
+];
+
+function addCheckOptions(cmd: Command): void {
+  for (const [flags, description, repeatable] of CHECK_OPTIONS) {
+    if (repeatable) {
+      cmd.option(flags, description, collectOptionValues, []);
+    } else {
+      cmd.option(flags, description);
+    }
+  }
+}
+
+/**
  * Build assertions from short flags, --assertion-file, and --assertion
  */
 function buildAssertions(
@@ -130,80 +174,8 @@ export function createCheckCommand(
     formatters: {
       list: (items, verbose) => outputService.formatApiCheckList(items, verbose),
     },
-    createCommandSetup: (cmd) => {
-      cmd
-        .option('-n, --name <name>', 'Check name')
-        .option('-d, --description <description>', 'Check description')
-        .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method')
-        .option('-i, --interval <interval>', 'Cron expression interval')
-        .option(
-          '--header <KEY=VALUE>',
-          'HTTP header to send with the request (repeatable)',
-          collectOptionValues,
-          []
-        )
-        .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
-        .option('--assertion-file <path>', 'File containing assertions JSON array')
-        .option('--status-code <value>', 'Assert status code equals value')
-        .option('--status-code-not <value>', 'Assert status code not equals value')
-        .option('--response-time-under <ms>', 'Assert response time less than value (ms)')
-        .option('--response-time-over <ms>', 'Assert response time greater than value (ms)')
-        .option('--json-path <path>', 'JSON path to assert (use with --json-path-value)')
-        .option('--json-path-value <value>', 'Expected value for --json-path')
-        .option('--text-contains <text>', 'Assert response contains text')
-        .option('--text-not-contains <text>', 'Assert response does not contain text')
-        .option('--header-exists <name>', 'Assert header exists')
-        .option('--regex-match <pattern>', 'Assert response matches regex')
-        .option('--body <text>', 'Request body for POST/PUT/PATCH')
-        .option('--regions <region>', 'Regions to run in (repeatable)', collectOptionValues, [])
-        .option('--retry-count <count>', 'Number of retry attempts on failure')
-        .option('--retry-interval <ms>', 'Retry interval in milliseconds')
-        .option(
-          '--alert-channel-id <id>',
-          'Attach an alert channel to this check (repeatable)',
-          collectOptionValues,
-          []
-        )
-        .option('--no-alerts', 'Disable alerts');
-    },
-    updateCommandSetup: (cmd) => {
-      cmd
-        .option('-n, --name <name>', 'Check name')
-        .option('-d, --description <description>', 'Check description')
-        .option('-u, --url <url>', 'API URL')
-        .option('-m, --method <method>', 'HTTP Method')
-        .option('-i, --interval <interval>', 'Cron expression interval')
-        .option(
-          '--header <KEY=VALUE>',
-          'HTTP header to send with the request (repeatable)',
-          collectOptionValues,
-          []
-        )
-        .option('--assertion <json>', 'Assertion JSON object (repeatable)', collectOptionValues, [])
-        .option('--assertion-file <path>', 'File containing assertions JSON array')
-        .option('--status-code <value>', 'Assert status code equals value')
-        .option('--status-code-not <value>', 'Assert status code not equals value')
-        .option('--response-time-under <ms>', 'Assert response time less than value (ms)')
-        .option('--response-time-over <ms>', 'Assert response time greater than value (ms)')
-        .option('--json-path <path>', 'JSON path to assert (use with --json-path-value)')
-        .option('--json-path-value <value>', 'Expected value for --json-path')
-        .option('--text-contains <text>', 'Assert response contains text')
-        .option('--text-not-contains <text>', 'Assert response does not contain text')
-        .option('--header-exists <name>', 'Assert header exists')
-        .option('--regex-match <pattern>', 'Assert response matches regex')
-        .option('--body <text>', 'Request body for POST/PUT/PATCH')
-        .option('--regions <region>', 'Regions to run in (repeatable)', collectOptionValues, [])
-        .option('--retry-count <count>', 'Number of retry attempts on failure')
-        .option('--retry-interval <ms>', 'Retry interval in milliseconds')
-        .option(
-          '--alert-channel-id <id>',
-          'Attach an alert channel to this check (repeatable)',
-          collectOptionValues,
-          []
-        )
-        .option('--no-alerts', 'Disable alerts');
-    },
+    createCommandSetup: addCheckOptions,
+    updateCommandSetup: addCheckOptions,
     // Most fields are schema-driven; assertions need a composer because they
     // are aggregated from 11 different flags (--assertion, --assertion-file,
     // --status-code, --json-path, etc.) via buildAssertions().
