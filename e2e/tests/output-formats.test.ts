@@ -26,9 +26,10 @@ async function assertJsonListOutput(result: CLIResult, label: string): Promise<v
   const jsonPart = output.substring(jsonStartIndex);
   try {
     JSON.parse(jsonPart);
-  } catch (_e) {
+  } catch (e) {
     throw new Error(
-      `${label}: Output should contain valid JSON after progress indicators: ${jsonPart}`
+      `${label}: Output should contain valid JSON after progress indicators: ${jsonPart}`,
+      { cause: e }
     );
   }
 }
