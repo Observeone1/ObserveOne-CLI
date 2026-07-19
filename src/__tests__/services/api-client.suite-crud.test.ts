@@ -53,6 +53,37 @@ describe('ApiClient suite (playwright-autopilot) methods', () => {
     expect(result).toEqual({ id: 's1', suite_name: 'Renamed' });
   });
 
+  it('updateSuite PATCHes planner_instructions changes', async () => {
+    const payload = { planner_instructions: 'Focus on the checkout flow' };
+    const patch = vi.fn().mockResolvedValue({ data: { id: 's1', ...payload } });
+    mockClientMethods(apiClient, { patch });
+
+    const result = await apiClient.updateSuite('s1', payload);
+
+    expect(patch).toHaveBeenCalledWith(`${BASE}/suites/s1`, payload);
+    expect(result).toEqual({ id: 's1', planner_instructions: 'Focus on the checkout flow' });
+  });
+
+  it('updateSuitePlan PUTs plan_markdown to the plan sub-resource', async () => {
+    const put = vi.fn().mockResolvedValue({ data: { id: 's1', plan_markdown: '# Edited' } });
+    mockClientMethods(apiClient, { put });
+
+    const result = await apiClient.updateSuitePlan('s1', '# Edited');
+
+    expect(put).toHaveBeenCalledWith(`${BASE}/suites/s1/plan`, { plan_markdown: '# Edited' });
+    expect(result).toEqual({ id: 's1', plan_markdown: '# Edited' });
+  });
+
+  it('getSuiteEnvVars GETs the env-vars sub-resource', async () => {
+    const get = vi.fn().mockResolvedValue({ data: { secret_keys: ['API_TOKEN'] } });
+    mockClientMethods(apiClient, { get });
+
+    const result = await apiClient.getSuiteEnvVars('s1');
+
+    expect(get).toHaveBeenCalledWith(`${BASE}/suites/s1/env-vars`);
+    expect(result).toEqual({ secret_keys: ['API_TOKEN'] });
+  });
+
   it('updateSuiteSchedule PATCHes the schedule sub-resource', async () => {
     const payload = { schedule_active: true, cron_expression: '0 * * * *' };
     const patch = vi.fn().mockResolvedValue({ data: { id: 's1' } });

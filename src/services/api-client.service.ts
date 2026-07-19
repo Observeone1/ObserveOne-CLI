@@ -957,6 +957,7 @@ export class ApiClient implements IApiClient {
     max_tests?: number;
     secrets?: Record<string, string>;
     allow_form_submit?: boolean;
+    planner_instructions?: string;
   }): Promise<Suite> {
     const response = await this.client.post<Suite>('/playwright-autopilot/suites', payload);
     return response.data;
@@ -964,11 +965,33 @@ export class ApiClient implements IApiClient {
 
   async updateSuite(
     suiteId: string,
-    payload: { suite_name?: string; target_url?: string }
+    payload: {
+      suite_name?: string;
+      target_url?: string;
+      max_tests?: number;
+      allow_form_submit?: boolean;
+      planner_instructions?: string | null;
+    }
   ): Promise<Suite> {
     const response = await this.client.patch<Suite>(
       `/playwright-autopilot/suites/${suiteId}`,
       payload
+    );
+    return response.data;
+  }
+
+  /** Push a locally edited PLAN.md back to the suite (PUT /suites/:id/plan). */
+  async updateSuitePlan(suiteId: string, planMarkdown: string): Promise<Suite> {
+    const response = await this.client.put<Suite>(`/playwright-autopilot/suites/${suiteId}/plan`, {
+      plan_markdown: planMarkdown,
+    });
+    return response.data;
+  }
+
+  /** Currently-configured secret/variable key names for a suite (values are never returned). */
+  async getSuiteEnvVars(suiteId: string): Promise<{ secret_keys: string[] }> {
+    const response = await this.client.get<{ secret_keys: string[] }>(
+      `/playwright-autopilot/suites/${suiteId}/env-vars`
     );
     return response.data;
   }

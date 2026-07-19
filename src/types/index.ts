@@ -354,6 +354,12 @@ export interface Suite {
   status: SuiteStatus;
   error_message: string | null;
   plan_markdown: string | null;
+  /** Extra user guidance appended to the planner prompt. Null = none. */
+  planner_instructions: string | null;
+  /** Normalized planned-file keys (see planFileKey) whose plan section changed after generation. */
+  stale_planned_files: string[];
+  /** Normalized planned-file keys the user dismissed so they are not generated. */
+  dismissed_planned_files: string[];
   test_count: number;
   max_tests: number;
   public_slug: string | null;
