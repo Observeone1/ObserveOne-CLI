@@ -161,7 +161,9 @@ describe('computeRegenerateTargets', () => {
       dismissed_planned_files: ['old-scenario'],
     });
     const { targets, usedAllFallback } = computeRegenerateTargets(suite, false);
-    expect(targets.map((t) => t.file).sort()).toEqual(['login.spec.ts']);
+    expect(targets.map((t) => t.file).sort((a, b) => a.localeCompare(b))).toEqual([
+      'login.spec.ts',
+    ]);
     expect(usedAllFallback).toBe(false);
   });
 
@@ -187,7 +189,10 @@ describe('computeRegenerateTargets', () => {
       dismissed_planned_files: ['old-scenario'],
     });
     const { targets, usedAllFallback } = computeRegenerateTargets(suite, true);
-    expect(targets.map((t) => t.file).sort()).toEqual(['checkout.spec.ts', 'login.spec.ts']);
+    expect(targets.map((t) => t.file).sort((a, b) => a.localeCompare(b))).toEqual([
+      'checkout.spec.ts',
+      'login.spec.ts',
+    ]);
     expect(usedAllFallback).toBe(true);
   });
 

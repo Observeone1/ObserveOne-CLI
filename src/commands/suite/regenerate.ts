@@ -36,6 +36,75 @@ async function generateSequentially(
   return { queued, failed };
 }
 
+/** Report "nothing to do" — no targets found and no API call was made. */
+function reportNoTargets(
+  outputService: IOutputService,
+  isJson: boolean,
+  id: string,
+  suiteName: string,
+  dryRun: boolean
+): void {
+  if (isJson) {
+    outputService.formatJsonOutput({ id, targets: [], dry_run: dryRun });
+    return;
+  }
+  console.log(
+    chalk.gray(
+      `\n Nothing stale or missing for "${suiteName}". ` +
+        `Pass --all to regenerate every non-dismissed planned file.\n`
+    )
+  );
+}
+
+/** Report the dry-run preview — lists targets without calling the API. */
+function reportDryRun(
+  outputService: IOutputService,
+  isJson: boolean,
+  id: string,
+  suiteName: string,
+  targets: PlanFileStatus[],
+  usedAllFallback: boolean
+): void {
+  if (isJson) {
+    outputService.formatJsonOutput({
+      id,
+      dry_run: true,
+      used_all_fallback: usedAllFallback,
+      targets: targets.map((t) => ({ file: t.file, state: t.state })),
+    });
+    return;
+  }
+  console.log(chalk.bold(`\n Would regenerate ${targets.length} test(s) in "${suiteName}"`));
+  console.log(chalk.gray('─'.repeat(56)));
+  targets.forEach((t) => console.log(`  ${stateLabel(t.state).padEnd(18)} ${t.file}`));
+  console.log('');
+}
+
+/** Report the outcome of an actual regenerate run. Exits non-zero if anything failed to queue. */
+function reportRunResult(
+  outputService: IOutputService,
+  isJson: boolean,
+  id: string,
+  suiteName: string,
+  usedAllFallback: boolean,
+  queued: string[],
+  failed: Array<{ file: string; error: string }>
+): void {
+  if (isJson) {
+    outputService.formatJsonOutput({ id, used_all_fallback: usedAllFallback, queued, failed });
+    if (failed.length > 0) process.exit(1);
+    return;
+  }
+
+  console.log(
+    chalk.green('✔') +
+      ` Queued ${queued.length} test${queued.length === 1 ? '' : 's'} for regeneration in "${suiteName}"`
+  );
+  failed.forEach((f) => console.log(chalk.red(`  ✘ ${f.file} — ${f.error}`)));
+  console.log(chalk.gray(` Check progress: obs suite get ${id}\n`));
+  if (failed.length > 0) process.exit(1);
+}
+
 export function createSuiteRegenerateCommand(
   _configService: IConfigService,
   apiClient: ApiClient,
@@ -67,60 +136,25 @@ Examples:
         const { targets, usedAllFallback } = computeRegenerateTargets(suite, !!options.all);
 
         if (targets.length === 0) {
-          if (isJson) {
-            outputService.formatJsonOutput({ id, targets: [], dry_run: !!options.dryRun });
-            return;
-          }
-          console.log(
-            chalk.gray(
-              `\n Nothing stale or missing for "${suite.suite_name}". ` +
-                `Pass --all to regenerate every non-dismissed planned file.\n`
-            )
-          );
+          reportNoTargets(outputService, isJson, id, suite.suite_name, !!options.dryRun);
           return;
         }
 
         if (options.dryRun) {
-          if (isJson) {
-            outputService.formatJsonOutput({
-              id,
-              dry_run: true,
-              used_all_fallback: usedAllFallback,
-              targets: targets.map((t) => ({ file: t.file, state: t.state })),
-            });
-            return;
-          }
-          console.log(
-            chalk.bold(`\n Would regenerate ${targets.length} test(s) in "${suite.suite_name}"`)
-          );
-          console.log(chalk.gray('─'.repeat(56)));
-          targets.forEach((t) => console.log(`  ${stateLabel(t.state).padEnd(18)} ${t.file}`));
-          console.log('');
+          reportDryRun(outputService, isJson, id, suite.suite_name, targets, usedAllFallback);
           return;
         }
 
         const { queued, failed } = await generateSequentially(apiClient, id, targets);
-
-        if (isJson) {
-          outputService.formatJsonOutput({
-            id,
-            used_all_fallback: usedAllFallback,
-            queued,
-            failed,
-          });
-          if (failed.length > 0) process.exit(1);
-          return;
-        }
-
-        console.log(
-          chalk.green('✔') +
-            ` Queued ${queued.length} test${queued.length === 1 ? '' : 's'} for regeneration in "${suite.suite_name}"`
+        reportRunResult(
+          outputService,
+          isJson,
+          id,
+          suite.suite_name,
+          usedAllFallback,
+          queued,
+          failed
         );
-        if (failed.length > 0) {
-          failed.forEach((f) => console.log(chalk.red(`  ✘ ${f.file} — ${f.error}`)));
-        }
-        console.log(chalk.gray(` Check progress: obs suite get ${id}\n`));
-        if (failed.length > 0) process.exit(1);
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to regenerate suite';
         if (isJson) {

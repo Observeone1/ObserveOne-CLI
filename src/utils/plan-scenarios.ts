@@ -18,7 +18,13 @@ export interface PlanScenario {
 const FILE_LINE_RE =
   /^\s*\*\*File:\*\*\s*`?(?:tests\/)?([^`\s]+?\.(?:spec|test)\.ts)`?\s*(?:_\(dismissed\)_\s*)?$/;
 
-const HEADING_RE = /^(#{1,6})\s+(.*)$/;
+// A single `\s` (not `\s+`) between the hashes and the title: with `\s+`
+// directly followed by `(.*)`, both quantifiers can match the same run of
+// whitespace, which SonarQube flags as a quadratic-backtracking hotspot
+// (typescript:S5852). One fixed-width separator plus the existing
+// `.trim()` on the captured title produces an identical result for any
+// number of spaces after the `#`s, without the overlapping quantifiers.
+const HEADING_RE = /^(#{1,6})\s(.*)$/;
 
 /**
  * Normalized key for a planned file — must match the backend's
@@ -45,12 +51,12 @@ export function parsePlanScenarios(markdown: string): PlanScenario[] {
   let current: RawSection | null = null;
 
   for (const line of lines) {
-    const hm = line.match(HEADING_RE);
+    const hm = HEADING_RE.exec(line);
     if (hm) {
       current = { title: hm[2]!.trim(), level: hm[1]!.length, file: null };
       sections.push(current);
     } else if (current && !current.file) {
-      const fm = line.match(FILE_LINE_RE);
+      const fm = FILE_LINE_RE.exec(line);
       if (fm) current.file = fm[1]!.trim();
     }
   }
