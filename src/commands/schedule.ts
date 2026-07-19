@@ -27,9 +27,16 @@ function readStdin(): Promise<string> {
 }
 
 const toInt = (val: unknown): number | undefined => {
-  if (val === undefined) return undefined;
-  const n = parseInt(String(val), 10);
+  if (typeof val !== 'string' && typeof val !== 'number') return undefined;
+  const n = Number.parseInt(String(val), 10);
   return Number.isNaN(n) ? undefined : n;
+};
+
+/** Commander string flags arrive as strings; guard before stringifying so objects never leak "[object Object]". */
+const asFlagString = (val: unknown): string => {
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  return '';
 };
 
 /**
@@ -80,7 +87,7 @@ export function createScheduleCommand(
       try {
         outputService.progress('Fetching schedules...');
         const schedules = opts.testId
-          ? await apiClient.getTestSchedules(String(opts.testId))
+          ? await apiClient.getTestSchedules(asFlagString(opts.testId))
           : await apiClient.getSchedules();
         if (isJson) outputService.formatJsonOutput(schedules);
         else outputService.formatScheduleList(schedules, process.env.OBS_VERBOSE === 'true');
@@ -156,7 +163,7 @@ export function createScheduleCommand(
           throw new Error('Pass only one of --enable-alerts / --disable-alerts.');
         }
         const updates: Partial<Schedule> = {};
-        if (opts.interval !== undefined) updates.cron_expression = String(opts.interval);
+        if (opts.interval !== undefined) updates.cron_expression = asFlagString(opts.interval);
         const retryCount = toInt(opts.retryCount);
         if (retryCount !== undefined) updates.retry_count = retryCount;
         const retryInterval = toInt(opts.retryInterval);

@@ -102,7 +102,7 @@ function normalizePluralConfig(value: Record<string, unknown>): ApplyConfig {
     const entry = value[key];
     if (entry === undefined) continue;
     if (!Array.isArray(entry)) {
-      throw new Error(`'${key}' must be an array in apply config files.`);
+      throw new TypeError(`'${key}' must be an array in apply config files.`);
     }
     config[key] = entry;
   }

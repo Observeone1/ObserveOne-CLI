@@ -3,8 +3,8 @@ import chalk from 'chalk';
 import { IOutputService } from '../interfaces/output.interface.js';
 
 export class UpdateService {
-  private currentVersion: string;
-  private packageName: string = '@observeone/cli';
+  private readonly currentVersion: string;
+  private readonly packageName: string = '@observeone/cli';
 
   constructor(currentVersion: string) {
     this.currentVersion = currentVersion;

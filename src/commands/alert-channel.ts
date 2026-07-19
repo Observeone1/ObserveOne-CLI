@@ -14,7 +14,7 @@ async function buildConfigFromOptions(
   options: Record<string, unknown>,
   existingConfig?: AlertChannelConfig
 ): Promise<AlertChannelConfig> {
-  const config: AlertChannelConfig = { ...(existingConfig || {}) };
+  const config: AlertChannelConfig = { ...existingConfig };
 
   const email = (options.email as string | undefined) ?? existingConfig?.email;
   const webhookUrl =

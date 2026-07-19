@@ -4,6 +4,19 @@ import { ApiClient } from '../../services/api-client.service.js';
 import { IConfigService } from '../../interfaces/config.interface.js';
 import { IOutputService } from '../../interfaces/output.interface.js';
 
+function printScheduleUpdated(suite: {
+  schedule_active?: boolean | null;
+  cron_expression?: string | null;
+}): void {
+  const status = suite.schedule_active ? chalk.green('enabled') : chalk.gray('disabled');
+  console.log(chalk.bold(`\n Suite schedule updated`));
+  console.log(chalk.gray(` Schedule: ${status}`));
+  if (suite.cron_expression) {
+    console.log(chalk.gray(` Cron:     ${suite.cron_expression}`));
+  }
+  console.log('');
+}
+
 export function createSuiteScheduleCommand(
   _configService: IConfigService,
   apiClient: ApiClient,
@@ -22,7 +35,9 @@ export function createSuiteScheduleCommand(
           throw new Error('Cannot use --enable and --disable together');
         }
 
-        const schedule_active = options.enable ? true : options.disable ? false : undefined;
+        let schedule_active: boolean | undefined;
+        if (options.enable) schedule_active = true;
+        else if (options.disable) schedule_active = false;
 
         const suite = await apiClient.updateSuiteSchedule(id, {
           ...(schedule_active !== undefined && { schedule_active }),
@@ -32,13 +47,7 @@ export function createSuiteScheduleCommand(
         if (isJson) {
           outputService.formatJsonOutput({ suite });
         } else {
-          const status = suite.schedule_active ? chalk.green('enabled') : chalk.gray('disabled');
-          console.log(chalk.bold(`\n Suite schedule updated`));
-          console.log(chalk.gray(` Schedule: ${status}`));
-          if (suite.cron_expression) {
-            console.log(chalk.gray(` Cron:     ${suite.cron_expression}`));
-          }
-          console.log('');
+          printScheduleUpdated(suite);
         }
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to update suite schedule';

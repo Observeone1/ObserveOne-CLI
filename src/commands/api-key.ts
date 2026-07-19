@@ -76,7 +76,7 @@ export function createApiKeyCommand(
           ]);
           name = answers.name as string;
         }
-        const apiKey = await apiClient.createApiKey(name!);
+        const apiKey = await apiClient.createApiKey(name);
         if (isJson) {
           outputService.formatJsonOutput({ apiKey });
           return;
@@ -119,7 +119,8 @@ export function createApiKeyCommand(
           outputService.formatJsonOutput(result);
           return;
         }
-        console.log(chalk.green(`\n✓ ${result.message || `API key ${id} revoked.`}\n`));
+        const revokedMsg = result.message || `API key ${id} revoked.`;
+        console.log(chalk.green(`\n✓ ${revokedMsg}\n`));
       } catch (err: unknown) {
         const msg = (err as Error).message || 'Failed to revoke API key';
         if (isJson) {

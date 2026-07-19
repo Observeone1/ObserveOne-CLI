@@ -52,7 +52,7 @@ export function buildDefaultCreatePrompts<T>(
     let answers: Record<string, unknown> = {};
     if (promptQuestions.length > 0) {
       requireTTY((msg) => console.error(chalk.red(`\n❌ ${msg}\n`)));
-      answers = (await inquirer.prompt(promptQuestions)) as Record<string, unknown>;
+      answers = await inquirer.prompt(promptQuestions);
     }
 
     const payload: Payload = {};
@@ -95,7 +95,7 @@ export function buildDefaultUpdatePrompts<T>(
     if (!anyFlagPassed) {
       const updatableFlags = updatableEntries
         .map(([field, meta]) => meta.flagName ?? field)
-        .filter((f) => f)
+        .filter(Boolean)
         .map((f) => `--${kebab(f)}`);
       const hint = updatableFlags.length > 0 ? ` (${updatableFlags.join(', ')})` : '';
       outputService.error(`Please provide at least one field to update${hint}.`);
@@ -117,10 +117,10 @@ export function buildDefaultUpdatePrompts<T>(
         // `!= null` matches the existing `??`-chain semantics used across the
         // hand-rolled commands — both undefined and null fall through to default.
         value = existingRecord[field];
-      } else if (meta.default !== undefined) {
-        value = meta.default;
-      } else {
+      } else if (meta.default === undefined) {
         continue;
+      } else {
+        value = meta.default;
       }
       payload[field] = value;
     }
@@ -155,7 +155,7 @@ function resolveValue(
   const flag = meta.flagName ?? field;
   const fromOptions = isFlagAbsent(options, field, meta) ? undefined : options[flag];
   const fromAnswers = field in answers ? answers[field] : undefined;
-  const raw = fromOptions !== undefined ? fromOptions : fromAnswers;
+  const raw = fromOptions === undefined ? fromAnswers : fromOptions;
   if (raw !== undefined) {
     const transformed = meta.transformer ? meta.transformer(raw) : raw;
     assertChoice(field, meta, transformed);
@@ -192,5 +192,5 @@ function assertChoice(field: string, meta: FieldSchema, value: unknown): void {
 
 /** camelCase → kebab-case for help-message rendering of flag names. */
 function kebab(name: string): string {
-  return name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+  return name.replaceAll(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }

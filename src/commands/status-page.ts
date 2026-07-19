@@ -15,8 +15,8 @@ const MONITOR_TYPES = ['url-monitor', 'api-check', 'heartbeat'] as const;
  * with a NaN display order.
  */
 export function parseDisplayOrder(raw: string): number {
-  const value = parseInt(raw, 10);
-  if (isNaN(value)) throw new Error('Invalid --order value (must be an integer)');
+  const value = Number.parseInt(raw, 10);
+  if (Number.isNaN(value)) throw new Error('Invalid --order value (must be an integer)');
   return value;
 }
 

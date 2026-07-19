@@ -1,10 +1,12 @@
+export type CliListInput = string | string[] | undefined;
+
 export function collectOptionValues(value: string, previous: string[] = []): string[] {
   previous.push(value);
   return previous;
 }
 
 export function parseKeyValuePairs(
-  input: string | string[] | undefined,
+  input: CliListInput,
   label: string
 ): Record<string, string> | undefined {
   if (!input) return undefined;
@@ -32,10 +34,7 @@ export function parseKeyValuePairs(
   return result;
 }
 
-export function parseJsonArrayOption<T>(
-  input: string | string[] | undefined,
-  label: string
-): T[] | undefined {
+export function parseJsonArrayOption<T>(input: CliListInput, label: string): T[] | undefined {
   if (!input) return undefined;
 
   const values = Array.isArray(input) ? input : [input];
@@ -49,10 +48,7 @@ export function parseJsonArrayOption<T>(
   });
 }
 
-export function parseIdList(
-  input: string | string[] | undefined,
-  label: string
-): string[] | undefined {
+export function parseIdList(input: CliListInput, label: string): string[] | undefined {
   if (!input) return undefined;
 
   const values = Array.isArray(input) ? input : [input];
@@ -84,13 +80,13 @@ export function parseIdsFromText(text: string): string[] {
       const parsed = JSON.parse(trimmed) as unknown;
       if (Array.isArray(parsed)) {
         tokens = parsed
-          .map((item) =>
-            typeof item === 'string'
-              ? item
-              : item && typeof item === 'object' && 'id' in item
-                ? String((item as { id: unknown }).id)
-                : ''
-          )
+          .map((item) => {
+            if (typeof item === 'string') return item;
+            if (item && typeof item === 'object' && 'id' in item) {
+              return String((item as { id: unknown }).id);
+            }
+            return '';
+          })
           .filter((t) => t.length > 0);
       }
     } catch {

@@ -87,7 +87,7 @@ export function printHeartbeatRuns(runs: HeartbeatPing[]): void {
 }
 
 function parsePositiveInteger(value: string | undefined, label: string): number {
-  const parsed = parseInt(value || '20', 10);
+  const parsed = Number.parseInt(value || '20', 10);
   if (Number.isNaN(parsed) || parsed < 1) {
     throw new Error(`${label} must be a positive integer`);
   }

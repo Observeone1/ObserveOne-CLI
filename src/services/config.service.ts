@@ -32,11 +32,11 @@ const getDefaultApiUrl = () => {
  * Manages CLI configuration using Conf library and local .obs.config.json
  */
 export class ConfigService implements IConfigService {
-  private config: Conf<ObserveOneConfig>;
+  private readonly config: Conf<ObserveOneConfig>;
   private commandLineApiUrl?: string;
   private commandLineApiKey?: string;
-  private localConfig: LocalProjectConfig = {};
-  private localConfigPath: string;
+  private readonly localConfig: LocalProjectConfig = {};
+  private readonly localConfigPath: string;
 
   constructor(config?: Conf<ObserveOneConfig>) {
     // 1. Load Global Config (Lowest priority before Defaults)
@@ -180,8 +180,8 @@ export class ConfigService implements IConfigService {
   getProjectConfig(): ProjectConfig {
     // Merge local project config with global
     return {
-      ...(this.config.get('project') || {}),
-      ...(this.localConfig.project || {}),
+      ...this.config.get('project'),
+      ...this.localConfig.project,
     };
   }
 

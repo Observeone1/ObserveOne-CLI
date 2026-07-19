@@ -33,7 +33,7 @@ console.log('=====================================');
 
 // Check if user is authenticated
 const authCheck = runCommand('obs ai-check list');
-if (authCheck && authCheck.includes('Not authenticated')) {
+if (authCheck?.includes('Not authenticated')) {
   console.log('❌ Not authenticated. Please run: obs login');
 } else {
   console.log('✅ Authentication successful');

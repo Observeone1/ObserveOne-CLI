@@ -38,8 +38,9 @@ export function printSuiteList(suites: Suite[]): void {
   suites.forEach((suite, i) => {
     const tests = chalk.gray(`${suite.test_count} tests`);
     const schedule = formatCron(suite.cron_expression, suite.schedule_active);
+    const position = chalk.bold(`${i + 1}.`);
     console.log(
-      ` ${chalk.bold(`${i + 1}.`)} ${chalk.bold(suite.suite_name.padEnd(30))} ${suiteStatusColor(suite.status).padEnd(20)} ${tests.padEnd(10)} ${schedule}`
+      ` ${position} ${chalk.bold(suite.suite_name.padEnd(30))} ${suiteStatusColor(suite.status).padEnd(20)} ${tests.padEnd(10)} ${schedule}`
     );
     console.log(chalk.gray(`    ${suite.target_url}  id: ${suite.id}`));
     console.log('');
@@ -95,16 +96,16 @@ export function printExecutionResults(execution: SuiteExecution): void {
   console.log('');
 }
 
+function testStatusIcon(status: SuiteTestResult['status']): string {
+  if (status === 'PASSED') return chalk.green('PASSED ');
+  if (status === 'FAILED') return chalk.red('FAILED ');
+  if (status === 'SKIPPED') return chalk.yellow('SKIPPED');
+  return chalk.gray('PENDING');
+}
+
 function printTestRow(r: SuiteTestResult): void {
-  const icon =
-    r.status === 'PASSED'
-      ? chalk.green('PASSED ')
-      : r.status === 'FAILED'
-        ? chalk.red('FAILED ')
-        : r.status === 'SKIPPED'
-          ? chalk.yellow('SKIPPED')
-          : chalk.gray('PENDING');
-  const dur = r.duration_ms != null ? chalk.gray(`  ${(r.duration_ms / 1000).toFixed(1)}s`) : '';
+  const icon = testStatusIcon(r.status);
+  const dur = r.duration_ms == null ? '' : chalk.gray(`  ${(r.duration_ms / 1000).toFixed(1)}s`);
   const err = r.error ? chalk.red(`  → ${r.error}`) : '';
   console.log(` ${icon}   ${r.name.padEnd(40)}${dur}${err}`);
 }
