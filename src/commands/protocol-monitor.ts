@@ -1,10 +1,10 @@
 import { Command } from 'commander';
-import chalk from 'chalk';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
+import { attachToggleMutedCommand, attachTriggerRunCommand } from './id-action-command.js';
 import { ProtocolMonitor, ProtocolMonitorKind } from '../types/index.js';
 import { collectOptionValues } from '../utils/cli-input.js';
 
@@ -96,42 +96,13 @@ export function createProtocolMonitorCommand(
     // schemas['<kind>-monitor'].fieldMetadata.
   });
 
-  cmd
-    .command('run <id>')
-    .description(`Trigger a manual check for ${label === 'SSL' ? 'an' : 'a'} ${label} monitor`)
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const monitorId = id.trim();
-        if (!monitorId) throw new Error('Invalid monitor ID');
-
-        const result = await apiClient.runProtocolMonitor(kind, monitorId);
-
-        if (isJson) {
-          outputService.formatJsonOutput({
-            executions: result.executions,
-            message: result.message,
-          });
-          return;
-        }
-
-        console.log(chalk.bold(`\n ${result.message}`));
-        for (const ex of result.executions) {
-          console.log(
-            chalk.gray(` Region: ${ex.region}  execution: ${ex.execution_id}  status: ${ex.status}`)
-          );
-        }
-        console.log('');
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to run monitor';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachTriggerRunCommand(cmd, {
+    description: `Trigger a manual check for ${label === 'SSL' ? 'an' : 'a'} ${label} monitor`,
+    invalidIdMessage: 'Invalid monitor ID',
+    failureMessage: 'Failed to run monitor',
+    outputService,
+    trigger: (id) => apiClient.runProtocolMonitor(kind, id),
+  });
 
   attachRunsCommand(cmd, {
     title: `${label} Monitor Runs`,
@@ -142,34 +113,12 @@ export function createProtocolMonitorCommand(
     outputService,
   });
 
-  cmd
-    .command('toggle-muted <id>')
-    .description(`Toggle the muted state of ${label === 'SSL' ? 'an' : 'a'} ${label} monitor`)
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const monitorId = id.trim();
-        if (!monitorId) throw new Error('Invalid monitor ID');
-        const result = await apiClient.toggleMuteProtocolMonitor(kind, monitorId);
-        if (isJson) {
-          outputService.formatJsonOutput({
-            id: monitorId,
-            alert_on_failure: result.alert_on_failure,
-            message: result.message,
-          });
-          return;
-        }
-        console.log(chalk.green(`\n ${result.message}\n`));
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to toggle mute';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachToggleMutedCommand(cmd, {
+    description: `Toggle the muted state of ${label === 'SSL' ? 'an' : 'a'} ${label} monitor`,
+    invalidIdMessage: 'Invalid monitor ID',
+    outputService,
+    toggle: (id) => apiClient.toggleMuteProtocolMonitor(kind, id),
+  });
 
   cmd.name(commandName);
   for (const alias of config.aliases ?? []) {

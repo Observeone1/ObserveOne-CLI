@@ -5,6 +5,7 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { requireConfirmation, requireTTY } from '../utils/confirm.js';
+import { reportActionError } from './id-action-command.js';
 
 export function createApiKeyCommand(
   _configService: IConfigService,
@@ -36,13 +37,12 @@ export function createApiKeyCommand(
         }
         console.log('');
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to list API keys';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to list API keys',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -83,13 +83,12 @@ export function createApiKeyCommand(
         }
         console.log(chalk.green(`\n✓ API key created: ${apiKey.name} [${apiKey.id}]\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to create API key';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to create API key',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -122,13 +121,12 @@ export function createApiKeyCommand(
         const revokedMsg = result.message || `API key ${id} revoked.`;
         console.log(chalk.green(`\n✓ ${revokedMsg}\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to revoke API key';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to revoke API key',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -147,13 +145,12 @@ export function createApiKeyCommand(
         const status = result.apiKey?.is_active ? chalk.green('active') : chalk.gray('inactive');
         console.log(chalk.bold(`\n✓ ${result.message || 'Toggled.'} Status: ${status}\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to toggle API key';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to toggle API key',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -221,13 +218,12 @@ export function createApiKeyCommand(
           );
         }
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to rotate API key';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to rotate API key',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 

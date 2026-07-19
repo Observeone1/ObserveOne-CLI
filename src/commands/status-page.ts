@@ -20,6 +20,20 @@ export function parseDisplayOrder(raw: string): number {
   return value;
 }
 
+/** The create and update subcommands expose the same status page fields. */
+function addStatusPageOptions(cmd: Command): void {
+  cmd
+    .option('--slug <slug>', 'Status page slug (lowercase, hyphenated)')
+    .option('-n, --name <name>', 'Status page name')
+    .option('-d, --description <description>', 'Status page description')
+    .option('--logo-url <url>', 'Logo URL')
+    .option('--theme-primary-color <color>', 'Theme primary color (hex)')
+    .option('--theme-background-color <color>', 'Theme background color (hex)')
+    .option('--private', 'Make status page private')
+    .option('--hide-incident-history', 'Hide incident history')
+    .option('--hide-uptime', 'Hide uptime percentage');
+}
+
 export function createStatusPageCommand(
   configService: IConfigService,
   apiClient: IApiClient,
@@ -39,30 +53,8 @@ export function createStatusPageCommand(
     formatters: {
       list: (items, verbose) => outputService.formatStatusPageList(items, verbose),
     },
-    createCommandSetup: (cmd) => {
-      cmd
-        .option('--slug <slug>', 'Status page slug (lowercase, hyphenated)')
-        .option('-n, --name <name>', 'Status page name')
-        .option('-d, --description <description>', 'Status page description')
-        .option('--logo-url <url>', 'Logo URL')
-        .option('--theme-primary-color <color>', 'Theme primary color (hex)')
-        .option('--theme-background-color <color>', 'Theme background color (hex)')
-        .option('--private', 'Make status page private')
-        .option('--hide-incident-history', 'Hide incident history')
-        .option('--hide-uptime', 'Hide uptime percentage');
-    },
-    updateCommandSetup: (cmd) => {
-      cmd
-        .option('--slug <slug>', 'Status page slug (lowercase, hyphenated)')
-        .option('-n, --name <name>', 'Status page name')
-        .option('-d, --description <description>', 'Status page description')
-        .option('--logo-url <url>', 'Logo URL')
-        .option('--theme-primary-color <color>', 'Theme primary color (hex)')
-        .option('--theme-background-color <color>', 'Theme background color (hex)')
-        .option('--private', 'Make status page private')
-        .option('--hide-incident-history', 'Hide incident history')
-        .option('--hide-uptime', 'Hide uptime percentage');
-    },
+    createCommandSetup: addStatusPageOptions,
+    updateCommandSetup: addStatusPageOptions,
     // createPrompts/updatePrompts intentionally omitted — the resource-command
     // factory falls back to the schema-driven default built from
     // schemas['status-page'].fieldMetadata.
