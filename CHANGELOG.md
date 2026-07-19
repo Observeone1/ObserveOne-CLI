@@ -5,6 +5,15 @@ All notable changes to the ObserveOne CLI project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.36.0] - 2026-07-19
+
+### Added
+- **`obs suite push` now pushes local `PLAN.md` edits, not just test scripts.** Previously `push` only iterated `suite.json`'s test list, so a plan edited after `obs suite pull` was silently discarded on the next push — the same PLAN.md kept surviving on disk while the suite's real plan drifted away from it. `push` now diffs the local `PLAN.md` against the suite's remote plan (trimmed comparison, so a trailing newline never triggers a spurious push) and sends it via `PUT /playwright-autopilot/suites/:id/plan` when it changed. A busy-suite (409) or other plan-push failure is reported as a warning; already-pushed test scripts are not rolled back.
+- **`--instructions <text>` on `obs suite generate`, `obs suite update`, and `obs apply`** — sets `planner_instructions` (extra guidance appended to the planner prompt, 4000-char server-side cap). `update --instructions ""` clears existing instructions. `apply` diffs and updates `planner_instructions` for suites the same way it does every other suite field (an omitted field leaves the remote value untouched).
+- **New command: `obs suite regenerate <id>`** — discovers a suite's stale (plan section edited after the test was generated) and missing (planned but never generated) files by parsing `plan_markdown` against `generated_tests`/`stale_planned_files`/`dismissed_planned_files`, the same derivation the dashboard's tests tab uses, and queues each one via the existing per-file `generate-test` endpoint. `--dry-run` lists the targets without generating anything. When nothing is stale or missing, the command reports that and does nothing unless `--all` is passed to regenerate every non-dismissed planned file — this is an intentional deviation from the dashboard, which always falls back to "regenerate everything"; a CLI default that silently bulk-regenerates (AI generation cost) was judged too surprising.
+- **New command: `obs suite env-vars <id>`** — lists the variable/credential key names currently configured for a suite via `GET /suites/:id/env-vars` (never the values; write parity already existed via `obs suite secrets --var`).
+- **`Suite` type and `obs suite get`** now carry `planner_instructions`, `stale_planned_files`, and `dismissed_planned_files`. `obs suite get` prints a stale-files marker with a pointer to `obs suite regenerate` when any planned file has drifted from its generated script.
+
 ## [1.35.0] - 2026-07-09
 
 ### Added
