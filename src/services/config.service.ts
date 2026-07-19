@@ -188,7 +188,9 @@ export class ConfigService implements IConfigService {
 
   getProjectConfig(): ProjectConfig {
     // Merge local project config with global
-    return Object.assign({}, this.config.get('project'), this.localConfig.project);
+    const merged: ProjectConfig = {};
+    Object.assign(merged, this.config.get('project'), this.localConfig.project);
+    return merged;
   }
 
   setProjectConfig(projectConfig: ProjectConfig): void {

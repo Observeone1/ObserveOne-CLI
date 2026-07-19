@@ -175,8 +175,10 @@ export function assertJSON(output: string, message?: string): void {
 
     const jsonStr = output.substring(start, end + 1);
     JSON.parse(jsonStr);
-  } catch (_error) {
-    throw new Error(String.raw`${message || 'Output should be valid JSON'}\nGot: ${output}`);
+  } catch (error) {
+    throw new Error(String.raw`${message || 'Output should be valid JSON'}\nGot: ${output}`, {
+      cause: error,
+    });
   }
 }
 
