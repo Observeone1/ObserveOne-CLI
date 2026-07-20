@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import chalk from 'chalk';
 import { readFileSync } from 'node:fs';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
@@ -7,6 +6,7 @@ import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printExecutionRuns } from './runs-command.js';
+import { attachToggleMutedCommand, attachTriggerRunCommand } from './id-action-command.js';
 import { ApiCheck } from '../types/index.js';
 import { collectOptionValues, parseJsonArrayOption } from '../utils/cli-input.js';
 import { schemas } from '../utils/schemas.js';
@@ -210,42 +210,13 @@ export function createCheckCommand(
     },
   });
 
-  cmd
-    .command('run <id>')
-    .description('Trigger a manual run for an API check')
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const checkId = id.trim();
-        if (!checkId) throw new Error('Invalid check ID');
-
-        const result = await (apiClient as ApiClient).runApiCheck(checkId);
-
-        if (isJson) {
-          outputService.formatJsonOutput({
-            executions: result.executions,
-            message: result.message,
-          });
-          return;
-        }
-
-        console.log(chalk.bold(`\n ${result.message}`));
-        for (const ex of result.executions) {
-          console.log(
-            chalk.gray(` Region: ${ex.region}  execution: ${ex.execution_id}  status: ${ex.status}`)
-          );
-        }
-        console.log('');
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to run check';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachTriggerRunCommand(cmd, {
+    description: 'Trigger a manual run for an API check',
+    invalidIdMessage: 'Invalid check ID',
+    failureMessage: 'Failed to run check',
+    outputService,
+    trigger: (id) => (apiClient as ApiClient).runApiCheck(id),
+  });
 
   attachRunsCommand(cmd, {
     title: 'API Check Runs',
@@ -256,34 +227,12 @@ export function createCheckCommand(
     outputService,
   });
 
-  cmd
-    .command('toggle-muted <id>')
-    .description('Toggle the muted state of an API check')
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const checkId = id.trim();
-        if (!checkId) throw new Error('Invalid check ID');
-        const result = await (apiClient as ApiClient).toggleMuteApiCheck(checkId);
-        if (isJson) {
-          outputService.formatJsonOutput({
-            id: checkId,
-            alert_on_failure: result.alert_on_failure,
-            message: result.message,
-          });
-          return;
-        }
-        console.log(chalk.green(`\n ${result.message}\n`));
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to toggle mute';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachToggleMutedCommand(cmd, {
+    description: 'Toggle the muted state of an API check',
+    invalidIdMessage: 'Invalid check ID',
+    outputService,
+    toggle: (id) => (apiClient as ApiClient).toggleMuteApiCheck(id),
+  });
 
   cmd.commands
     .find((c) => c.name() === 'create')
