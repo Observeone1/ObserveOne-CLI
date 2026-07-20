@@ -50,7 +50,7 @@ export async function testSuitePlanMarkdownRoundTrip() {
     // GET the suite again — the pushed content must be what comes back.
     const fetched = await getSuiteJson(suiteId, 'obs suite get should succeed after push');
     const fetchedPlan = fetched.plan_markdown as string | undefined;
-    if (!fetchedPlan || !fetchedPlan.includes(marker)) {
+    if (!fetchedPlan?.includes(marker)) {
       throw new Error('Pushed PLAN.md content was not reflected by a subsequent GET');
     }
   } finally {

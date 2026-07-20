@@ -57,7 +57,7 @@ export async function testSuiteRegenerateDryRunDoesNotMutate() {
     throw new Error('regenerate --dry-run output should report dry_run: true');
   }
   if (!Array.isArray(dryRunData.targets)) {
-    throw new Error('regenerate --dry-run output should list targets');
+    throw new TypeError('regenerate --dry-run output should list targets');
   }
 
   // Snapshot suite state after the dry run — nothing should have changed.

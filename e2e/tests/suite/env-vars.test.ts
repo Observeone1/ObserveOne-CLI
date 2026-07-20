@@ -34,13 +34,13 @@ export async function testSuiteEnvVarsDiscovery() {
   const parsed = JSON.parse(result.stdout);
   const data = parsed.data ?? parsed;
   if (!Array.isArray(data.secret_keys)) {
-    throw new Error('env-vars output should include a secret_keys array');
+    throw new TypeError('env-vars output should include a secret_keys array');
   }
 
   // Cross-check against the suite's own secret_keys field for consistency.
   const suite = await getSuiteJson(suiteId);
-  const expected = [...((suite.secret_keys as string[]) ?? [])].sort();
-  const actual = [...data.secret_keys].sort();
+  const expected = [...((suite.secret_keys as string[]) ?? [])].sort((a, b) => a.localeCompare(b));
+  const actual = [...data.secret_keys].sort((a: string, b: string) => a.localeCompare(b));
   if (JSON.stringify(expected) !== JSON.stringify(actual)) {
     throw new Error(
       `env-vars secret_keys (${JSON.stringify(actual)}) should match suite.secret_keys ` +
