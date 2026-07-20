@@ -227,6 +227,7 @@ obs suite generate https://example.com --plan-only         # Stop after planning
 obs suite generate https://example.com --var USER=admin --var PASS=secret
 obs suite generate https://example.com --var-file .env.test
 obs suite generate https://example.com --allow-form-submit  # Let agents submit non-auth forms
+obs suite generate https://example.com --instructions "Focus on the checkout flow"
 
 obs suite list
 obs suite get <id>
@@ -235,6 +236,8 @@ obs suite run <id> --tests <id1,id2>       # Run a subset of tests
 obs suite status <id> [executionId]        # Status of an execution (defaults to latest)
 obs suite wait <id> <executionId>          # Block until an execution finishes (CI-friendly)
 obs suite update <id> --name "New name" --url "https://new.example.com"
+obs suite update <id> --instructions "Focus on the checkout flow"
+obs suite update <id> --instructions ""    # Clear existing instructions
 obs suite delete <id> -y
 obs suite toggle-public <id> -y            # Confirms before exposing a suite; -y skips the prompt
 obs suite heal <id>                        # Trigger self-heal on failing tests
@@ -246,28 +249,34 @@ obs suite schedule <id> --disable
 obs suite schedule <id> --cron "*/30 * * * *"
 obs suite secrets <id> --var USER=admin --var PASS=secret
 obs suite secrets <id> --var-file .env.test
+obs suite env-vars <id>                    # List configured variable/credential keys (values never returned)
 
 # Planned-file lifecycle
 obs suite generate-test <suite-id> --planned-file <file>
 obs suite dismiss-planned <suite-id> --planned-file <file>
 obs suite restore-planned <suite-id> --planned-file <file>
+obs suite regenerate <id> --dry-run        # Preview stale/missing planned files
+obs suite regenerate <id>                  # Regenerate stale/missing planned files
+obs suite regenerate <id> --all            # Also regenerate everything if nothing is stale/missing
 ```
 
-`generate` flags: `--name`, `--cron`, `--max-tests <n>` (1-30, default 10), `--var <KEY[=VALUE]>` (repeatable; omit `=VALUE` to enter the secret at a masked prompt instead of leaking it into shell history), `--var-file <path>`, `--allow-form-submit`, `--plan-only`. (`-w, --wait` on `generate` is deprecated and has no effect; generation is now the default.)
+`generate` flags: `--name`, `--cron`, `--max-tests <n>` (1-30, default 10), `--var <KEY[=VALUE]>` (repeatable; omit `=VALUE` to enter the secret at a masked prompt instead of leaking it into shell history), `--var-file <path>`, `--allow-form-submit`, `--instructions <text>` (extra guidance appended to the planner prompt, 4000-char cap), `--plan-only`. (`-w, --wait` on `generate` is deprecated and has no effect; generation is now the default.)
+
+`regenerate` discovers stale (plan section edited after the test was generated) and missing (planned but never generated) files the same way the dashboard's tests tab does, and queues each one via `generate-test`. `obs suite get` flags a suite with stale planned files.
 
 ### Edit scripts locally: pull and push
 
-`pull` downloads a suite to disk so you can edit the generated Playwright scripts and `push` them back.
+`pull` downloads a suite to disk so you can edit the generated Playwright scripts and the plan, and `push` them back.
 
 ```bash
 obs suite pull <id>                    # Writes ./suites/<slug>-<id>/
 obs suite pull <id> --out ./my-suites  # Custom base directory
-# ...edit the .spec.ts files...
+# ...edit the .spec.ts files and/or PLAN.md...
 obs suite push <id>                    # Reads from ./suites by default
 obs suite push <id> --from ./my-suites
 ```
 
-`pull` writes a folder per suite containing `PLAN.md` (when the suite has one), one `<test-name>.spec.ts` per test, and a `suite.json` manifest. `push` locates the folder by the suite ID in `suite.json` and updates each test script. `push` updates test scripts only: edits to `PLAN.md` are not sent back, and neither the CLI nor the dashboard edits the plan today.
+`pull` writes a folder per suite containing `PLAN.md` (when the suite has one), one `<test-name>.spec.ts` per test, and a `suite.json` manifest. `push` locates the folder by the suite ID in `suite.json`, updates each test script, and — if the local `PLAN.md` differs from the suite's current plan — pushes the plan too. A busy suite (mid-planning/generation) reports the plan push as skipped without failing the test-script push.
 
 ### CI integration
 

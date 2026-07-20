@@ -61,6 +61,15 @@ export function printSuiteDetail(suite: Suite): void {
   if (suite.error_message) {
     console.log(` Error:     ${chalk.red(suite.error_message)}`);
   }
+  if (suite.planner_instructions) {
+    console.log(` Instructions: ${chalk.gray(suite.planner_instructions)}`);
+  }
+  const staleCount = suite.stale_planned_files?.length ?? 0;
+  if (staleCount > 0) {
+    console.log(
+      ` ${chalk.yellow('⚠ Stale:')}   ${staleCount} planned file${staleCount === 1 ? '' : 's'} changed since generation — run: obs suite regenerate ${suite.id}`
+    );
+  }
   if (suite.generated_tests?.length > 0) {
     console.log(chalk.bold('\n Generated tests:'));
     suite.generated_tests.forEach((t, i) => {

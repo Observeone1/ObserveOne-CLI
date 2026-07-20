@@ -192,7 +192,13 @@ export interface IApiClient {
   ): Promise<{ suite_id: string; tests: Array<{ id: string; name: string; code: string }> }>;
   updateSuite(
     suiteId: string,
-    payload: { suite_name?: string; target_url?: string }
+    payload: {
+      suite_name?: string;
+      target_url?: string;
+      max_tests?: number;
+      allow_form_submit?: boolean;
+      planner_instructions?: string | null;
+    }
   ): Promise<Suite>;
 
   // Suite extras
@@ -200,6 +206,8 @@ export interface IApiClient {
   healSuite(
     suiteId: string
   ): Promise<{ suite_id: string; heals: Array<{ testId: string; healId: string }> }>;
+  updateSuitePlan(suiteId: string, planMarkdown: string): Promise<Suite>;
+  getSuiteEnvVars(suiteId: string): Promise<{ secret_keys: string[] }>;
 
   // Suite CI integration (headless: status / token-rotation / disconnect only;
   // install + repo selection stays in the web UI)

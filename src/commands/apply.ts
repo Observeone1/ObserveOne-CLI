@@ -916,6 +916,11 @@ Examples:
 
                   const existing = existingByName.get(suiteConfig.suite_name);
                   if (existing) {
+                    // Omitted `planner_instructions` means "leave as-is": fall back to
+                    // the remote value so an absent field never diffs into a spurious
+                    // update that clears existing instructions.
+                    const localInstructions =
+                      suiteConfig.planner_instructions ?? existing.planner_instructions ?? null;
                     const normalizedLocal = normalizeResource(
                       {
                         suite_name: suiteConfig.suite_name,
@@ -924,12 +929,14 @@ Examples:
                         schedule_active: suiteConfig.schedule_active ?? false,
                         is_public: suiteConfig.is_public ?? false,
                         allow_form_submit: suiteConfig.allow_form_submit ?? false,
+                        planner_instructions: localInstructions,
                       },
                       {
                         cron_expression: '',
                         schedule_active: false,
                         is_public: false,
                         allow_form_submit: false,
+                        planner_instructions: null,
                       }
                     );
                     const normalizedRemote = normalizeResource(
@@ -940,12 +947,14 @@ Examples:
                         schedule_active: existing.schedule_active ?? false,
                         is_public: existing.is_public ?? false,
                         allow_form_submit: existing.allow_form_submit ?? false,
+                        planner_instructions: existing.planner_instructions ?? null,
                       },
                       {
                         cron_expression: '',
                         schedule_active: false,
                         is_public: false,
                         allow_form_submit: false,
+                        planner_instructions: null,
                       }
                     );
 
@@ -969,6 +978,7 @@ Examples:
                     await apiClient.updateSuite(existing.id, {
                       suite_name: suiteConfig.suite_name,
                       target_url: suiteConfig.target_url,
+                      planner_instructions: localInstructions,
                     });
                   } else {
                     // Suites require AI generation — apply cannot create them headlessly.

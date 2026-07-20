@@ -21,6 +21,8 @@ import { createSuiteDismissPlannedCommand } from './dismiss-planned.js';
 import { createSuiteRestorePlannedCommand } from './restore-planned.js';
 import { createSuiteHealHistoryCommand } from './heal-history.js';
 import { createSuiteCiCommand } from './ci/index.js';
+import { createSuiteRegenerateCommand } from './regenerate.js';
+import { createSuiteEnvVarsCommand } from './env-vars.js';
 
 export function createSuiteCommand(
   configService: IConfigService,
@@ -48,6 +50,8 @@ export function createSuiteCommand(
   suite.addCommand(createSuiteRestorePlannedCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteHealHistoryCommand(configService, apiClient, outputService));
   suite.addCommand(createSuiteCiCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteRegenerateCommand(configService, apiClient, outputService));
+  suite.addCommand(createSuiteEnvVarsCommand(configService, apiClient, outputService));
 
   return suite;
 }
