@@ -6,6 +6,7 @@ import { IOutputService } from '../interfaces/output.interface.js';
 import { ApiClient } from '../services/api-client.service.js';
 import { createResourceCommand } from './resource-command.factory.js';
 import { attachRunsCommand, printHeartbeatRuns } from './runs-command.js';
+import { attachIdActionCommand, attachToggleMutedCommand } from './id-action-command.js';
 import { Heartbeat } from '../types/index.js';
 
 /**
@@ -60,59 +61,25 @@ export function createHeartbeatCommand(
     outputService,
   });
 
-  cmd
-    .command('toggle-muted <id>')
-    .description('Toggle the muted state of a heartbeat')
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const hbId = id.trim();
-        if (!hbId) throw new Error('Invalid heartbeat ID');
-        const result = await (apiClient as ApiClient).toggleMuteHeartbeat(hbId);
-        if (isJson) {
-          outputService.formatJsonOutput({
-            id: hbId,
-            alert_on_failure: result.alert_on_failure,
-            message: result.message,
-          });
-          return;
-        }
-        console.log(chalk.green(`\n ${result.message}\n`));
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to toggle mute';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachToggleMutedCommand(cmd, {
+    description: 'Toggle the muted state of a heartbeat',
+    invalidIdMessage: 'Invalid heartbeat ID',
+    outputService,
+    toggle: (id) => (apiClient as ApiClient).toggleMuteHeartbeat(id),
+  });
 
-  cmd
-    .command('reset <id>')
-    .description('Reset a heartbeat timer (acknowledges missed pings)')
-    .action(async (id: string) => {
-      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
-      try {
-        const hbId = id.trim();
-        if (!hbId) throw new Error('Invalid heartbeat ID');
-        const hb = await (apiClient as ApiClient).resetHeartbeat(hbId);
-        if (isJson) {
-          outputService.formatJsonOutput(hb);
-          return;
-        }
-        console.log(chalk.green(`\n Heartbeat ${hbId} has been reset.\n`));
-      } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to reset heartbeat';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n ${msg}\n`));
-        }
-        process.exit(1);
-      }
-    });
+  attachIdActionCommand(cmd, {
+    command: 'reset <id>',
+    description: 'Reset a heartbeat timer (acknowledges missed pings)',
+    invalidIdMessage: 'Invalid heartbeat ID',
+    failureMessage: 'Failed to reset heartbeat',
+    outputService,
+    action: (id) => (apiClient as ApiClient).resetHeartbeat(id),
+    formatJson: (hb) => hb,
+    printResult: (_hb, id) => {
+      console.log(chalk.green(`\n Heartbeat ${id} has been reset.\n`));
+    },
+  });
 
   cmd.commands
     .find((c) => c.name() === 'create')

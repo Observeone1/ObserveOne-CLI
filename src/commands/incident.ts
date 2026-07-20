@@ -5,8 +5,19 @@ import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { createResourceCommand } from './resource-command.factory.js';
+import { reportActionError } from './id-action-command.js';
 import { requireTTY } from '../utils/confirm.js';
 import { Incident } from '../types/index.js';
+
+/** The create and update subcommands expose the same incident fields. */
+function addIncidentOptions(cmd: Command): void {
+  cmd
+    .option('-t, --title <title>', 'Incident title')
+    .option('-p, --priority <priority>', 'Priority (CRITICAL, HIGH, MEDIUM, LOW)')
+    .option('-d, --description <description>', 'Incident description')
+    .option('--assigned-to <userId>', 'Assign to user ID')
+    .option('--team-id <teamId>', 'Team ID');
+}
 
 export function createIncidentCommand(
   configService: IConfigService,
@@ -27,22 +38,8 @@ export function createIncidentCommand(
     formatters: {
       list: (items, verbose) => outputService.formatIncidentList(items, verbose),
     },
-    createCommandSetup: (cmd) => {
-      cmd
-        .option('-t, --title <title>', 'Incident title')
-        .option('-p, --priority <priority>', 'Priority (CRITICAL, HIGH, MEDIUM, LOW)')
-        .option('-d, --description <description>', 'Incident description')
-        .option('--assigned-to <userId>', 'Assign to user ID')
-        .option('--team-id <teamId>', 'Team ID');
-    },
-    updateCommandSetup: (cmd) => {
-      cmd
-        .option('-t, --title <title>', 'Incident title')
-        .option('-p, --priority <priority>', 'Priority (CRITICAL, HIGH, MEDIUM, LOW)')
-        .option('-d, --description <description>', 'Incident description')
-        .option('--assigned-to <userId>', 'Assign to user ID')
-        .option('--team-id <teamId>', 'Team ID');
-    },
+    createCommandSetup: addIncidentOptions,
+    updateCommandSetup: addIncidentOptions,
     // createPrompts/updatePrompts intentionally omitted — the resource-command
     // factory falls back to the schema-driven default built from
     // schemas.incident.fieldMetadata.
@@ -89,13 +86,12 @@ export function createIncidentCommand(
         }
         console.log(chalk.green(`\n✓ Comment added to incident ${incidentId}.\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to add comment';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to add comment',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -117,13 +113,12 @@ export function createIncidentCommand(
         }
         console.log(chalk.green(`\n✓ Incident ${incidentId} assigned to user ${options.user}.\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to assign incident';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to assign incident',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -145,13 +140,12 @@ export function createIncidentCommand(
         }
         console.log(chalk.green(`\n✓ Incident ${incidentId} unassigned.\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to unassign incident';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to unassign incident',
+          outputService,
+          errorPrefix: '❌ ',
+        });
       }
     });
 
@@ -183,13 +177,12 @@ export function createIncidentCommand(
           }
           console.log(chalk.green(`\n✓ Incident ${incidentId} ${label}.\n`));
         } catch (err: unknown) {
-          const msg = (err as Error).message || `Failed to ${verb} incident`;
-          if (isJson) {
-            outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-          } else {
-            console.error(chalk.red(`\n❌ ${msg}\n`));
-          }
-          process.exit(1);
+          reportActionError(err, {
+            isJson,
+            failureMessage: `Failed to ${verb} incident`,
+            outputService,
+            errorPrefix: '❌ ',
+          });
         }
       });
   }
