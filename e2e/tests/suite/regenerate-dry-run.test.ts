@@ -1,4 +1,10 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  getSuiteJson,
+} from '../../lib/test-runner.js';
 
 export async function testSuiteRegenerateHelp() {
   const result = await runCLI(['suite', 'regenerate', '--help']);
@@ -32,11 +38,7 @@ export async function testSuiteRegenerateDryRunDoesNotMutate() {
   if (!suiteId) return;
 
   // Snapshot suite state before the dry run.
-  const beforeResult = await runCLI(['suite', 'get', suiteId, '--json']);
-  assertSuccess(beforeResult, 'obs suite get should succeed before dry run');
-  const before = JSON.parse(beforeResult.stdout);
-  const beforeSuite = before.suite ?? before.data?.suite;
-  if (!beforeSuite) throw new Error('Could not read suite state before dry run');
+  const beforeSuite = await getSuiteJson(suiteId, 'obs suite get should succeed before dry run');
 
   // Dry-run with --all so the report is non-empty even when nothing is stale/missing.
   const dryRunResult = await runCLI([
@@ -59,11 +61,7 @@ export async function testSuiteRegenerateDryRunDoesNotMutate() {
   }
 
   // Snapshot suite state after the dry run — nothing should have changed.
-  const afterResult = await runCLI(['suite', 'get', suiteId, '--json']);
-  assertSuccess(afterResult, 'obs suite get should succeed after dry run');
-  const after = JSON.parse(afterResult.stdout);
-  const afterSuite = after.suite ?? after.data?.suite;
-  if (!afterSuite) throw new Error('Could not read suite state after dry run');
+  const afterSuite = await getSuiteJson(suiteId, 'obs suite get should succeed after dry run');
 
   if (afterSuite.test_count !== beforeSuite.test_count) {
     throw new Error(

@@ -203,3 +203,25 @@ export function assertStrictJSON(output: string, message?: string): void {
     throw new Error(`${label}\nGot: ${output}`);
   }
 }
+
+/**
+ * Run `obs suite get <id> --json` and return the unwrapped suite object.
+ * `suite get --json` nests the suite under `.suite` (or `.data.suite` when
+ * the global JSON envelope wraps it) depending on invocation context — this
+ * normalizes both shapes for callers that just want the suite fields.
+ * Throws if the command fails or the suite can't be found in either shape.
+ */
+export async function getSuiteJson(
+  id: string,
+  message = 'obs suite get should succeed'
+): Promise<Record<string, unknown>> {
+  const result = await runCLI(['suite', 'get', id, '--json']);
+  assertSuccess(result, message);
+  const parsed = JSON.parse(result.stdout) as {
+    suite?: Record<string, unknown>;
+    data?: { suite?: Record<string, unknown> };
+  };
+  const suite = parsed.suite ?? parsed.data?.suite;
+  if (!suite) throw new Error(`Could not read suite from "obs suite get ${id} --json" output`);
+  return suite;
+}

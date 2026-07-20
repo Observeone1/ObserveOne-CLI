@@ -1,4 +1,10 @@
-import { runCLI, assertSuccess, assertContains, assertJSON } from '../../lib/test-runner.js';
+import {
+  runCLI,
+  assertSuccess,
+  assertContains,
+  assertJSON,
+  getSuiteJson,
+} from '../../lib/test-runner.js';
 
 export async function testSuiteEnvVarsHelp() {
   const result = await runCLI(['suite', 'env-vars', '--help']);
@@ -32,13 +38,8 @@ export async function testSuiteEnvVarsDiscovery() {
   }
 
   // Cross-check against the suite's own secret_keys field for consistency.
-  const getResult = await runCLI(['suite', 'get', suiteId, '--json']);
-  assertSuccess(getResult, 'obs suite get should succeed');
-  const fetched = JSON.parse(getResult.stdout);
-  const suite = fetched.suite ?? fetched.data?.suite;
-  if (!suite) throw new Error('Could not read suite from get response');
-
-  const expected = [...(suite.secret_keys ?? [])].sort();
+  const suite = await getSuiteJson(suiteId);
+  const expected = [...((suite.secret_keys as string[]) ?? [])].sort();
   const actual = [...data.secret_keys].sort();
   if (JSON.stringify(expected) !== JSON.stringify(actual)) {
     throw new Error(

@@ -1,4 +1,4 @@
-import { runCLI, assertSuccess, assertContains } from '../../lib/test-runner.js';
+import { runCLI, assertSuccess, assertContains, getSuiteJson } from '../../lib/test-runner.js';
 
 export async function testSuiteUpdateInstructionsHelpMentionsFlag() {
   const result = await runCLI(['suite', 'update', '--help']);
@@ -17,12 +17,11 @@ export async function testSuiteInstructionsPersist() {
   const suiteId = process.env.OBS_TEST_SUITE_ID;
   if (!suiteId) return;
 
-  const beforeResult = await runCLI(['suite', 'get', suiteId, '--json']);
-  assertSuccess(beforeResult, 'obs suite get should succeed before instructions test');
-  const before = JSON.parse(beforeResult.stdout);
-  const beforeSuite = before.suite ?? before.data?.suite;
-  if (!beforeSuite) throw new Error('Could not read suite state before instructions test');
-  const originalInstructions: string | null = beforeSuite.planner_instructions ?? null;
+  const beforeSuite = await getSuiteJson(
+    suiteId,
+    'obs suite get should succeed before instructions test'
+  );
+  const originalInstructions = (beforeSuite.planner_instructions as string | null) ?? null;
 
   const newInstructions = `E2E instructions persistence check ${Date.now()}`;
 
@@ -38,11 +37,11 @@ export async function testSuiteInstructionsPersist() {
     assertSuccess(updateResult, 'obs suite update --instructions should succeed');
 
     // GET/pull and assert the instructions persisted.
-    const getResult = await runCLI(['suite', 'get', suiteId, '--json']);
-    assertSuccess(getResult, 'obs suite get should succeed after instructions update');
-    const fetched = JSON.parse(getResult.stdout);
-    const suite = fetched.suite ?? fetched.data?.suite;
-    if (!suite || suite.planner_instructions !== newInstructions) {
+    const suite = await getSuiteJson(
+      suiteId,
+      'obs suite get should succeed after instructions update'
+    );
+    if (suite.planner_instructions !== newInstructions) {
       throw new Error(
         `Instructions did not persist: expected "${newInstructions}", got ` +
           `"${suite?.planner_instructions}"`

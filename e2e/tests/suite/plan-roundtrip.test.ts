@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { runCLI, assertSuccess, assertContains } from '../../lib/test-runner.js';
+import { runCLI, assertSuccess, assertContains, getSuiteJson } from '../../lib/test-runner.js';
 
 /**
  * v1.36 parity regression: PLAN.md round-trip.
@@ -48,10 +48,8 @@ export async function testSuitePlanMarkdownRoundTrip() {
     );
 
     // GET the suite again — the pushed content must be what comes back.
-    const getResult = await runCLI(['suite', 'get', suiteId, '--json']);
-    assertSuccess(getResult, 'obs suite get should succeed after push');
-    const fetched = JSON.parse(getResult.stdout);
-    const fetchedPlan = fetched.suite?.plan_markdown ?? fetched.data?.suite?.plan_markdown;
+    const fetched = await getSuiteJson(suiteId, 'obs suite get should succeed after push');
+    const fetchedPlan = fetched.plan_markdown as string | undefined;
     if (!fetchedPlan || !fetchedPlan.includes(marker)) {
       throw new Error('Pushed PLAN.md content was not reflected by a subsequent GET');
     }
