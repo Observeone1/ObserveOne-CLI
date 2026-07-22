@@ -5,6 +5,25 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { requireConfirmation } from '../utils/confirm.js';
 
+// Shared failure handler for every `team` subcommand action. Each action's
+// catch block was byte-identical apart from the fallback message, which Sonar's
+// duplication gate flagged; centralising it keeps the error/exit contract in one
+// place. Returns `never` because it always terminates the process.
+function reportTeamError(
+  err: unknown,
+  fallback: string,
+  isJson: boolean,
+  outputService: IOutputService
+): never {
+  const msg = (err as Error).message || fallback;
+  if (isJson) {
+    outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
+  } else {
+    console.error(chalk.red(`\n❌ ${msg}\n`));
+  }
+  process.exit(1);
+}
+
 export function createTeamCommand(
   _configService: IConfigService,
   apiClient: IApiClient,
@@ -34,13 +53,7 @@ export function createTeamCommand(
         }
         console.log('');
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to list teams';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportTeamError(err, 'Failed to list teams', isJson, outputService);
       }
     });
 
@@ -68,13 +81,7 @@ export function createTeamCommand(
         }
         console.log('');
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to list team members';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportTeamError(err, 'Failed to list team members', isJson, outputService);
       }
     });
 
@@ -92,13 +99,7 @@ export function createTeamCommand(
         }
         console.log(chalk.bold(`\n✓ Invite code: ${chalk.cyan(result.inviteCode)}\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to regenerate invite code';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportTeamError(err, 'Failed to regenerate invite code', isJson, outputService);
       }
     });
 
@@ -126,13 +127,7 @@ export function createTeamCommand(
         }
         console.log(chalk.green(`\n✓ User ${userId} removed from team ${teamId}.\n`));
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to remove team member';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportTeamError(err, 'Failed to remove team member', isJson, outputService);
       }
     });
 
@@ -153,13 +148,7 @@ export function createTeamCommand(
           chalk.green(`\n✓ User ${userId} role updated to ${options.role} in team ${teamId}.\n`)
         );
       } catch (err: unknown) {
-        const msg = (err as Error).message || 'Failed to update team member role';
-        if (isJson) {
-          outputService.formatJsonOutput({ status: 'ERROR', error: { message: msg } });
-        } else {
-          console.error(chalk.red(`\n❌ ${msg}\n`));
-        }
-        process.exit(1);
+        reportTeamError(err, 'Failed to update team member role', isJson, outputService);
       }
     });
 
