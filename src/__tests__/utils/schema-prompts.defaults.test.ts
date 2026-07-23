@@ -86,6 +86,25 @@ describe('toInquirerQuestion defaults', () => {
     expect(payload).toEqual({ title: 'from prompt' });
   });
 
+  it('skips a promptable field whose flag was already supplied', async () => {
+    const schema = {
+      description: 'minimal',
+      required: ['title', 'body'],
+      template: {},
+      fieldMetadata: {
+        title: { requiredOnCreate: true, inquirerType: 'input', flagName: 'title' },
+        body: { requiredOnCreate: true, inquirerType: 'input', flagName: 'body' },
+      },
+    } as unknown as ResourceSchema;
+
+    promptMock.mockResolvedValueOnce({ body: 'from prompt' });
+    const payload = await buildDefaultCreatePrompts(schema)({ title: 'from flag' });
+
+    const questions = promptMock.mock.calls[0]![0] as Array<Record<string, unknown>>;
+    expect(questions.map((q) => q.name)).toEqual(['body']);
+    expect(payload).toEqual({ title: 'from flag', body: 'from prompt' });
+  });
+
   it('carries label, choices and default through to the question', async () => {
     const schema = {
       description: 'minimal',

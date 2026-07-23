@@ -234,6 +234,15 @@ describe('ApiClient envelope fallbacks', () => {
     });
   });
 
+  describe('pagination', () => {
+    it('reports zero total pages for an empty list', async () => {
+      mockClient({ get: vi.fn().mockResolvedValue({ data: [] }) });
+      const result = await apiClient.listUrlMonitors({});
+      expect(result.pagination).toMatchObject({ total: 0, totalPages: 0 });
+      expect(result.items).toEqual([]);
+    });
+  });
+
   describe('incidents', () => {
     it('returns an empty list when the incidents envelope carries no array', async () => {
       mockClient({ get: vi.fn().mockResolvedValue({ data: { incidents: undefined } }) });

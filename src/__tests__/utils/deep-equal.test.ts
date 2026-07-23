@@ -230,4 +230,9 @@ describe('diffObjects', () => {
     );
     expect(diff).toEqual({});
   });
+
+  it('treats objects with different key counts as unequal', () => {
+    expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+    expect(deepEqual({ a: 1, b: 2 }, { a: 1 })).toBe(false);
+  });
 });

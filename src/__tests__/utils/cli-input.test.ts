@@ -129,3 +129,12 @@ describe('parseKeyValuePairs', () => {
     expect(() => parseKeyValuePairs('  =value', 'var')).toThrow(/KEY=VALUE|cannot be empty/);
   });
 });
+
+describe('parseIdsFromText with id-less JSON entries', () => {
+  it('drops array entries that are neither strings nor objects carrying an id', () => {
+    expect(parseIdsFromText('[{"name":"no-id"}, null, 42, {"id":"keep-me"}, "plain"]')).toEqual([
+      'keep-me',
+      'plain',
+    ]);
+  });
+});

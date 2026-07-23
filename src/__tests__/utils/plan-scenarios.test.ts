@@ -203,4 +203,18 @@ describe('computeRegenerateTargets', () => {
     const { targets } = computeRegenerateTargets(suite, true);
     expect(targets.some((t) => t.file === 'old-scenario.spec.ts')).toBe(false);
   });
+
+  it('classifies a suite that carries none of the optional planning arrays', () => {
+    // generated_tests / dismissed_planned_files / stale_planned_files are all
+    // absent here, so every scenario must fall through to the planned state.
+    const bare = {
+      plan_markdown: SAMPLE_PLAN,
+    } as unknown as Parameters<typeof classifyPlannedFiles>[0];
+
+    const statuses = classifyPlannedFiles(bare);
+
+    expect(statuses.length).toBeGreaterThan(0);
+    expect(statuses.some((s) => s.status === 'generated')).toBe(false);
+    expect(statuses.some((s) => s.status === 'stale')).toBe(false);
+  });
 });
