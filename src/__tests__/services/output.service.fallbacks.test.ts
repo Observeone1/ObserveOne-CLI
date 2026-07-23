@@ -405,6 +405,122 @@ describe('OutputService fallback rendering', () => {
       expect(out).toContain('Slug: status');
       expect(out).not.toContain('Theme Primary:');
     });
+
+    it('prints the description when verbose and one is set', () => {
+      outputService.formatStatusPageList([{ ...basePage, description: 'customer facing' }], true);
+      expect(loggedLines()).toContain('Desc: customer facing');
+    });
+  });
+
+  describe('verbose descriptions and empty collections', () => {
+    it('prints a URL monitor description when verbose', () => {
+      outputService.formatMonitorList([{ ...baseMonitor, description: 'front door' }], true);
+      expect(loggedLines()).toContain('Desc: front door');
+    });
+
+    it('prints a protocol monitor description and derives status from is_active', () => {
+      const protocolMonitor = {
+        id: 'p1',
+        name: 'cert check',
+        hostname: 'example.com',
+        port: 443,
+        is_active: true,
+        alert_on_failure: true,
+        description: 'tls expiry',
+      };
+      outputService.formatProtocolMonitorList([protocolMonitor as unknown as SslMonitor], true);
+      const out = loggedLines();
+      expect(out).toContain('Desc: tls expiry');
+      expect(out).toContain('UP');
+
+      vi.clearAllMocks();
+      outputService.formatProtocolMonitorList([
+        { ...protocolMonitor, is_active: false } as unknown as SslMonitor,
+      ]);
+      expect(loggedLines()).toContain('PAUSED');
+    });
+
+    it('derives an API check status from is_active when none is reported', () => {
+      const check = {
+        id: 'c1',
+        name: 'Health check',
+        url: 'https://api.example.com/health',
+        method: 'GET',
+        timeout_ms: 5000,
+        is_active: false,
+        alert_on_failure: true,
+        assertions: [],
+      };
+      outputService.formatApiCheckList([check as ApiCheck]);
+      expect(loggedLines()).toContain('PAUSED');
+    });
+
+    it('prints nothing extra for an environment whose variables map is empty', () => {
+      outputService.formatEnvironmentList(
+        [
+          {
+            id: 'e1',
+            name: 'staging',
+            variables: {},
+            secret_keys: [],
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z',
+          },
+        ],
+        true
+      );
+      const out = loggedLines();
+      expect(out).toContain('Variables: 0  Secrets: 0');
+      expect(out).not.toContain('Secret keys:');
+    });
+
+    it('lists secret key names but never values when verbose', () => {
+      outputService.formatEnvironmentList(
+        [
+          {
+            id: 'e1',
+            name: 'production',
+            variables: {},
+            secret_keys: ['DB_PASSWORD', 'API_TOKEN'],
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z',
+          },
+        ],
+        true
+      );
+      expect(loggedLines()).toContain('Secret keys: DB_PASSWORD, API_TOKEN');
+    });
+
+    it('lists collection header entries when verbose and headers exist', () => {
+      outputService.formatApiCollectionList(
+        [
+          {
+            id: 'ac1',
+            name: 'Billing API',
+            headers: { Authorization: 'Bearer abc' },
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z',
+          },
+        ],
+        true
+      );
+      expect(loggedLines()).toContain('Authorization: Bearer abc');
+    });
+
+    it('reports None for an alert channel with no config object at all', () => {
+      outputService.formatAlertChannelList(
+        [
+          {
+            id: 'ch1',
+            name: 'Ops email',
+            type: 'email',
+            is_default: false,
+          } as unknown as AlertChannel,
+        ],
+        true
+      );
+      expect(loggedLines()).toContain('Config keys: None');
+    });
   });
 
   describe('formatIncidentList', () => {
