@@ -163,4 +163,29 @@ describe('UpdateService.checkForUpdates', () => {
     process.argv = ['/usr/bin/node', scriptPath];
     await expectDetectedCommand(cmd);
   });
+
+  it.each([
+    ['yarn via argv', '/usr/local/bin/yarn/obs.js', 'yarn global add @observeone/cli'],
+    ['bun via argv', '/home/u/.bun/install/global/obs.js', 'bun add -g @observeone/cli'],
+  ])('detects %s', async (_label, scriptPath, cmd) => {
+    process.argv = ['/usr/bin/node', scriptPath];
+    await expectDetectedCommand(cmd);
+  });
+
+  it('falls back to npm when argv carries no entries at all', async () => {
+    process.argv = [] as unknown as string[];
+    await expectDetectedCommand('npm install -g @observeone/cli');
+  });
+
+  it('does not offer an update when the latest version omits the patch segment', async () => {
+    // '1.0' has no third segment, so the comparison runs out of parts to
+    // compare and must not report the truncated version as newer.
+    axiosGetMock.mockResolvedValue({ data: { version: '1.0' } });
+    const output = stubOutput();
+
+    await new UpdateService('1.0.0').checkForUpdates(output);
+
+    expect(output.warning).not.toHaveBeenCalled();
+    expect(loggedLines()).not.toContain('-g @observeone/cli');
+  });
 });

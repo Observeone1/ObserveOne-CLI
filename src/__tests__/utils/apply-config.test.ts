@@ -305,4 +305,23 @@ describe('normalizeApplyConfig', () => {
       expect(sp.monitors?.[0].monitor_id).toBe(5);
     });
   });
+
+  describe('malformed entries', () => {
+    it('leaves non-object entries in an id-bearing array untouched', () => {
+      const result = normalizeApplyConfig({
+        monitors: [null, 'not-an-object', { id: 'strip-me', name: 'M1' }],
+      } as never);
+
+      const monitors = result.monitors as unknown[];
+      expect(monitors[0]).toBeNull();
+      expect(monitors[1]).toBe('not-an-object');
+      expect(monitors[2]).toEqual({ name: 'M1' });
+    });
+
+    it('rejects a singular entry whose declared type is not a known resource', () => {
+      expect(() => normalizeApplyConfig({ type: 'not-a-resource', name: 'X' } as never)).toThrow(
+        /Unsupported apply file shape/
+      );
+    });
+  });
 });
