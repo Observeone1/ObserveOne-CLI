@@ -16,7 +16,7 @@ export async function testTemplatesListJsonEnvelope() {
     throw new Error(`Expected SUCCESS envelope, got: ${parsed.status}`);
   }
   const data = parsed.data as { templates?: Array<{ name: string }> };
-  if (!data?.templates || data.templates.length !== 6) {
+  if (data?.templates?.length !== 6) {
     throw new Error(`Expected 6 templates, got ${data?.templates?.length}`);
   }
 }

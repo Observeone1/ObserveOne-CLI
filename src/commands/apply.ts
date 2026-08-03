@@ -83,6 +83,296 @@ const chunkArray = <T>(arr: T[], size: number): T[][] => {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function extractApiError(err: unknown): string {
+  const errorObj = err as {
+    response?: { data?: { error?: string; message?: string } };
+    message?: string;
+  };
+  return (
+    errorObj.response?.data?.error ||
+    errorObj.response?.data?.message ||
+    errorObj.message ||
+    'Unknown error'
+  );
+}
+
+interface ApplyCtx {
+  summary: ApplySummary;
+  errors: string[];
+  renameWarnings: string[];
+  dryRunEntries: DryRunEntry[];
+  isDryRun: boolean;
+  logProgress: (msg: string) => void;
+}
+
+async function applyUrlMonitorItem(
+  ctx: ApplyCtx,
+  apiClient: IApiClient,
+  monitorConfig: NonNullable<ApplyConfig['monitors']>[number],
+  existingByName: Map<string, UrlMonitor>
+): Promise<void> {
+  const { summary, errors, renameWarnings, dryRunEntries, isDryRun, logProgress } = ctx;
+  try {
+    if (!monitorConfig.name || !monitorConfig.url) {
+      throw new Error("Monitor must have 'name' and 'url'");
+    }
+
+    const existing = existingByName.get(monitorConfig.name);
+    if (existing) {
+      const localChannelIds = extractChannelIds(monitorConfig);
+      const remoteChannelIds = extractChannelIds(existing);
+      const remoteInterval = existing.interval;
+      const remoteAlertOnFailure = existing.alert_on_failure ?? true;
+      const normalizedLocal = normalizeResource(
+        {
+          name: monitorConfig.name,
+          description: monitorConfig.description ?? '',
+          url: monitorConfig.url,
+          timeout_ms: monitorConfig.timeout_ms || 30000,
+          interval: fieldChanged(monitorConfig.interval, remoteInterval)
+            ? monitorConfig.interval
+            : remoteInterval,
+          alert_on_failure: fieldChanged(monitorConfig.alert_on_failure, remoteAlertOnFailure)
+            ? monitorConfig.alert_on_failure
+            : remoteAlertOnFailure,
+          channel_ids: localChannelIds,
+        },
+        { timeout_ms: 30000, alert_on_failure: true, description: '' }
+      );
+      const normalizedRemote = normalizeResource(
+        {
+          name: existing.name,
+          description: existing.description ?? '',
+          url: existing.url,
+          timeout_ms: existing.timeout_ms || 30000,
+          interval: existing.interval,
+          alert_on_failure: existing.alert_on_failure ?? true,
+          channel_ids: remoteChannelIds,
+        },
+        { timeout_ms: 30000, alert_on_failure: true, description: '' }
+      );
+
+      if (deepEqual(normalizedLocal, normalizedRemote)) {
+        logProgress(`Monitor unchanged: ${monitorConfig.name}`);
+        summary.monitors.unchanged++;
+        return;
+      }
+
+      summary.monitors.updated++;
+      if (isDryRun) {
+        dryRunEntries.push({
+          type: 'update',
+          resource: 'monitor',
+          name: monitorConfig.name,
+          diff: diffObjects(normalizedRemote, normalizedLocal),
+        });
+        return;
+      }
+      logProgress(`Updating monitor: ${monitorConfig.name}`);
+      await apiClient.updateUrlMonitor(existing.id, {
+        name: monitorConfig.name || existing.name,
+        description: monitorConfig.description ?? existing.description ?? '',
+        url: monitorConfig.url || existing.url,
+        timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
+        interval: monitorConfig.interval || existing.interval,
+        alert_on_failure: monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
+        channel_ids: localChannelIds,
+      });
+      return;
+    }
+
+    summary.monitors.created++;
+    const w = likelyRenameWarning('monitor', monitorConfig.name, Array.from(existingByName.keys()));
+    if (w) renameWarnings.push(w);
+    if (isDryRun) {
+      dryRunEntries.push({ type: 'create', resource: 'monitor', name: monitorConfig.name });
+      return;
+    }
+    logProgress(`Creating monitor: ${monitorConfig.name}`);
+    await apiClient.createUrlMonitor({
+      ...monitorConfig,
+      timeout_ms: monitorConfig.timeout_ms || 30000,
+    });
+  } catch (err: unknown) {
+    errors.push(`Monitor '${monitorConfig.name || 'unknown'}': ${extractApiError(err)}`);
+    summary.monitors.errors++;
+  }
+}
+
+async function applyApiCheckItem(
+  ctx: ApplyCtx,
+  apiClient: IApiClient,
+  checkConfig: NonNullable<ApplyConfig['api_checks']>[number],
+  existingByName: Map<string, ApiCheck>
+): Promise<void> {
+  const { summary, errors, renameWarnings, dryRunEntries, isDryRun, logProgress } = ctx;
+  try {
+    if (!checkConfig.name || !checkConfig.url) {
+      throw new Error("API check must have 'name' and 'url'");
+    }
+
+    const existing = existingByName.get(checkConfig.name);
+    if (existing) {
+      const localChannelIds = extractChannelIds(checkConfig);
+      const remoteChannelIds = extractChannelIds(existing);
+      const localAssertions = normalizeAssertions(checkConfig.assertions);
+      const remoteAssertions = normalizeAssertions(existing.assertions);
+      const normalizedLocal = normalizeResource(
+        {
+          name: checkConfig.name,
+          description: checkConfig.description ?? '',
+          url: checkConfig.url,
+          method: checkConfig.method?.toUpperCase() || 'GET',
+          headers: checkConfig.headers ?? {},
+          body: checkConfig.body ?? '',
+          cron_expression:
+            checkConfig.cron_expression ?? (checkConfig as { interval?: string }).interval ?? null,
+          timeout_ms: checkConfig.timeout_ms || 30000,
+          alert_on_failure: checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
+          channel_ids: localChannelIds,
+          assertions: localAssertions,
+        },
+        { timeout_ms: 30000, alert_on_failure: true, method: 'GET', description: '', body: '' }
+      );
+      const normalizedRemote = normalizeResource(
+        {
+          name: existing.name,
+          description: existing.description ?? '',
+          url: existing.url,
+          method: existing.method?.toUpperCase() || 'GET',
+          headers: existing.headers ?? {},
+          body: existing.body ?? '',
+          cron_expression:
+            existing.cron_expression ?? (existing as { interval?: string }).interval ?? null,
+          timeout_ms: existing.timeout_ms || 30000,
+          alert_on_failure: existing.alert_on_failure ?? true,
+          channel_ids: remoteChannelIds,
+          assertions: remoteAssertions,
+        },
+        { timeout_ms: 30000, alert_on_failure: true, method: 'GET', description: '', body: '' }
+      );
+
+      if (deepEqual(normalizedLocal, normalizedRemote)) {
+        logProgress(`API check unchanged: ${checkConfig.name}`);
+        summary.apiChecks.unchanged++;
+        return;
+      }
+
+      summary.apiChecks.updated++;
+      if (isDryRun) {
+        dryRunEntries.push({
+          type: 'update',
+          resource: 'api-check',
+          name: checkConfig.name,
+          diff: diffObjects(normalizedRemote, normalizedLocal),
+        });
+        return;
+      }
+      logProgress(`Updating API check: ${checkConfig.name}`);
+      const effectiveBody = checkConfig.body ?? existing.body;
+      const effectiveCron =
+        checkConfig.cron_expression ??
+        (checkConfig as { interval?: string }).interval ??
+        existing.cron_expression;
+      await apiClient.updateApiCheck(existing.id, {
+        name: checkConfig.name || existing.name,
+        description: checkConfig.description ?? existing.description ?? '',
+        url: checkConfig.url || existing.url,
+        method: checkConfig.method?.toUpperCase() || existing.method || 'GET',
+        headers: checkConfig.headers ?? existing.headers,
+        ...(effectiveBody !== null && effectiveBody !== undefined && { body: effectiveBody }),
+        ...(effectiveCron !== null &&
+          effectiveCron !== undefined && { cron_expression: effectiveCron }),
+        timeout_ms: checkConfig.timeout_ms || existing.timeout_ms || 30000,
+        alert_on_failure: checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
+        channel_ids: localChannelIds,
+        assertions: checkConfig.assertions ?? existing.assertions,
+      });
+      return;
+    }
+
+    summary.apiChecks.created++;
+    const w = likelyRenameWarning('API check', checkConfig.name, Array.from(existingByName.keys()));
+    if (w) renameWarnings.push(w);
+    if (isDryRun) {
+      dryRunEntries.push({ type: 'create', resource: 'api-check', name: checkConfig.name });
+      return;
+    }
+    logProgress(`Creating API check: ${checkConfig.name}`);
+    await apiClient.createApiCheck({
+      ...checkConfig,
+      timeout_ms: checkConfig.timeout_ms || 30000,
+      method: checkConfig.method?.toUpperCase() || 'GET',
+    });
+  } catch (err: unknown) {
+    errors.push(`API Check '${checkConfig.name || 'unknown'}': ${extractApiError(err)}`);
+    summary.apiChecks.errors++;
+  }
+}
+
+async function processUrlMonitors(
+  ctx: ApplyCtx,
+  apiClient: IApiClient,
+  monitors: NonNullable<ApplyConfig['monitors']>,
+  delayMs: number
+): Promise<void> {
+  const { logProgress } = ctx;
+  logProgress('Fetching existing monitors...');
+  const existingMonitors = await apiClient.getUrlMonitors();
+  const hydratedMonitors = await Promise.all(
+    existingMonitors.map((m) =>
+      apiClient
+        .getUrlMonitor(m.id)
+        .then((detail) => ({ ...m, ...(detail as Partial<UrlMonitor>) }))
+        .catch(() => m)
+    )
+  );
+  const existingByName = new Map<string, UrlMonitor>(hydratedMonitors.map((m) => [m.name, m]));
+
+  const chunks = chunkArray(monitors, 5);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]!;
+    await Promise.all(
+      chunk.map((monitorConfig) =>
+        applyUrlMonitorItem(ctx, apiClient, monitorConfig, existingByName)
+      )
+    );
+    if (i < chunks.length - 1) await delay(delayMs);
+  }
+}
+
+async function processApiChecks(
+  ctx: ApplyCtx,
+  apiClient: IApiClient,
+  apiChecks: NonNullable<ApplyConfig['api_checks']>,
+  delayMs: number
+): Promise<void> {
+  const { logProgress } = ctx;
+  logProgress('Fetching existing API checks...');
+  const existingChecks = await apiClient.getApiChecks();
+  const hydratedChecks = await Promise.all(
+    existingChecks.map((c) =>
+      apiClient
+        .getApiCheck(c.id)
+        .then((resp) => {
+          const nested = (resp as { apiCheck?: ApiCheck }).apiCheck;
+          return nested ? { ...c, ...nested } : { ...c, ...(resp as Partial<ApiCheck>) };
+        })
+        .catch(() => c)
+    )
+  );
+  const existingByName = new Map<string, ApiCheck>(hydratedChecks.map((c) => [c.name, c]));
+
+  const chunks = chunkArray(apiChecks, 5);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]!;
+    await Promise.all(
+      chunk.map((checkConfig) => applyApiCheckItem(ctx, apiClient, checkConfig, existingByName))
+    );
+    if (i < chunks.length - 1) await delay(delayMs);
+  }
+}
+
 /**
  * Apply matches existing resources by name/slug only, so a rename in the file
  * looks like a brand-new resource: a duplicate is created and the original is
@@ -277,311 +567,21 @@ Examples:
         const dryRunEntries: DryRunEntry[] = [];
         const delayMs = 1000; // 1 second between chunks to respect 100 req/min rate limit
 
-        // 1. Process URL Monitors
+        const ctx: ApplyCtx = {
+          summary,
+          errors,
+          renameWarnings,
+          dryRunEntries,
+          isDryRun,
+          logProgress,
+        };
+
         if (config.monitors && Array.isArray(config.monitors)) {
-          logProgress('Fetching existing monitors...');
-          const existingMonitors = await apiClient.getUrlMonitors();
-          // Detail-hydrate so the existing map has channels populated for diff.
-          const hydratedMonitors = await Promise.all(
-            existingMonitors.map((m) =>
-              apiClient
-                .getUrlMonitor(m.id)
-                .then((detail) => ({ ...m, ...(detail as Partial<UrlMonitor>) }))
-                .catch(() => m)
-            )
-          );
-          const existingByName = new Map<string, UrlMonitor>(
-            hydratedMonitors.map((m) => [m.name, m])
-          );
-
-          const chunks = chunkArray(config.monitors, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i]!;
-            await Promise.all(
-              chunk.map(async (monitorConfig) => {
-                try {
-                  if (!monitorConfig.name || !monitorConfig.url) {
-                    throw new Error("Monitor must have 'name' and 'url'");
-                  }
-
-                  const existing = existingByName.get(monitorConfig.name);
-                  if (existing) {
-                    const localChannelIds = extractChannelIds(monitorConfig);
-                    const remoteChannelIds = extractChannelIds(existing);
-                    // Normalize both objects for comparison
-                    // Omitted (undefined) optional fields mean "don't care": mirror
-                    // the remote value so they never produce a spurious diff/update.
-                    // An explicitly-set value that differs still updates.
-                    const remoteInterval = existing.interval;
-                    const remoteAlertOnFailure = existing.alert_on_failure ?? true;
-                    const normalizedLocal = normalizeResource(
-                      {
-                        name: monitorConfig.name,
-                        description: monitorConfig.description ?? '',
-                        url: monitorConfig.url,
-                        timeout_ms: monitorConfig.timeout_ms || 30000,
-                        interval: fieldChanged(monitorConfig.interval, remoteInterval)
-                          ? monitorConfig.interval
-                          : remoteInterval,
-                        alert_on_failure: fieldChanged(
-                          monitorConfig.alert_on_failure,
-                          remoteAlertOnFailure
-                        )
-                          ? monitorConfig.alert_on_failure
-                          : remoteAlertOnFailure,
-                        channel_ids: localChannelIds,
-                      },
-                      { timeout_ms: 30000, alert_on_failure: true, description: '' }
-                    );
-                    const normalizedRemote = normalizeResource(
-                      {
-                        name: existing.name,
-                        description: existing.description ?? '',
-                        url: existing.url,
-                        timeout_ms: existing.timeout_ms || 30000,
-                        interval: existing.interval,
-                        alert_on_failure: existing.alert_on_failure ?? true,
-                        channel_ids: remoteChannelIds,
-                      },
-                      { timeout_ms: 30000, alert_on_failure: true, description: '' }
-                    );
-
-                    // Skip update if no changes
-                    if (deepEqual(normalizedLocal, normalizedRemote)) {
-                      logProgress(`Monitor unchanged: ${monitorConfig.name}`);
-                      summary.monitors.unchanged++;
-                      return;
-                    }
-
-                    summary.monitors.updated++;
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'update',
-                        resource: 'monitor',
-                        name: monitorConfig.name,
-                        diff: diffObjects(normalizedRemote, normalizedLocal),
-                      });
-                      return;
-                    }
-                    logProgress(`Updating monitor: ${monitorConfig.name}`);
-                    await apiClient.updateUrlMonitor(existing.id, {
-                      name: monitorConfig.name || existing.name,
-                      description: monitorConfig.description ?? existing.description ?? '',
-                      url: monitorConfig.url || existing.url,
-                      timeout_ms: monitorConfig.timeout_ms || existing.timeout_ms || 30000,
-                      interval: monitorConfig.interval || existing.interval,
-                      alert_on_failure:
-                        monitorConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
-                      channel_ids: localChannelIds,
-                    });
-                  } else {
-                    summary.monitors.created++;
-                    const w = likelyRenameWarning(
-                      'monitor',
-                      monitorConfig.name,
-                      Array.from(existingByName.keys())
-                    );
-                    if (w) renameWarnings.push(w);
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'create',
-                        resource: 'monitor',
-                        name: monitorConfig.name,
-                      });
-                      return;
-                    }
-                    logProgress(`Creating monitor: ${monitorConfig.name}`);
-                    await apiClient.createUrlMonitor({
-                      ...monitorConfig,
-                      timeout_ms: monitorConfig.timeout_ms || 30000,
-                    });
-                  }
-                } catch (err: unknown) {
-                  const errorObj = err as {
-                    response?: { data?: { error?: string; message?: string } };
-                    message?: string;
-                  };
-                  const details =
-                    errorObj.response?.data?.error ||
-                    errorObj.response?.data?.message ||
-                    errorObj.message;
-                  errors.push(`Monitor '${monitorConfig.name || 'unknown'}': ${details}`);
-                  summary.monitors.errors++;
-                }
-              })
-            );
-            if (i < chunks.length - 1) await delay(delayMs);
-          }
+          await processUrlMonitors(ctx, apiClient, config.monitors, delayMs);
         }
 
-        // 2. Process API Checks
         if (config.api_checks && Array.isArray(config.api_checks)) {
-          logProgress('Fetching existing API checks...');
-          const existingChecks = await apiClient.getApiChecks();
-          // Detail-hydrate for channel_ids (list omits the channels join).
-          const hydratedChecks = await Promise.all(
-            existingChecks.map((c) =>
-              apiClient
-                .getApiCheck(c.id)
-                .then((resp) => {
-                  const nested = (resp as { apiCheck?: ApiCheck }).apiCheck;
-                  return nested ? { ...c, ...nested } : { ...c, ...(resp as Partial<ApiCheck>) };
-                })
-                .catch(() => c)
-            )
-          );
-          const existingByName = new Map<string, ApiCheck>(hydratedChecks.map((c) => [c.name, c]));
-
-          const chunks = chunkArray(config.api_checks, 5);
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i]!;
-            await Promise.all(
-              chunk.map(async (checkConfig) => {
-                try {
-                  if (!checkConfig.name || !checkConfig.url) {
-                    throw new Error("API check must have 'name' and 'url'");
-                  }
-
-                  const existing = existingByName.get(checkConfig.name);
-                  if (existing) {
-                    const localChannelIds = extractChannelIds(checkConfig);
-                    const remoteChannelIds = extractChannelIds(existing);
-                    const localAssertions = normalizeAssertions(checkConfig.assertions);
-                    const remoteAssertions = normalizeAssertions(existing.assertions);
-                    // Normalize both objects for comparison
-                    const normalizedLocal = normalizeResource(
-                      {
-                        name: checkConfig.name,
-                        description: checkConfig.description ?? '',
-                        url: checkConfig.url,
-                        method: checkConfig.method?.toUpperCase() || 'GET',
-                        headers: checkConfig.headers ?? {},
-                        body: checkConfig.body ?? '',
-                        cron_expression:
-                          checkConfig.cron_expression ??
-                          (checkConfig as { interval?: string }).interval ??
-                          null,
-                        timeout_ms: checkConfig.timeout_ms || 30000,
-                        alert_on_failure:
-                          checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
-                        channel_ids: localChannelIds,
-                        assertions: localAssertions,
-                      },
-                      {
-                        timeout_ms: 30000,
-                        alert_on_failure: true,
-                        method: 'GET',
-                        description: '',
-                        body: '',
-                      }
-                    );
-                    const normalizedRemote = normalizeResource(
-                      {
-                        name: existing.name,
-                        description: existing.description ?? '',
-                        url: existing.url,
-                        method: existing.method?.toUpperCase() || 'GET',
-                        headers: existing.headers ?? {},
-                        body: existing.body ?? '',
-                        cron_expression:
-                          existing.cron_expression ??
-                          (existing as { interval?: string }).interval ??
-                          null,
-                        timeout_ms: existing.timeout_ms || 30000,
-                        alert_on_failure: existing.alert_on_failure ?? true,
-                        channel_ids: remoteChannelIds,
-                        assertions: remoteAssertions,
-                      },
-                      {
-                        timeout_ms: 30000,
-                        alert_on_failure: true,
-                        method: 'GET',
-                        description: '',
-                        body: '',
-                      }
-                    );
-
-                    // Skip update if no changes
-                    if (deepEqual(normalizedLocal, normalizedRemote)) {
-                      logProgress(`API check unchanged: ${checkConfig.name}`);
-                      summary.apiChecks.unchanged++;
-                      return;
-                    }
-
-                    summary.apiChecks.updated++;
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'update',
-                        resource: 'api-check',
-                        name: checkConfig.name,
-                        diff: diffObjects(normalizedRemote, normalizedLocal),
-                      });
-                      return;
-                    }
-                    logProgress(`Updating API check: ${checkConfig.name}`);
-                    const effectiveBody = checkConfig.body ?? existing.body;
-                    const effectiveCron =
-                      checkConfig.cron_expression ??
-                      (checkConfig as { interval?: string }).interval ??
-                      existing.cron_expression;
-                    await apiClient.updateApiCheck(existing.id, {
-                      name: checkConfig.name || existing.name,
-                      description: checkConfig.description ?? existing.description ?? '',
-                      url: checkConfig.url || existing.url,
-                      method: checkConfig.method?.toUpperCase() || existing.method || 'GET',
-                      headers: checkConfig.headers ?? existing.headers,
-                      // Backend zod rejects null for body/cron_expression;
-                      // omit when the value would be null so the schema's
-                      // optional/nullable rules accept the payload.
-                      ...(effectiveBody !== null &&
-                        effectiveBody !== undefined && { body: effectiveBody }),
-                      ...(effectiveCron !== null &&
-                        effectiveCron !== undefined && { cron_expression: effectiveCron }),
-                      timeout_ms: checkConfig.timeout_ms || existing.timeout_ms || 30000,
-                      alert_on_failure:
-                        checkConfig.alert_on_failure ?? existing.alert_on_failure ?? true,
-                      channel_ids: localChannelIds,
-                      assertions: checkConfig.assertions ?? existing.assertions,
-                    });
-                  } else {
-                    summary.apiChecks.created++;
-                    const w = likelyRenameWarning(
-                      'API check',
-                      checkConfig.name,
-                      Array.from(existingByName.keys())
-                    );
-                    if (w) renameWarnings.push(w);
-                    if (isDryRun) {
-                      dryRunEntries.push({
-                        type: 'create',
-                        resource: 'api-check',
-                        name: checkConfig.name,
-                      });
-                      return;
-                    }
-                    logProgress(`Creating API check: ${checkConfig.name}`);
-                    await apiClient.createApiCheck({
-                      ...checkConfig,
-                      timeout_ms: checkConfig.timeout_ms || 30000,
-                      method: checkConfig.method?.toUpperCase() || 'GET',
-                    });
-                  }
-                } catch (err: unknown) {
-                  const errorObj = err as {
-                    response?: { data?: { error?: string; message?: string } };
-                    message?: string;
-                  };
-                  const details =
-                    errorObj.response?.data?.error ||
-                    errorObj.response?.data?.message ||
-                    errorObj.message;
-                  errors.push(`API Check '${checkConfig.name || 'unknown'}': ${details}`);
-                  summary.apiChecks.errors++;
-                }
-              })
-            );
-            if (i < chunks.length - 1) await delay(delayMs);
-          }
+          await processApiChecks(ctx, apiClient, config.api_checks, delayMs);
         }
 
         // 3. Process Heartbeats

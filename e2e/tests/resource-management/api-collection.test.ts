@@ -40,7 +40,7 @@ export async function testApiCollectionLifecycle() {
     assertSuccess(getResult, 'API collection get failed');
     const fetched = JSON.parse(getResult.stdout);
     const collection = fetched.data || fetched;
-    if (!collection.headers || collection.headers.Authorization !== 'Bearer test') {
+    if (collection.headers?.Authorization !== 'Bearer test') {
       throw new Error(`Expected header Authorization, got: ${JSON.stringify(collection.headers)}`);
     }
 

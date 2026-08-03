@@ -27,7 +27,7 @@ export default [
     },
     rules: {
       ...sharedRules,
-      // TODO(CQ-1): upgrade to 'error' once Batch 3 any-cleanup is complete
+      // CQ-1: stays warn until Batch 3 any-cleanup; then raise to error
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },

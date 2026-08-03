@@ -55,7 +55,7 @@ export async function testScheduleBulkLoopsPerIdAndReportsFailures() {
     data?: { action?: string; succeeded?: number; failed?: number; results?: { id: string }[] };
   };
   const data = parsed.data;
-  if (!data || data.action !== 'stop') {
+  if (data?.action !== 'stop') {
     throw new Error(`Expected action "stop", got: ${JSON.stringify(data)}`);
   }
   if (data.failed !== 2 || (data.results?.length ?? 0) !== 2) {

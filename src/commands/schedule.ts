@@ -32,6 +32,50 @@ const toInt = (val: unknown): number | undefined => {
   return Number.isNaN(n) ? undefined : n;
 };
 
+function collectUniqueScheduleIds(flagIds: string[], stdinIds: string[]): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const raw of [...flagIds, ...stdinIds]) {
+    const id = raw.trim();
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+async function runBulkScheduleAction(
+  apiClient: IApiClient,
+  action: BulkAction,
+  ids: string[],
+  isJson: boolean,
+  outputService: IOutputService
+): Promise<{
+  succeeded: number;
+  failed: number;
+  results: { id: string; success: boolean; error?: string }[];
+}> {
+  const act = (id: string) =>
+    action === 'stop' ? apiClient.stopSchedule(id) : apiClient.resumeSchedule(id);
+
+  const results: { id: string; success: boolean; error?: string }[] = [];
+  for (const id of ids) {
+    try {
+      await act(id);
+      results.push({ id, success: true });
+      if (!isJson) outputService.success(`${action}ped ${id}`);
+    } catch (error: unknown) {
+      const message = outputService.formatError(error);
+      results.push({ id, success: false, error: message });
+      if (!isJson) console.error(chalk.red(`  ✗ ${id}: ${message}`));
+    }
+  }
+
+  const succeeded = results.filter((r) => r.success).length;
+  return { succeeded, failed: results.length - succeeded, results };
+}
+
 /** Commander string flags arrive as strings; guard before stringifying so objects never leak "[object Object]". */
 const asFlagString = (val: unknown): string => {
   if (typeof val === 'string') return val;
@@ -275,21 +319,10 @@ export function createScheduleCommand(
             `Invalid bulk action "${action}". Expected one of: ${BULK_ACTIONS.join(', ')}`
           );
         }
+        const bulkAction = action as BulkAction;
         const flagIds = (opts.id as string[]) ?? [];
-        // Read stdin only when explicitly requested. Auto-reading on a non-TTY
-        // would hang whenever stdin is an open pipe with no data (CI, spawn
-        // without a closed stdin), so piping must opt in with --stdin.
         const stdinIds = opts.stdin === true ? parseIdsFromText(await readStdin()) : [];
-
-        const seen = new Set<string>();
-        const ids: string[] = [];
-        for (const raw of [...flagIds, ...stdinIds]) {
-          const id = raw.trim();
-          if (id && !seen.has(id)) {
-            seen.add(id);
-            ids.push(id);
-          }
-        }
+        const ids = collectUniqueScheduleIds(flagIds, stdinIds);
 
         if (ids.length === 0) {
           throw new Error(
@@ -297,31 +330,21 @@ export function createScheduleCommand(
           );
         }
 
-        const act = (id: string) =>
-          action === 'stop' ? apiClient.stopSchedule(id) : apiClient.resumeSchedule(id);
-
-        const results: { id: string; success: boolean; error?: string }[] = [];
-        for (const id of ids) {
-          try {
-            await act(id);
-            results.push({ id, success: true });
-            if (!isJson) outputService.success(`${action}ped ${id}`);
-          } catch (error: unknown) {
-            const message = outputService.formatError(error);
-            results.push({ id, success: false, error: message });
-            if (!isJson) console.error(chalk.red(`  ✗ ${id}: ${message}`));
-          }
-        }
-
-        const succeeded = results.filter((r) => r.success).length;
-        const failed = results.length - succeeded;
+        const { succeeded, failed, results } = await runBulkScheduleAction(
+          apiClient,
+          bulkAction,
+          ids,
+          isJson,
+          outputService
+        );
 
         if (isJson) {
-          outputService.formatJsonOutput({ action, succeeded, failed, results });
+          outputService.formatJsonOutput({ action: bulkAction, succeeded, failed, results });
         } else {
-          console.log(chalk.bold(`\n Bulk ${action}: ${succeeded} succeeded, ${failed} failed.\n`));
+          console.log(
+            chalk.bold(`\n Bulk ${bulkAction}: ${succeeded} succeeded, ${failed} failed.\n`)
+          );
         }
-        // Non-zero exit if any failed, so pipelines can detect partial failure.
         if (failed > 0) process.exit(1);
       } catch (error: unknown) {
         fail(isJson, outputService.formatError(error));
