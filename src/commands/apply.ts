@@ -854,6 +854,131 @@ function printDryRun(entries: DryRunEntry[], summary: ApplySummary): void {
   console.log(chalk.dim('  Run without --dry-run to apply.'));
 }
 
+function resolveApplyConfigFile(
+  fileArg: string | undefined,
+  options: Record<string, unknown>,
+  outputService: IOutputService
+): string {
+  let targetFile = (options.file as string) || fileArg || 'obs.json';
+  if (existsSync(targetFile)) return targetFile;
+
+  if (fileArg === 'obs.json' && existsSync('observeone.json')) {
+    return 'observeone.json';
+  }
+  if (!options.file && !fileArg && existsSync('observeone.json')) {
+    return 'observeone.json';
+  }
+
+  outputService.error(`Configuration file not found: ${targetFile}`);
+  process.exit(1);
+}
+
+function loadApplyConfigFromFile(
+  targetFile: string,
+  spinner: Ora | null,
+  outputService: IOutputService
+): ApplyConfig {
+  const fileContent = readFileSync(targetFile, 'utf-8');
+  let rawConfig: unknown;
+  try {
+    rawConfig = JSON.parse(fileContent);
+  } catch (e: unknown) {
+    const err = e as Error;
+    if (spinner) spinner.fail('Invalid JSON');
+    outputService.error(`Invalid JSON in ${targetFile}: ${err.message}`);
+    process.exit(1);
+  }
+
+  try {
+    return normalizeApplyConfig(rawConfig);
+  } catch (e: unknown) {
+    const err = e as Error;
+    if (spinner) spinner.fail('Invalid apply config');
+    outputService.error(err.message);
+    process.exit(1);
+  }
+}
+
+async function applyAllResourceSections(
+  ctx: ApplyCtx,
+  config: ApplyConfig,
+  apiClient: IApiClient,
+  outputService: IOutputService,
+  delayMs: number
+): Promise<void> {
+  if (config.monitors && Array.isArray(config.monitors)) {
+    await processUrlMonitors(ctx, apiClient, config.monitors, delayMs);
+  }
+  if (config.api_checks && Array.isArray(config.api_checks)) {
+    await processApiChecks(ctx, apiClient, config.api_checks, delayMs);
+  }
+  if (config.heartbeats && Array.isArray(config.heartbeats)) {
+    await processHeartbeats(ctx, apiClient, config.heartbeats, delayMs);
+  }
+  if (config.incidents && Array.isArray(config.incidents) && config.incidents.length > 0) {
+    outputService.warning(
+      'Incidents are runtime state and cannot be applied. Use `obs incident create` to manage incidents directly.'
+    );
+  }
+  if (config.alert_channels && Array.isArray(config.alert_channels)) {
+    await processAlertChannels(ctx, apiClient, config.alert_channels, delayMs);
+  }
+  if (config.status_pages && Array.isArray(config.status_pages)) {
+    await processStatusPages(ctx, apiClient, config.status_pages, delayMs);
+  }
+  if (config.suites && Array.isArray(config.suites)) {
+    await processSuites(ctx, apiClient, outputService, config.suites, delayMs);
+  }
+}
+
+function emitDryRunResult(
+  isJson: boolean,
+  dryRunEntries: DryRunEntry[],
+  summary: ApplySummary,
+  outputService: IOutputService
+): void {
+  if (isJson) {
+    outputService.formatJsonOutput({ dry_run: true, changes: dryRunEntries, summary });
+    return;
+  }
+  console.log('');
+  printDryRun(dryRunEntries, summary);
+}
+
+function emitApplySuccessSummary(
+  summary: ApplySummary,
+  errors: string[],
+  outputService: IOutputService
+): void {
+  outputService.success('Apply completed.');
+  console.log('');
+  console.log(
+    `  Monitors:       ${summary.monitors.created} created, ${summary.monitors.updated} updated, ${summary.monitors.unchanged} unchanged`
+  );
+  console.log(
+    `  API Checks:     ${summary.apiChecks.created} created, ${summary.apiChecks.updated} updated, ${summary.apiChecks.unchanged} unchanged`
+  );
+  console.log(
+    `  Heartbeats:     ${summary.heartbeats.created} created, ${summary.heartbeats.updated} updated, ${summary.heartbeats.unchanged} unchanged`
+  );
+  console.log(
+    `  Alert Channels: ${summary.alertChannels.created} created, ${summary.alertChannels.updated} updated, ${summary.alertChannels.unchanged} unchanged`
+  );
+  console.log(
+    `  Status Pages:   ${summary.statusPages.created} created, ${summary.statusPages.updated} updated, ${summary.statusPages.unchanged} unchanged`
+  );
+  console.log(
+    `  Suites:         ${summary.suites.created} created, ${summary.suites.updated} updated, ${summary.suites.unchanged} unchanged`
+  );
+
+  if (errors.length > 0) {
+    console.log('');
+    outputService.error('Some resources failed to apply:');
+    errors.forEach((e) => console.log(`  - ${e}`));
+    process.exit(1);
+  }
+}
+
 async function runApply(
   fileArg: string | undefined,
   options: Record<string, unknown>,
@@ -878,43 +1003,14 @@ async function runApply(
     }
 
     // Try to read the file
-    let targetFile = (options.file as string) || fileArg || 'obs.json';
-    if (!existsSync(targetFile)) {
-      if (fileArg === 'obs.json' && existsSync('observeone.json')) {
-        targetFile = 'observeone.json';
-      } else if (!options.file && !fileArg && existsSync('observeone.json')) {
-        targetFile = 'observeone.json';
-      } else {
-        outputService.error(`Configuration file not found: ${targetFile}`);
-        process.exit(1);
-      }
-    }
+    const targetFile = resolveApplyConfigFile(fileArg, options, outputService);
 
     if (!isVerbose && !isJson) {
       spinner = ora('Applying declarative configuration...').start();
     }
 
     logProgress(`Reading configuration from ${targetFile}...`);
-    const fileContent = readFileSync(targetFile, 'utf-8');
-    let rawConfig: unknown;
-    let config: ApplyConfig;
-    try {
-      rawConfig = JSON.parse(fileContent);
-    } catch (e: unknown) {
-      const err = e as Error;
-      if (spinner) spinner.fail('Invalid JSON');
-      outputService.error(`Invalid JSON in ${targetFile}: ${err.message}`);
-      process.exit(1);
-    }
-
-    try {
-      config = normalizeApplyConfig(rawConfig);
-    } catch (e: unknown) {
-      const err = e as Error;
-      if (spinner) spinner.fail('Invalid apply config');
-      outputService.error(err.message);
-      process.exit(1);
-    }
+    const config = loadApplyConfigFromFile(targetFile, spinner, outputService);
 
     const summary: ApplySummary = {
       monitors: { created: 0, updated: 0, unchanged: 0, errors: 0 },
@@ -939,36 +1035,7 @@ async function runApply(
       logProgress,
     };
 
-    if (config.monitors && Array.isArray(config.monitors)) {
-      await processUrlMonitors(ctx, apiClient, config.monitors, delayMs);
-    }
-
-    if (config.api_checks && Array.isArray(config.api_checks)) {
-      await processApiChecks(ctx, apiClient, config.api_checks, delayMs);
-    }
-
-    if (config.heartbeats && Array.isArray(config.heartbeats)) {
-      await processHeartbeats(ctx, apiClient, config.heartbeats, delayMs);
-    }
-
-    // 4. Incidents are export-only (runtime state, not config)
-    if (config.incidents && Array.isArray(config.incidents) && config.incidents.length > 0) {
-      outputService.warning(
-        'Incidents are runtime state and cannot be applied. Use `obs incident create` to manage incidents directly.'
-      );
-    }
-
-    if (config.alert_channels && Array.isArray(config.alert_channels)) {
-      await processAlertChannels(ctx, apiClient, config.alert_channels, delayMs);
-    }
-
-    if (config.status_pages && Array.isArray(config.status_pages)) {
-      await processStatusPages(ctx, apiClient, config.status_pages, delayMs);
-    }
-
-    if (config.suites && Array.isArray(config.suites)) {
-      await processSuites(ctx, apiClient, outputService, config.suites, delayMs);
-    }
+    await applyAllResourceSections(ctx, config, apiClient, outputService, delayMs);
 
     if (spinner) {
       spinner.stop();
@@ -980,12 +1047,7 @@ async function runApply(
     renameWarnings.forEach((w) => console.error(w));
 
     if (isDryRun) {
-      if (isJson) {
-        outputService.formatJsonOutput({ dry_run: true, changes: dryRunEntries, summary });
-      } else {
-        console.log('');
-        printDryRun(dryRunEntries, summary);
-      }
+      emitDryRunResult(isJson, dryRunEntries, summary, outputService);
       return;
     }
 
@@ -998,33 +1060,7 @@ async function runApply(
         process.exit(1);
       }
     } else {
-      outputService.success('Apply completed.');
-      console.log('');
-      console.log(
-        `  Monitors:       ${summary.monitors.created} created, ${summary.monitors.updated} updated, ${summary.monitors.unchanged} unchanged`
-      );
-      console.log(
-        `  API Checks:     ${summary.apiChecks.created} created, ${summary.apiChecks.updated} updated, ${summary.apiChecks.unchanged} unchanged`
-      );
-      console.log(
-        `  Heartbeats:     ${summary.heartbeats.created} created, ${summary.heartbeats.updated} updated, ${summary.heartbeats.unchanged} unchanged`
-      );
-      console.log(
-        `  Alert Channels: ${summary.alertChannels.created} created, ${summary.alertChannels.updated} updated, ${summary.alertChannels.unchanged} unchanged`
-      );
-      console.log(
-        `  Status Pages:   ${summary.statusPages.created} created, ${summary.statusPages.updated} updated, ${summary.statusPages.unchanged} unchanged`
-      );
-      console.log(
-        `  Suites:         ${summary.suites.created} created, ${summary.suites.updated} updated, ${summary.suites.unchanged} unchanged`
-      );
-
-      if (errors.length > 0) {
-        console.log('');
-        outputService.error('Some resources failed to apply:');
-        errors.forEach((e) => console.log(`  - ${e}`));
-        process.exit(1);
-      }
+      emitApplySuccessSummary(summary, errors, outputService);
     }
   } catch (error: unknown) {
     if (spinner) spinner.stop();
