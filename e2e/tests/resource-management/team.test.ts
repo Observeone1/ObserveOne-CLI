@@ -1,4 +1,5 @@
 import { runCLI, assertSuccess, assertJSON } from '../../lib/test-runner.js';
+import { parseFirstTeamId } from './team-helpers.js';
 
 export async function testTeamList() {
   console.log('      - Listing teams...');
@@ -12,16 +13,7 @@ export async function testTeamMembersOfFirstTeam() {
   const listResult = await runCLI(['team', 'list', '--json']);
   assertSuccess(listResult, 'Team list failed');
 
-  let teamId: string | number | undefined;
-  try {
-    const parsed = JSON.parse(listResult.stdout);
-    const teams = parsed.teams || parsed.data?.teams || [];
-    // Response shape: [{ role, teams: { id } }] or [{ id }]
-    teamId = teams[0]?.teams?.id ?? teams[0]?.id;
-  } catch {
-    // ignore
-  }
-
+  const teamId = parseFirstTeamId(listResult.stdout);
   if (!teamId) {
     console.log('      - No teams found, skipping member list test');
     return;
@@ -38,15 +30,7 @@ export async function testTeamRegenerateInvite() {
   const listResult = await runCLI(['team', 'list', '--json']);
   assertSuccess(listResult, 'Team list failed');
 
-  let teamId: string | number | undefined;
-  try {
-    const parsed = JSON.parse(listResult.stdout);
-    const teams = parsed.teams || parsed.data?.teams || [];
-    teamId = teams[0]?.teams?.id ?? teams[0]?.id;
-  } catch {
-    // ignore
-  }
-
+  const teamId = parseFirstTeamId(listResult.stdout);
   if (!teamId) {
     console.log('      - No teams found, skipping invite regeneration test');
     return;
@@ -56,7 +40,6 @@ export async function testTeamRegenerateInvite() {
   assertSuccess(inviteResult, 'Team invite regeneration failed');
   assertJSON(inviteResult.stdout, 'Team invite --json must output valid JSON');
 
-  // Check that inviteCode is present in the response
   const parsed = JSON.parse(inviteResult.stdout);
   const code = parsed.inviteCode || parsed.data?.inviteCode;
   if (!code) {
