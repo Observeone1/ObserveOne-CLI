@@ -6,6 +6,7 @@ import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
 import { requireConfirmation, requireTTY } from '../utils/confirm.js';
 import { reportActionError } from './id-action-command.js';
+import { collectOptionValues } from '../utils/cli-input.js';
 
 export function createApiKeyCommand(
   _configService: IConfigService,
@@ -46,12 +47,20 @@ export function createApiKeyCommand(
       }
     });
 
-  // obs api-key create --name <name> [--json]
+  // obs api-key create --name <name> [--scope <resource:read|write|*>]... [--json]
   cmd
     .command('create')
     .description('Create a new API key')
     .option('-n, --name <name>', 'API key name')
-    .action(async (options: { name?: string }) => {
+    .option(
+      '--scope <scope>',
+      'Capability scope to grant (repeatable). Omit to get the same scopes as ' +
+        'the key you are currently authenticated with — never broader. ' +
+        'See `obs api-key scopes` for the valid list.',
+      collectOptionValues,
+      []
+    )
+    .action(async (options: { name?: string; scope: string[] }) => {
       const isJson = process.env.OBS_JSON_OUTPUT === 'true';
       try {
         let name = options.name;
@@ -76,7 +85,8 @@ export function createApiKeyCommand(
           ]);
           name = answers.name as string;
         }
-        const apiKey = await apiClient.createApiKey(name);
+        const scopes = options.scope.length > 0 ? options.scope : undefined;
+        const apiKey = await apiClient.createApiKey(name, scopes);
         if (isJson) {
           outputService.formatJsonOutput({ apiKey });
           return;
@@ -86,6 +96,33 @@ export function createApiKeyCommand(
         reportActionError(err, {
           isJson,
           failureMessage: 'Failed to create API key',
+          outputService,
+          errorPrefix: '❌ ',
+        });
+      }
+    });
+
+  // obs api-key scopes [--json]
+  cmd
+    .command('scopes')
+    .description('List the full capability scope taxonomy, for --scope on create')
+    .action(async () => {
+      const isJson = process.env.OBS_JSON_OUTPUT === 'true';
+      try {
+        const scopes = await apiClient.getApiKeyScopes();
+        if (isJson) {
+          outputService.formatJsonOutput({ scopes });
+          return;
+        }
+        console.log(chalk.bold('\n Available scopes\n'));
+        for (const scope of scopes) {
+          console.log(chalk.white(` ${scope}`));
+        }
+        console.log('');
+      } catch (err: unknown) {
+        reportActionError(err, {
+          isJson,
+          failureMessage: 'Failed to fetch scope taxonomy',
           outputService,
           errorPrefix: '❌ ',
         });

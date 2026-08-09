@@ -1184,10 +1184,20 @@ export class ApiClient implements IApiClient {
     return (response.data as { apiKeys: ApiKey[] }).apiKeys || [];
   }
 
-  async createApiKey(name: string): Promise<ApiKey> {
-    const response = await this.client.post<{ apiKey: ApiKey } | ApiKey>('/api-keys', { name });
+  async createApiKey(name: string, scopes?: string[]): Promise<ApiKey> {
+    // The CLI always authenticates with its own stored api_key, so an omitted `scopes`
+    // clamps to that key's own scopes server-side — never the session path's [] default.
+    const response = await this.client.post<{ apiKey: ApiKey } | ApiKey>('/api-keys', {
+      name,
+      ...(scopes ? { scopes } : {}),
+    });
     const data = response.data as { apiKey?: ApiKey };
     return data.apiKey || (response.data as ApiKey);
+  }
+
+  async getApiKeyScopes(): Promise<string[]> {
+    const response = await this.client.get<{ scopes: string[] }>('/api-keys/scopes');
+    return response.data.scopes;
   }
 
   async deleteApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }> {

@@ -173,7 +173,8 @@ export interface IApiClient {
 
   // API Keys
   getApiKeys(): Promise<ApiKey[]>;
-  createApiKey(name: string): Promise<ApiKey>;
+  createApiKey(name: string, scopes?: string[]): Promise<ApiKey>;
+  getApiKeyScopes(): Promise<string[]>;
   deleteApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }>;
   toggleApiKey(id: string): Promise<{ message: string; apiKey: ApiKey }>;
 
