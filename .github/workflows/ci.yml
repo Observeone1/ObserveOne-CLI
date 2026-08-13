@@ -126,6 +126,12 @@ jobs:
           node dist/index.js --help
 
   sonar:
+    # Dependabot runs get the Dependabot secret store, not the Actions one, so
+    # SONAR_HOST_URL resolves to empty and the scanner dies on "URI with
+    # undefined scheme". Skipped rather than copying the token into that store:
+    # a lockfile bump does not need a Sonar gate, and the token is worth more
+    # than the check.
+    if: github.actor != 'dependabot[bot]'
     # ubuntu-slim (used by every other job) has no Docker; the scan action
     # needs a real runner to download its native scanner binary.
     runs-on: ubuntu-latest
