@@ -33,6 +33,11 @@ obs login --skip-setup   # Skip the project-config prompts after login
 obs logout               # Clear local credentials
 ```
 
+Every `obs login` mints a fresh API key and leaves any previous keys active,
+so a login on a second machine never breaks the first. Revoke stale keys in
+the dashboard under Settings → API (rows show a preview only — keys are
+show-once and cannot be revealed again).
+
 ## Project setup and resource discovery
 
 `init`, `schema`, `validate`, and `templates` all work offline against bundled schemas. No login required. They cover the core resource types (`monitor`, `check`, `heartbeat`, `alert-channel`, `status-page`, `incident`); run `obs templates list` for the authoritative set. Resource-name aliases: `api-check` resolves to `check`, `url-monitor` to `monitor`.
