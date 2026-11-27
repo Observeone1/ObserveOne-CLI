@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import { ApiClient } from '../../services/api-client.service.js';
 import { createMockConfigService, mockClientMethods } from './api-client-test-support.js';
 
@@ -181,22 +182,24 @@ describe('ApiClient misc methods', () => {
       expect(result).toEqual(body);
     });
 
-    it('requestCliAuth POSTs to the request endpoint and returns the auth url', async () => {
-      const body = { request_id: 'r1', auth_url: 'https://app/auth' };
+    it('binds browser login to a poll secret: sha256 challenge on request, secret on poll', async () => {
+      const body = { request_id: 'r1', auth_url: 'https://app/auth?request_id=r1' };
       const post = vi.fn().mockResolvedValue({ data: body });
-      mockClientMethods(apiClient, { post });
-      const result = await apiClient.requestCliAuth();
-      expect(post).toHaveBeenCalledWith('/cli/auth/request');
-      expect(result).toEqual(body);
-    });
+      const approved = { status: 'approved', api_key: 'sk_1' };
+      const get = vi.fn().mockResolvedValue({ data: approved });
+      mockClientMethods(apiClient, { post, get });
 
-    it('checkCliAuthStatus GETs the request status', async () => {
-      const body = { status: 'approved', api_key: 'sk_1' };
-      const get = vi.fn().mockResolvedValue({ data: body });
-      mockClientMethods(apiClient, { get });
-      const result = await apiClient.checkCliAuthStatus('r1');
-      expect(get).toHaveBeenCalledWith('/cli/auth/check/r1');
-      expect(result).toEqual(body);
+      expect(await apiClient.requestCliAuth()).toEqual(body);
+      const [url, payload] = post.mock.calls[0];
+      expect(url).toBe('/cli/auth/request');
+      expect(payload.poll_challenge).toMatch(/^[0-9a-f]{64}$/);
+
+      expect(await apiClient.checkCliAuthStatus('r1')).toEqual(approved);
+      const [checkUrl, checkConfig] = get.mock.calls[0];
+      expect(checkUrl).toBe('/cli/auth/check/r1');
+      const secret = checkConfig.headers['x-cli-poll-secret'];
+      expect(secret).toMatch(/^[0-9a-f]{64}$/);
+      expect(createHash('sha256').update(secret).digest('hex')).toBe(payload.poll_challenge);
     });
   });
 

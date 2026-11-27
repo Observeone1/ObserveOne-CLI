@@ -4,6 +4,7 @@ import { brand } from '../utils/theme.js';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { IOutputService } from '../interfaces/output.interface.js';
+import { InvalidPollSecretError } from '../services/api-client.service.js';
 import open from 'open';
 
 /** Runs the `--headless` (email/password → M2M API key) auth flow. Always exits the process. */
@@ -126,6 +127,13 @@ export async function pollForAuth(
     try {
       status = await apiClient.checkCliAuthStatus(requestId);
     } catch (error: unknown) {
+      // The backend rejected this run's poll secret: retrying cannot succeed.
+      if (error instanceof InvalidPollSecretError) {
+        outputService.error(
+          'Login failed: the server rejected this login session (invalid poll secret). Run "obs login" again.'
+        );
+        process.exit(1);
+      }
       // If 404 or other error, might be expired or invalid — keep polling until
       // maxAttempts, but surface the reason under OBS_VERBOSE for diagnosis.
       if (process.env.OBS_VERBOSE === 'true') {

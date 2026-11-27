@@ -266,13 +266,7 @@ export interface AlertChannelConfig {
 }
 
 export type AlertChannelType =
-  | 'email'
-  | 'slack'
-  | 'discord'
-  | 'teams'
-  | 'telegram'
-  | 'sms'
-  | 'webhook';
+  'email' | 'slack' | 'discord' | 'teams' | 'telegram' | 'sms' | 'webhook';
 
 export interface AlertChannel {
   id: string;
@@ -326,13 +320,7 @@ export interface IncidentListResponse {
 }
 
 export type SuiteStatus =
-  | 'pending'
-  | 'crawling'
-  | 'planning'
-  | 'generating'
-  | 'healing'
-  | 'scheduled'
-  | 'failed';
+  'pending' | 'crawling' | 'planning' | 'generating' | 'healing' | 'scheduled' | 'failed';
 
 export type SuiteExecutionStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 export type SuiteTestResultStatus = 'PASSED' | 'FAILED' | 'SKIPPED' | 'PENDING';
