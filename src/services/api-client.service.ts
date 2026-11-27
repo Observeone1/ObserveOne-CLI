@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { createHash, randomBytes } from 'node:crypto';
 import { IConfigService } from '../interfaces/config.interface.js';
 import { IApiClient } from '../interfaces/api-client.interface.js';
 import { mapSuiteCiIntegration } from '../utils/suite-ci-mapper.js';
@@ -39,6 +40,20 @@ const PROTOCOL_MONITOR_PATHS: Record<ProtocolMonitorKind, string> = {
   db: '/db-monitors',
 };
 
+/** Header carrying the browser-login poll secret on `GET /cli/auth/check/:id`. */
+const CLI_POLL_SECRET_HEADER = 'x-cli-poll-secret';
+
+/**
+ * The backend refused a browser-login poll because the poll secret did not
+ * match the challenge sent with the auth request. Retrying cannot succeed.
+ */
+export class InvalidPollSecretError extends Error {
+  constructor() {
+    super('Invalid poll secret');
+    this.name = 'InvalidPollSecretError';
+  }
+}
+
 /**
  * API Client implementation
  * Handles HTTP communication with ObserveOne backend
@@ -48,6 +63,8 @@ export class ApiClient implements IApiClient {
   private apiKey: string | undefined;
   private readonly configService: IConfigService;
   private offHostWarned = false;
+  /** Browser-login poll secrets by request_id. Memory only: never logged or persisted. */
+  private readonly cliPollSecrets = new Map<string, string>();
 
   constructor(configService: IConfigService, version: string = '1.0.1') {
     this.configService = configService;
@@ -93,6 +110,10 @@ export class ApiClient implements IApiClient {
           );
         }
         if (error.response?.status === 403) {
+          const data = error.response.data;
+          if (data?.message === 'Invalid poll secret' || data?.error === 'Invalid poll secret') {
+            throw new InvalidPollSecretError();
+          }
           throw new Error('Access denied. You do not have permission to perform this action.');
         }
         if (error.response?.status === 404) {
@@ -1266,10 +1287,17 @@ export class ApiClient implements IApiClient {
   }
 
   async requestCliAuth(): Promise<{ request_id: string; auth_url: string }> {
+    // The request_id travels inside auth_url (browser history, screen shares,
+    // logs), so it alone must not be enough to collect the API key. Bind the
+    // session to a secret that never leaves this process: the backend stores
+    // only its SHA-256 and every poll must present the secret itself.
+    const pollSecret = randomBytes(32).toString('hex');
+    const pollChallenge = createHash('sha256').update(pollSecret).digest('hex');
     const response = await this.client.post<{
       request_id: string;
       auth_url: string;
-    }>('/cli/auth/request');
+    }>('/cli/auth/request', { poll_challenge: pollChallenge });
+    this.cliPollSecrets.set(response.data.request_id, pollSecret);
     return response.data;
   }
 
@@ -1277,10 +1305,17 @@ export class ApiClient implements IApiClient {
     status: 'pending' | 'approved' | 'denied';
     api_key?: string;
   }> {
+    const pollSecret = this.cliPollSecrets.get(requestId);
     const response = await this.client.get<{
       status: 'pending' | 'approved' | 'denied';
       api_key?: string;
-    }>(`/cli/auth/check/${requestId}`);
+    }>(
+      `/cli/auth/check/${requestId}`,
+      pollSecret ? { headers: { [CLI_POLL_SECRET_HEADER]: pollSecret } } : undefined
+    );
+    if (response.data.status !== 'pending') {
+      this.cliPollSecrets.delete(requestId);
+    }
     return response.data;
   }
 }
